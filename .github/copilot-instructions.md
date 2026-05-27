@@ -21,7 +21,7 @@ Personal budget and bank accounts tracking web app for 1 owner + 2–5 invited f
 - **Current balance** = `initial_balance` + SUM of non-deleted transactions.
 
 ## Database Tables
-`profiles`, `accounts`, `categories`, `transactions`, `budgets`, `subscriptions`, `savings_goals`, `csv_import_rules`
+`profiles`, `accounts`, `categories`, `transactions`, `budgets`, `fixed_charges`, `savings_goals`, `csv_import_rules`
 
 ## Code Conventions
 - Always validate inputs with **Zod** before any Supabase call.
@@ -38,4 +38,4 @@ Personal budget and bank accounts tracking web app for 1 owner + 2–5 invited f
 - Auto-detect format from headers. Deduplicate by hash of `(date + description + amount_cents)`.
 
 ## Navigation Structure
-Dashboard / Accounts / Expenses / Incomes / Transfers / Budget / Subscriptions / Goals
+Dashboard / Accounts / Expenses / Incomes / Transfers / Budget / Fixed Charges / Goals
