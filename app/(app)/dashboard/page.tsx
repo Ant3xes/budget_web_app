@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient();
 
-  const [accountsResult, transactionsResult, budgetsResult, subscriptionsResult] = await Promise.all([
+  const [accountsResult, transactionsResult, budgetsResult, fixedChargesResult] = await Promise.all([
     supabase
       .from("accounts")
       .select("initial_balance_cents")
@@ -16,10 +16,11 @@ export default async function DashboardPage() {
       .limit(10),
     supabase.from("budgets").select("id").is("deleted_at", null),
     supabase
-      .from("subscriptions")
-      .select("name, next_charge_at")
+      .from("fixed_charges")
+      .select("name, next_due_date")
       .is("deleted_at", null)
-      .order("next_charge_at", { ascending: true })
+      .eq("status", "active")
+      .order("next_due_date", { ascending: true })
       .limit(5),
   ]);
 
@@ -45,8 +46,8 @@ export default async function DashboardPage() {
           <p className="mt-1 text-xl font-semibold">{budgetsResult.data?.length ?? 0}</p>
         </article>
         <article className="rounded-lg bg-white p-4 shadow-sm">
-          <h2 className="text-sm text-zinc-500">Upcoming subscriptions</h2>
-          <p className="mt-1 text-xl font-semibold">{subscriptionsResult.data?.length ?? 0}</p>
+          <h2 className="text-sm text-zinc-500">Active fixed charges</h2>
+          <p className="mt-1 text-xl font-semibold">{fixedChargesResult.data?.length ?? 0}</p>
         </article>
       </div>
 

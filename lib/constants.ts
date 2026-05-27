@@ -13,7 +13,7 @@ export const NAV_ITEMS = [
   { href: "/incomes", label: "Incomes" },
   { href: "/transfers", label: "Transfers" },
   { href: "/budget", label: "Budget" },
-  { href: "/subscriptions", label: "Subscriptions" },
+  { href: "/fixed-charges", label: "Fixed Charges" },
   { href: "/goals", label: "Goals" },
   { href: "/invitations", label: "Invitations" },
 ] as const;
