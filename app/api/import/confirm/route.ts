@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -8,8 +10,9 @@ const importRowSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   description: z.string().trim().min(1).max(255),
   amount_cents: z.number().int(),
-  kind: z.enum(["expense", "income"]),
+  kind: z.enum(["expense", "income", "transfer"]),
   category_id: z.string().uuid().nullable().optional(),
+  transfer_account_id: z.string().uuid().nullable().optional(),
 });
 
 const confirmSchema = z.object({
@@ -27,26 +30,74 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await request.json() as unknown;
   const payload = confirmSchema.safeParse(body);
   if (!payload.success) {
-    return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
+    const issue = payload.error.issues[0];
+    const path = issue?.path?.join(".") ?? "";
+    const msg = issue?.message ?? "Invalid data";
+    return NextResponse.json({ error: path ? `${path}: ${msg}` : msg }, { status: 400 });
   }
 
   const { account_id, transactions } = payload.data;
 
-  const rows = transactions.map((tx) => ({
-    user_id: user.id,
-    account_id,
-    kind: tx.kind,
-    amount_cents: tx.amount_cents,
-    currency: "EUR",
-    date: tx.date,
-    description: tx.description,
-    category_id: tx.category_id ?? null,
-    is_imported: true,
-    raw_import_data: { hash: tx.hash },
-  }));
+  // Build all rows, including mirror transactions for paired transfers
+  type Row = {
+    user_id: string;
+    account_id: string;
+    kind: string;
+    amount_cents: number;
+    currency: string;
+    date: string;
+    description: string;
+    category_id: string | null;
+    transfer_id: string | null;
+    is_imported: boolean;
+    raw_import_data: Record<string, unknown> | null;
+  };
+
+  const rows: Row[] = [];
+  for (const tx of transactions) {
+    const isTransfer = tx.kind === "transfer";
+    const mainKind = isTransfer
+      ? tx.amount_cents < 0
+        ? "transfer_debit"
+        : "transfer_credit"
+      : tx.kind;
+    const transferId = isTransfer && tx.transfer_account_id ? randomUUID() : null;
+
+    rows.push({
+      user_id: user.id,
+      account_id,
+      kind: mainKind,
+      amount_cents: tx.amount_cents,
+      currency: "EUR",
+      date: tx.date,
+      description: tx.description,
+      category_id: isTransfer ? null : (tx.category_id ?? null),
+      transfer_id: transferId,
+      is_imported: true,
+      raw_import_data: { hash: tx.hash },
+    });
+
+    // If a counterpart account was selected, create the mirror transaction
+    if (isTransfer && tx.transfer_account_id && transferId) {
+      const mirrorKind = mainKind === "transfer_debit" ? "transfer_credit" : "transfer_debit";
+      rows.push({
+        user_id: user.id,
+        account_id: tx.transfer_account_id,
+        kind: mirrorKind,
+        amount_cents: -tx.amount_cents,
+        currency: "EUR",
+        date: tx.date,
+        description: tx.description,
+        category_id: null,
+        transfer_id: transferId,
+        is_imported: false,
+        raw_import_data: null,
+      });
+    }
+  }
 
   const { error } = await supabase.from("transactions").insert(rows);
 
@@ -54,5 +105,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, imported: rows.length });
+  // Report only the directly imported rows (not the auto-generated mirrors)
+  const importedCount = transactions.length;
+  return NextResponse.json({ ok: true, imported: importedCount });
 }

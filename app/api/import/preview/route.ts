@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 
 import { NextResponse } from "next/server";
 
-import { buildRuleMatcher } from "@/lib/import/apply-rules";
+import { buildDefaultMatcher, buildHistoryMatcher, buildRuleMatcher, detectTransfer } from "@/lib/import/apply-rules";
 import { buildHash, findExistingHashes } from "@/lib/import/deduplicate";
 import { detectFormat } from "@/lib/import/detect-format";
 import { parseBnpXls } from "@/lib/import/parse-bnp";
@@ -79,14 +79,35 @@ export async function POST(request: Request) {
   const allHashes = hashed.map((tx) => tx.hash);
   const existingHashes = await findExistingHashes(supabase, user.id, allHashes);
 
-  // Build rule matcher for auto-categorization
-  const matcher = await buildRuleMatcher(supabase, user.id);
+  // Build matchers for auto-categorization (rules > history > built-in defaults)
+  const [ruleMatcher, historyMatcher, categoriesData] = await Promise.all([
+    buildRuleMatcher(supabase, user.id),
+    buildHistoryMatcher(supabase, user.id),
+    supabase
+      .from("categories")
+      .select("id, name, kind")
+      .eq("user_id", user.id)
+      .is("deleted_at", null),
+  ]);
 
-  // Determine kind from amount sign and apply auto-categorization
+  const categories = (categoriesData.data ?? []) as { id: string; name: string; kind: "expense" | "income" }[];
+  const defaultMatcher = buildDefaultMatcher(categories);
+
+  // Determine kind from amount sign; flag transfer candidates separately
+  // Track hashes seen within this file to mark intra-file duplicates
+  const seenInFile = new Set<string>();
   const preview = hashed.map((tx) => {
+    const isDuplicate = existingHashes.has(tx.hash) || seenInFile.has(tx.hash);
+    seenInFile.add(tx.hash);
+
+    const is_transfer_candidate = detectTransfer(tx.description);
     const kind: "expense" | "income" = tx.amount_cents < 0 ? "expense" : "income";
-    const suggestedCategoryId = matcher(tx.description, kind);
-    const isDuplicate = existingHashes.has(tx.hash);
+    const suggestedCategoryId = isDuplicate || is_transfer_candidate
+      ? null
+      : (ruleMatcher(tx.description, kind) ??
+        historyMatcher(tx.description, kind) ??
+        defaultMatcher(tx.description, kind) ??
+        null);
 
     return {
       hash: tx.hash,
@@ -95,6 +116,7 @@ export async function POST(request: Request) {
       amount_cents: tx.amount_cents,
       kind,
       suggested_category_id: suggestedCategoryId,
+      is_transfer_candidate,
       is_duplicate: isDuplicate,
     };
   });

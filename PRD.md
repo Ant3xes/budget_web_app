@@ -1,6 +1,6 @@
 # PRD — Application Web "Budget & Comptes"
 
-> **Version** : 1.5 — Avancement phases 1–4
+> **Version** : 1.8 — Mode nuit (dark mode)
 > **Date** : 28 mai 2026
 > **Statut** : Phase 4 en cours
 > **Auteur** : Usage personnel + cercle restreint d'amis
@@ -237,9 +237,11 @@ Date operation | Categorie operation | Sous Categorie operation | Libelle operat
 1. Upload fichier (`.csv` ou `.xls/.xlsx`)
 2. Détection automatique du format basée sur les en-têtes
 3. Parsing et prévisualisation dans un tableau (checkbox par ligne)
-4. **Déduplication** : hash sur `(date + description + amount_cents)` — doublon ignoré avec warning
-5. **Catégorisation auto** : règles mot-clé configurables (ex : `ORANGE` → Télécom & Internet)
-6. Import confirmé → transactions insérées en base
+4. **Déduplication** : hash sur `(date + description + amount_cents)` — doublon **grisé et décoché par défaut**, mais sélectionnable manuellement (fond ambré) pour import forcé
+5. **Doublons intra-fichier** : deux occurrences identiques dans le même fichier → la 2ème est marquée doublon (via `seenInFile` côté serveur)
+6. **Architecture `rowId`** : chaque ligne reçoit un identifiant unique (`e_0`, `e_1`… / `i_0`, `i_1`…) indépendant du hash — évite tout couplage d'état entre doublons
+7. **Catégorisation auto** : règles mot-clé configurables (ex : `ORANGE` → Télécom & Internet)
+8. Import confirmé → transactions insérées en base
 
 > **BNP spécifique** : La ligne 1 du fichier contient le solde du compte (`Solde au DD/MM/YYYY | X.XX | EUR`). Cette ligne est **ignorée** lors de l'import — le solde initial du compte est géré manuellement dans l'app.
 
@@ -373,6 +375,12 @@ created_at  TIMESTAMPTZ DEFAULT NOW()
 - [x] Import BNP XLS (SheetJS, gestion ligne d'en-tête non standard)
 - [x] Transfers entre comptes (transaction liée débit/crédit + `transfer_id`)
 - [x] Règles d'import par mots-clés (`csv_import_rules`)
+- [x] **[Amélioration Phase 4]** Sélection manuelle des doublons (fond ambré, décoché par défaut)
+- [x] **[Amélioration Phase 4]** Architecture `rowId` — découplage des maps d'état par rapport au hash
+- [x] **[Amélioration Phase 4]** Déduplication intra-fichier côté serveur (`seenInFile`)
+- [x] **[Amélioration Phase 4]** Reconnaissance auto par historique (`buildHistoryMatcher`) — fallback sur les transactions déjà catégorisées quand aucune règle ne correspond ; `suggestion_source: 'rule' | 'history' | null` dans le preview
+- [x] **[Amélioration Phase 4]** Catégorisation rétroactive — bouton "Catégoriser" dans la liste des transactions, preview groupé par catégorie, `POST /api/transactions/apply-rules` (max 500, Zod, RLS)
+- [x] **[Amélioration Phase 4]** Import depuis la page Comptes — bouton global sur `/accounts`, `ImportModal` avec `kind` optionnel déclenchant un flow en 2 étapes (dépenses → revenus, 1 seul appel `POST /api/import/confirm`). Rétrocompat totale du flow single-kind depuis `/expenses` et `/incomes`.
 
 ### Phase 3 — Budget & Analytics ✅ (Semaines 5–6)
 - [x] Module Budget (enveloppes mensuelles + barre de progression colorée + recopie mois précédent)
@@ -382,7 +390,15 @@ created_at  TIMESTAMPTZ DEFAULT NOW()
 - [x] Correction bug solde Dashboard (prise en compte `initial_balance_cents` par compte)
 
 ### Phase 4 — Finition 🚧 (Semaines 7–8)
-- [x] Tests Vitest (unit/integration) + Playwright (E2E)
+- [x] Tests Vitest (unit/integration) + Playwright (E2E) — 87 tests au total :
+  - `unit/apply-rules.test.ts` (24 tests) : `detectTransfer`, `buildDefaultMatcher`, `buildHistoryMatcher`, `buildRuleMatcher`
+  - `unit/deduplicate.test.ts` (9 tests) : `buildHash`, `findExistingHashes`
+  - `unit/detect-format.test.ts` (4 tests), `unit/parse-n26.test.ts` (10 tests), `unit/parse-bnp.test.ts` (8 tests)
+  - `api/import-preview.test.ts` (13 tests) : auth, validations, preview shape, doublons, transfers, catégorisation
+  - `api/import-confirm.test.ts` (14 tests) : auth, Zod, expense/income/transfer ±contrepartie, erreur DB
+  - `api/savings-goals.test.ts` (5 tests)
+  - E2E : 4 tests import dans `e2e/features.spec.ts`
+- [x] **Mode nuit (dark mode)** : `ThemeProvider` + toggle soleil/lune dans le header, script anti-FOUC, `color-scheme: dark` sur les date inputs, variantes `dark:` sur 35+ composants/pages, Recharts avec couleurs dynamiques via `useTheme()`, pages login/signup incluses (issue #11)
 - [ ] Profil utilisateur : modification nom d'affichage + changement de mot de passe (`/settings/profile`)
 - [ ] Détail de compte : `/accounts/[id]` → historique transactions filtrables + graphique Recharts évolution du solde
 - [ ] Page roadmap `/plan` : accessible sans auth, statique, résumé phases + décisions d'archi

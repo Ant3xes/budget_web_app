@@ -16,7 +16,9 @@ export function buildHash(tx: Pick<ParsedTransaction, "date" | "description" | "
 /**
  * Given a list of parsed transactions (with their hashes), returns the set of
  * hashes that already exist in the DB for this user.
- * The raw_import_data column is expected to store { hash: "..." }.
+ * Checks both:
+ *   1. Previously imported transactions via their stored hash (raw_import_data->>'hash')
+ *   2. All transactions (manual + mirror) by computing date|description|amount_cents hash
  */
 export async function findExistingHashes(
   supabase: SupabaseClient,
@@ -25,26 +27,41 @@ export async function findExistingHashes(
 ): Promise<Set<string>> {
   if (hashes.length === 0) return new Set();
 
-  // We store the hash inside raw_import_data->>'hash'
-  // Use a filter on the jsonb column
+  const hashSet = new Set(hashes);
   const existing = new Set<string>();
 
-  // Supabase doesn't support jsonb containment filter via the JS client directly,
-  // so we query all imported transactions for this user and filter client-side.
-  // For large datasets this could be optimised with a DB-side hash column — phase 4 concern.
-  const { data } = await supabase
-    .from("transactions")
-    .select("raw_import_data")
-    .eq("user_id", userId)
-    .eq("is_imported", true)
-    .is("deleted_at", null)
-    .not("raw_import_data", "is", null);
+  // Run both queries in parallel
+  const [importedRes, allRes] = await Promise.all([
+    // 1. Imported transactions: match by stored hash in raw_import_data
+    supabase
+      .from("transactions")
+      .select("raw_import_data")
+      .eq("user_id", userId)
+      .eq("is_imported", true)
+      .is("deleted_at", null)
+      .not("raw_import_data", "is", null),
 
-  for (const row of data ?? []) {
+    // 2. All transactions (manual, mirrors, etc.): compute hash client-side
+    supabase
+      .from("transactions")
+      .select("date, description, amount_cents")
+      .eq("user_id", userId)
+      .eq("is_imported", false)
+      .is("deleted_at", null),
+  ]);
+
+  for (const row of importedRes.data ?? []) {
     const h = (row.raw_import_data as { hash?: string } | null)?.hash;
-    if (h && hashes.includes(h)) {
-      existing.add(h);
-    }
+    if (h && hashSet.has(h)) existing.add(h);
+  }
+
+  for (const row of allRes.data ?? []) {
+    const h = buildHash({
+      date: row.date as string,
+      description: row.description as string,
+      amount_cents: row.amount_cents as number,
+    });
+    if (hashSet.has(h)) existing.add(h);
   }
 
   return existing;

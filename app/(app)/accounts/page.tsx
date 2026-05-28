@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AccountForm } from "@/components/accounts/account-form";
+import { AccountsImportButton } from "@/components/accounts/accounts-import-button";
 import { DeleteAccountButton } from "@/components/accounts/delete-account-button";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -25,9 +26,12 @@ export default async function AccountsPage() {
 
   return (
     <section className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Accounts</h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Balance = initial balance + sum of non-deleted transactions.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Accounts</h1>
+          <p className="mt-1 text-sm text-zinc-600">Balance = initial balance + sum of non-deleted transactions.</p>
+        </div>
+        <AccountsImportButton />
       </div>
 
       <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">

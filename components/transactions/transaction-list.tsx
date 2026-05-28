@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
 import { ImportModal } from "@/components/import/import-modal";
 import { TransactionModal } from "@/components/transactions/transaction-modal";
 
@@ -63,6 +64,7 @@ export function TransactionList({ kind }: TransactionListProps) {
   // Modals
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showApplyRules, setShowApplyRules] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   const totalPages = Math.ceil(total / PER_PAGE);
@@ -136,6 +138,13 @@ export function TransactionList({ kind }: TransactionListProps) {
           {kind === "expense" ? "Dépenses" : "Revenus"}
         </h1>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowApplyRules(true)}
+            className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            title="Appliquer les règles d'import aux transactions sans catégorie"
+          >
+            Catégoriser
+          </button>
           <button
             onClick={() => setShowImport(true)}
             className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
@@ -362,6 +371,18 @@ export function TransactionList({ kind }: TransactionListProps) {
             void load(page);
           }}
           onClose={() => setEditingTransaction(null)}
+        />
+      )}
+
+      {showApplyRules && (
+        <ApplyRulesModal
+          kind={kind}
+          onSuccess={() => {
+            setShowApplyRules(false);
+            void load(1);
+            setPage(1);
+          }}
+          onClose={() => setShowApplyRules(false)}
         />
       )}
 
