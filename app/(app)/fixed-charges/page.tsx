@@ -1,8 +1,10 @@
+import { FixedChargesList } from "@/components/fixed-charges/fixed-charges-list";
+
 export default function FixedChargesPage() {
   return (
-    <section className="rounded-lg bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-semibold">Fixed Charges</h1>
-      <p className="mt-2 text-sm text-zinc-600">This section is wired in navigation for Phase 1 and will be expanded in subsequent phases.</p>
+    <section className="space-y-4 p-6">
+      <h1 className="text-2xl font-semibold">Charges fixes</h1>
+      <FixedChargesList />
     </section>
   );
 }

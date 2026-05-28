@@ -27,22 +27,22 @@ export default async function AccountsPage() {
     <section className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Accounts</h1>
-        <p className="mt-1 text-sm text-zinc-600">Balance = initial balance + sum of non-deleted transactions.</p>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Balance = initial balance + sum of non-deleted transactions.</p>
       </div>
 
-      <article className="rounded-lg bg-white p-4 shadow-sm">
+      <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
         <h2 className="text-lg font-medium">Create account</h2>
         <div className="mt-3 max-w-md">
           <AccountForm />
         </div>
       </article>
 
-      <article className="rounded-lg bg-white p-4 shadow-sm">
+      <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
         <h2 className="text-lg font-medium">Your accounts</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 text-left text-zinc-500">
+              <tr className="border-b border-zinc-200 text-left text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                 <th className="py-2 pr-2">Name</th>
                 <th className="py-2 pr-2">Type</th>
                 <th className="py-2 pr-2">Current balance</th>
@@ -57,7 +57,7 @@ export default async function AccountsPage() {
                 const balance = Number(account.initial_balance_cents) + transactionsSum;
 
                 return (
-                  <tr key={account.id} className="border-b border-zinc-100">
+                  <tr key={account.id} className="border-b border-zinc-100 dark:border-zinc-800">
                     <td className="py-2 pr-2">{account.name}</td>
                     <td className="py-2 pr-2">{account.type}</td>
                     <td className="py-2 pr-2">
@@ -67,7 +67,7 @@ export default async function AccountsPage() {
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/accounts/${account.id}`}
-                          className="rounded-md border border-zinc-300 px-2 py-1 text-xs"
+                          className="rounded-md border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600 dark:text-zinc-300"
                         >
                           Edit
                         </Link>
@@ -79,7 +79,7 @@ export default async function AccountsPage() {
               })}
             </tbody>
           </table>
-          {!accounts.length ? <p className="mt-2 text-sm text-zinc-500">No accounts yet.</p> : null}
+          {!accounts.length ? <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">No accounts yet.</p> : null}
         </div>
       </article>
     </section>

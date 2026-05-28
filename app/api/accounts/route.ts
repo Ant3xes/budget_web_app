@@ -27,6 +27,26 @@ const withUser = async () => {
   return { supabase, user };
 };
 
+export async function GET() {
+  const auth = await withUser();
+  if (!auth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { data, error } = await auth.supabase
+    .from("accounts")
+    .select("id, name, type, currency, initial_balance_cents")
+    .eq("user_id", auth.user.id)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ accounts: data ?? [] });
+}
+
 export async function POST(request: Request) {
   const auth = await withUser();
   if (!auth) {

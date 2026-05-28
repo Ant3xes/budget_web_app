@@ -25,7 +25,7 @@ export default async function EditAccountPage({
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Edit account</h1>
-      <article className="max-w-md rounded-lg bg-white p-4 shadow-sm">
+      <article className="max-w-md rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
         <AccountForm
           accountId={data.id}
           defaultValues={{

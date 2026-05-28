@@ -1,26 +1,25 @@
 # Budget & Comptes
 
-Phase 1 implementation for a personal budget and bank accounts tracking app.
+Application web de suivi budgétaire et bancaire personnelle — 1 propriétaire + 2–5 amis invités, chacun dans un espace totalement isolé.
 
 ## Stack
 
-- Next.js (App Router) + TypeScript
+- Next.js 14+ (App Router) + TypeScript strict
 - Tailwind CSS v4
 - Supabase (Auth + PostgreSQL + RLS)
 - React Hook Form + Zod
 - Recharts
 - SheetJS (`xlsx`)
+- Vitest (unit/integration) + Playwright (E2E)
 
-## Features implemented in Phase 1
+## Phases
 
-- Supabase-ready Next.js app setup
-- Email/password auth pages
-- Invitation flow (up to 5 friends, independent user spaces)
-- Full SQL schema with RLS policies and user profile trigger
-- Accounts CRUD with current balance formula:
-  - `current_balance = initial_balance + sum(non_deleted_transactions)`
-- Main application shell with sidebar navigation:
-  - Dashboard / Accounts / Expenses / Incomes / Transfers / Budget / Subscriptions / Goals
+| Phase | Statut | Contenu |
+|-------|--------|---------|
+| Phase 1 — Fondations | ✅ Done | Auth, invitations, CRUD accounts, sidebar, migrations RLS |
+| Phase 2 — Transactions | ✅ Done | Catégories, dépenses/revenus, virements, import CSV/XLS, règles import |
+| Phase 3 — Budget & Analytics | ✅ Done | Enveloppes budget, charges fixes, objectifs, dashboard Recharts |
+| Phase 4 — Finition | 🚧 In progress | Profil utilisateur, détail compte, page `/plan` |
 
 ## Local setup
 
@@ -38,12 +37,25 @@ Phase 1 implementation for a personal budget and bank accounts tracking app.
    NEXT_PUBLIC_SITE_URL=http://localhost:3000
    ```
 
-3. Apply SQL migration in Supabase SQL editor:
+3. Start local Supabase and apply migrations:
 
-   - `/supabase/migrations/20260527183000_phase1.sql`
+   ```bash
+   npx supabase start
+   npx supabase db push
+   ```
 
 4. Start the app:
 
    ```bash
    npm run dev
    ```
+
+## Tests
+
+```bash
+# Unit / integration
+npm run test
+
+# E2E (requires app + Supabase running)
+npx playwright test
+```

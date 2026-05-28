@@ -49,7 +49,7 @@ export function InviteForm() {
     <form onSubmit={onSubmit} className="space-y-3">
       <label className="block text-sm font-medium">
         Friend email
-        <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2" {...register("email")} />
+        <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" {...register("email")} />
       </label>
       {errors.email ? <p className="text-xs text-red-600">{errors.email.message}</p> : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}

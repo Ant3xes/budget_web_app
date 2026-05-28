@@ -49,7 +49,7 @@ export async function signup(formData: FormData) {
 
 export async function logout() {
   const supabase = await createServerSupabaseClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   revalidatePath("/", "layout");
   redirect("/login");
 }

@@ -9,7 +9,7 @@ const isPathMatching = (pathname: string, basePath: string) => {
   return pathname === basePath || pathname.startsWith(`${basePath}/`);
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isProtectedPath = PROTECTED_PATHS.some((path) =>
     isPathMatching(pathname, path),

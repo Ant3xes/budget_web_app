@@ -1,8 +1,8 @@
 # PRD — Application Web "Budget & Comptes"
 
-> **Version** : 1.3 — Simplification Fixed Charges (liaison supprimée)
-> **Date** : 27 mai 2026
-> **Statut** : Draft finalisé
+> **Version** : 1.5 — Avancement phases 1–4
+> **Date** : 28 mai 2026
+> **Statut** : Phase 4 en cours
 > **Auteur** : Usage personnel + cercle restreint d'amis
 
 ***
@@ -49,7 +49,8 @@ Architecture modulaire : ajout/suppression de compte sans refactoring.
 ├── 🔁 Transfers         — Virements entre comptes
 ├── 📊 Budget            — Enveloppes budgétaires mensuelles
 ├── 🔒 Fixed Charges     — Charges fixes récurrentes (loyer, élec, tel…)
-└── 🎯 Goals             — Objectifs d'épargne
+├── 🎯 Goals             — Objectifs d'épargne
+└── ⚙️ Settings          — Gestion des catégories (et préférences)
 ```
 
 ***
@@ -63,7 +64,7 @@ Architecture modulaire : ajout/suppression de compte sans refactoring.
 - Revenus vs Dépenses du mois (graphique barre)
 - Dernières 10 transactions
 - Taux d'utilisation des budgets du mois (barres de progression)
-- Alertes : budget dépassé, charge fixe à venir dans 7 jours
+- **Alertes affichées sous forme de banners/bandeaux** en haut de page : budget dépassé, charge fixe à venir dans 7 jours
 
 ### 🏦 Accounts
 - Liste de tous les comptes avec solde courant
@@ -72,14 +73,15 @@ Architecture modulaire : ajout/suppression de compte sans refactoring.
 - Types : courant, épargne, livret, PEL, autre
 
 ### 💸 Expenses
-- Liste avec filtres (compte, catégorie, période, montant)
+- Liste avec filtres (compte, catégorie, période, montant) + **recherche textuelle** (description/notes)
+- **Pagination classique** (pages numérotées)
 - Ajout manuel (modal rapide)
 - Import N26 CSV + BNP XLS (voir section Import ci-dessous)
 - Catégorisation manuelle ou auto (règles mot-clé)
 - Soft delete
 
 ### 💰 Incomes
-- Même structure qu'Expenses pour les crédits
+- Même structure qu'Expenses pour les crédits (filtres + recherche textuelle + pagination)
 - Catégories dédiées : Salaire, Freelance, Loyer reçu, Virement reçu, Autre
 
 ### 🔁 Transfers
@@ -105,12 +107,14 @@ Toutes les sorties d'argent **récurrentes et prévisibles**, quelle que soit le
 - Autres prélèvements fixes : cotisations, abonnements salle de sport, etc.
 
 **Features :**
-- Liste des charges avec : nom, montant, fréquence (`mensuel` / `trimestriel` / `annuel`), date de prélèvement, compte débité
+- Liste des charges avec : nom, montant, fréquence (`monthly` / `quarterly` / `yearly`), date de prélèvement, compte débité
 - Montant mensuel équivalent calculé automatiquement (annuel ÷ 12, trimestriel ÷ 3)
 - **Total mensuel des charges fixes** affiché en haut de page
-- Alerte 7 jours avant chaque échéance
-- Liaison manuelle à une transaction importée (matching automatique suggéré par mot-clé)
-- Statut : `actif` / `suspendu` / `résilié` (soft delete)
+- Alerte 7 jours avant chaque échéance (banner Dashboard)
+- **`next_due_date` avancée automatiquement** après chaque échéance (via cron Supabase ou background job) : +1 mois / +3 mois / +12 mois selon la fréquence
+- Statut : `active` / `suspended` / `cancelled` (soft delete)
+
+> ⚠️ **Fixed Charges ≠ Transactions** : les charges fixes sont un référentiel indépendant. Aucune liaison avec les transactions importées. La transaction réelle est traitée séparément à l'import.
 
 ### 🎯 Goals
 - Objectifs **indépendants** de tout compte (tracker manuel)
@@ -128,7 +132,13 @@ Toutes les sorties d'argent **récurrentes et prévisibles**, quelle que soit le
 ### Revenus (personnalisables)
 `Salaire` · `Freelance` · `Loyer reçu` · `Virement reçu` · `Remboursement` · `Autre`
 
-> Les catégories sont personnalisables (ajout, renommage, icône, couleur) mais **pas la navigation ni les menus**.
+> Les catégories sont personnalisables (ajout, renommage, icône, couleur) depuis la page **Settings**. La navigation et les menus ne sont pas personnalisables.
+
+### ⚙️ Settings — Gestion des catégories
+- Liste des catégories par type (`expense` / `income`)
+- Ajout / renommage / suppression (soft delete)
+- Champ `icon` (emoji) + champ `color` (hex ou Tailwind)
+- Catégories par défaut pré-créées au signup
 
 ***
 
@@ -231,6 +241,8 @@ Date operation | Categorie operation | Sous Categorie operation | Libelle operat
 5. **Catégorisation auto** : règles mot-clé configurables (ex : `ORANGE` → Télécom & Internet)
 6. Import confirmé → transactions insérées en base
 
+> **BNP spécifique** : La ligne 1 du fichier contient le solde du compte (`Solde au DD/MM/YYYY | X.XX | EUR`). Cette ligne est **ignorée** lors de l'import — le solde initial du compte est géré manuellement dans l'app.
+
 ***
 
 ## Règles métier clés
@@ -304,10 +316,22 @@ deleted_at       TIMESTAMPTZ
 created_at       TIMESTAMPTZ DEFAULT NOW()
 ```
 
-***
+> ⚠️ **`kind` vs `type`** : en base de données, le champ est nommé `kind` (pour éviter un conflit avec le mot réservé SQL `type`). Les valeurs sont `'expense'`, `'income'`, `'transfer_debit'`, `'transfer_credit'`. `transfer_debit` et `transfer_credit` remplacent un simple `'transfer'` pour distinguer les deux côtés du virement.
 
-## Non-goals (V1)
+### Champs clés — `categories`
 
+```sql
+id          UUID PRIMARY KEY
+user_id     UUID REFERENCES profiles
+name        TEXT NOT NULL
+kind        TEXT  -- 'expense' | 'income' | 'transfer'
+color       TEXT  -- code hex ou classe Tailwind
+icon        TEXT  -- emoji ou nom d'icône (ex: '🛒', 'home')
+deleted_at  TIMESTAMPTZ
+created_at  TIMESTAMPTZ DEFAULT NOW()
+```
+
+> La colonne `icon` doit être ajoutée par migration (absente de la migration initiale).
 | Hors scope | Raison |
 |------------|--------|
 | Open Banking / connexion bancaire directe | Complexité réglementaire |
@@ -335,27 +359,31 @@ created_at       TIMESTAMPTZ DEFAULT NOW()
 
 ## Phases de développement
 
-### Phase 1 — Fondations (Semaines 1–2)
-- [ ] Setup Next.js 14 + Supabase + Tailwind
-- [ ] Auth email/password + système d'invitation
-- [ ] Schéma BDD complet + migrations + politiques RLS
-- [ ] CRUD Accounts
-- [ ] Layout + Sidebar navigation
+### Phase 1 — Fondations ✅ (Semaines 1–2)
+- [x] Setup Next.js 14 + Supabase + Tailwind
+- [x] Auth email/password + système d'invitation
+- [x] Schéma BDD complet + migrations + politiques RLS
+- [x] CRUD Accounts
+- [x] Layout + Sidebar navigation
 
-### Phase 2 — Core Transactions (Semaines 3–4)
-- [ ] CRUD Expenses + Incomes
-- [ ] Catégorisation manuelle
-- [ ] Import N26 CSV
-- [ ] Import BNP XLS (SheetJS, gestion ligne d'en-tête non standard)
-- [ ] Transfers entre comptes (transaction liée)
+### Phase 2 — Core Transactions ✅ (Semaines 3–4)
+- [x] CRUD Expenses + Incomes (modal + filtres + pagination)
+- [x] Catégorisation manuelle (17 catégories par défaut créées au signup)
+- [x] Import N26 CSV (wizard 3 étapes : upload → prévisualisation → confirmation)
+- [x] Import BNP XLS (SheetJS, gestion ligne d'en-tête non standard)
+- [x] Transfers entre comptes (transaction liée débit/crédit + `transfer_id`)
+- [x] Règles d'import par mots-clés (`csv_import_rules`)
 
-### Phase 3 — Budget & Analytics (Semaines 5–6)
-- [ ] Module Budget (enveloppes mensuelles manuelles + recopie)
-- [ ] Dashboard Recharts (donut + barres + progression)
-- [ ] Fixed Charges (CRUD + alertes + liaison transactions)
+### Phase 3 — Budget & Analytics ✅ (Semaines 5–6)
+- [x] Module Budget (enveloppes mensuelles + barre de progression colorée + recopie mois précédent)
+- [x] Dashboard Recharts (donut dépenses, barres revenus/dépenses 6 mois, barres budget)
+- [x] Fixed Charges (CRUD + alertes + `advanceDueDate` auto au GET)
+- [x] Savings Goals (tracker indépendant : montant cible, montant actuel, abondement manuel)
+- [x] Correction bug solde Dashboard (prise en compte `initial_balance_cents` par compte)
 
-### Phase 4 — Goals & Polish (Semaines 7–8)
-- [ ] Savings Goals (tracker indépendant)
-- [ ] Règles de catégorisation auto (CSV import rules)
-- [ ] Tests Vitest + Playwright
-- [ ] Déploiement Vercel + Supabase Cloud
+### Phase 4 — Finition 🚧 (Semaines 7–8)
+- [x] Tests Vitest (unit/integration) + Playwright (E2E)
+- [ ] Profil utilisateur : modification nom d'affichage + changement de mot de passe (`/settings/profile`)
+- [ ] Détail de compte : `/accounts/[id]` → historique transactions filtrables + graphique Recharts évolution du solde
+- [ ] Page roadmap `/plan` : accessible sans auth, statique, résumé phases + décisions d'archi
+- [ ] Déploiement Vercel + Supabase Cloud (secrets GitHub CI/CD à configurer)

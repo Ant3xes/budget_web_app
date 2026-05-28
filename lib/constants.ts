@@ -16,6 +16,7 @@ export const NAV_ITEMS = [
   { href: "/fixed-charges", label: "Fixed Charges" },
   { href: "/goals", label: "Goals" },
   { href: "/invitations", label: "Invitations" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 export const PROTECTED_PATHS = NAV_ITEMS.map((item) => item.href);
