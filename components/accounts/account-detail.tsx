@@ -29,6 +29,7 @@ type AccountInfo = {
 
 interface AccountDetailProps {
   account: AccountInfo;
+  balanceCents: number;
   initialTransactions: Transaction[];
   initialMonth: string; // "YYYY-MM"
   chartData: BalanceChartData[];
@@ -36,6 +37,9 @@ interface AccountDetailProps {
 
 const formatEuros = (cents: number, currency: string) =>
   `${(Math.abs(cents) / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${currency}`;
+
+const formatBalance = (cents: number, currency: string) =>
+  `${(cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", {
@@ -150,6 +154,7 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
 
 export function AccountDetail({
   account,
+  balanceCents,
   initialTransactions,
   initialMonth,
   chartData,
@@ -236,6 +241,13 @@ export function AccountDetail({
           <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
             {TYPE_LABELS[account.type as (typeof ACCOUNT_TYPES)[number]] ?? account.type}
           </span>
+          <p
+            className={`mt-3 text-3xl font-semibold tracking-tight ${
+              balanceCents >= 0 ? "text-zinc-900 dark:text-zinc-100" : "text-red-600"
+            }`}
+          >
+            {formatBalance(balanceCents, account.currency)}
+          </p>
         </div>
 
         {/* 3-dot menu */}
@@ -287,7 +299,7 @@ export function AccountDetail({
             ))}
           </div>
         </div>
-        <BalanceChart data={visibleChartData} />
+        <BalanceChart data={visibleChartData} currency={account.currency} />
       </div>
 
       {/* Month navigation */}

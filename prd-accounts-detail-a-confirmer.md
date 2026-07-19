@@ -119,3 +119,4 @@ Le diff modifie fortement `ImportModal` **en même temps** que l'UX comptes. Imp
 | Date | Note |
 |------|------|
 | 2026-07-19 | Création à partir du working tree non commité (analyse agent). Aucune décision produit encore tranchée ici. |
+| 2026-07-19 | Grill : décisions verrouillées — (1) rollback ImportModal hors scope ; (2) `chartData` SSR + `computeBalanceSeries` série complète ; (3) txs mois SSR + `?month=` + `per_page=100` ; (4) édition modal seule, pas de `/edit` ; (5) défaut API 4 kinds ; (6) « Dépenses ce mois » = `expense` only ; (7) 3 listes ; (8) solde en header ; (9) delete au détail seulement ; (10) plages 3m–tout défaut 6m ; (11) FR + `account.currency` + soft-delete + Vitest série/API + E2E détail léger ; pas d’issue GitHub dans ce lot. |

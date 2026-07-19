@@ -18,13 +18,17 @@ export interface BalanceChartData {
 
 interface BalanceChartProps {
   data: BalanceChartData[];
+  currency?: string;
 }
 
-function formatEuros(cents: number): string {
-  return (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+function formatMoney(cents: number, currency: string): string {
+  return (cents / 100).toLocaleString("fr-FR", {
+    style: "currency",
+    currency: currency.length === 3 ? currency : "EUR",
+  });
 }
 
-export function BalanceChart({ data }: BalanceChartProps) {
+export function BalanceChart({ data, currency = "EUR" }: BalanceChartProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
@@ -49,13 +53,15 @@ export function BalanceChart({ data }: BalanceChartProps) {
         <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
         <XAxis dataKey="month" tick={{ fontSize: 12, fill: tickColor }} />
         <YAxis
-          tickFormatter={(v: number) => `${(v / 100).toFixed(0)}€`}
+          tickFormatter={(v: number) =>
+            `${(v / 100).toFixed(0)} ${currency}`
+          }
           tick={{ fontSize: 12, fill: tickColor }}
           width={60}
         />
         <Tooltip
           formatter={(value) => [
-            typeof value === "number" ? formatEuros(value) : String(value ?? ""),
+            typeof value === "number" ? formatMoney(value, currency) : String(value ?? ""),
             "Solde",
           ]}
           contentStyle={tooltipStyle}

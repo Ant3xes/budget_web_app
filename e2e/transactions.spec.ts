@@ -23,11 +23,25 @@ test.describe("Accounts", () => {
 
   test("can create an account", async ({ page }) => {
     await page.goto("/accounts");
-    // The form is inline — no modal to open
-    await page.getByLabel(/name/i).fill("Compte E2E Test");
-    await page.getByLabel(/initial balance/i).fill("1000");
-    await page.getByRole("button", { name: /create account/i }).click();
+    await page.getByRole("button", { name: /nouveau compte/i }).click();
+    await page.getByLabel(/^nom$/i).fill("Compte E2E Test");
+    await page.getByLabel(/solde initial/i).fill("1000");
+    await page.getByRole("button", { name: /créer le compte/i }).click();
     await expect(page.getByText("Compte E2E Test")).toBeVisible({ timeout: 10000 });
+  });
+
+  test("account card opens detail with chart and month lists", async ({ page }) => {
+    await page.goto("/accounts");
+    const card = page.locator("a[href^='/accounts/']").first();
+    await expect(card).toBeVisible({ timeout: 10000 });
+    await card.click();
+    await expect(page).toHaveURL(/\/accounts\/[0-9a-f-]+/i);
+    await expect(page.getByText(/évolution du solde/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^dépenses$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^revenus$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^virements$/i })).toBeVisible();
+    await page.getByRole("button", { name: "→" }).click();
+    await expect(page).toHaveURL(/\?month=\d{4}-\d{2}/);
   });
 });
 
