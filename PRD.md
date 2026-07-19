@@ -2,7 +2,7 @@
 
 > **Version** : 1.8 — Mode nuit (dark mode)
 > **Date** : 28 mai 2026
-> **Statut** : Phase 4 en cours
+> **Statut** : Phase 4 terminée (déploiement secrets = checklist manuelle)
 > **Auteur** : Usage personnel + cercle restreint d'amis
 
 ***
@@ -389,7 +389,7 @@ created_at  TIMESTAMPTZ DEFAULT NOW()
 - [x] Savings Goals (tracker indépendant : montant cible, montant actuel, abondement manuel)
 - [x] Correction bug solde Dashboard (prise en compte `initial_balance_cents` par compte)
 
-### Phase 4 — Finition 🚧 (Semaines 7–8)
+### Phase 4 — Finition ✅ (Semaines 7–8)
 - [x] Tests Vitest (unit/integration) + Playwright (E2E) — 87 tests au total :
   - `unit/apply-rules.test.ts` (24 tests) : `detectTransfer`, `buildDefaultMatcher`, `buildHistoryMatcher`, `buildRuleMatcher`
   - `unit/deduplicate.test.ts` (9 tests) : `buildHash`, `findExistingHashes`
@@ -399,7 +399,7 @@ created_at  TIMESTAMPTZ DEFAULT NOW()
   - `api/savings-goals.test.ts` (5 tests)
   - E2E : 4 tests import dans `e2e/features.spec.ts`
 - [x] **Mode nuit (dark mode)** : `ThemeProvider` + toggle soleil/lune dans le header, script anti-FOUC, `color-scheme: dark` sur les date inputs, variantes `dark:` sur 35+ composants/pages, Recharts avec couleurs dynamiques via `useTheme()`, pages login/signup incluses (issue #11)
-- [ ] Profil utilisateur : modification nom d'affichage + changement de mot de passe (`/settings/profile`)
-- [ ] Détail de compte : `/accounts/[id]` → historique transactions filtrables + graphique Recharts évolution du solde
-- [ ] Page roadmap `/plan` : accessible sans auth, statique, résumé phases + décisions d'archi
-- [ ] Déploiement Vercel + Supabase Cloud (secrets GitHub CI/CD à configurer)
+- [x] Profil utilisateur : modification nom d'affichage + changement de mot de passe (`/settings/profile`, `PATCH /api/profile` avec re-auth)
+- [x] Détail de compte : `/accounts/[id]` → historique (dépenses / revenus / virements) + graphique Recharts évolution du solde ; édition en modal
+- [x] Page roadmap `/plan` : accessible sans auth, statique, résumé phases + décisions d'archi
+- [ ] Déploiement Vercel + Supabase Cloud — checklist secrets documentée dans le README (configuration manuelle hors code)

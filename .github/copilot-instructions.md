@@ -9,7 +9,7 @@ Personal budget and bank accounts tracking web app for 1 owner + 2–5 invited f
 | Phase 1 — Fondations | ✅ Done | Auth, invitations, CRUD accounts, sidebar, migrations RLS |
 | Phase 2 — Transactions | ✅ Done | Categories, expenses/incomes, transfers, import CSV/XLS, import rules |
 | Phase 3 — Budget & Analytics | ✅ Done | Budget envelopes, fixed charges, savings goals, dashboard Recharts |
-| Phase 4 — Finition | 🚧 In progress | Profil utilisateur, détail compte, page `/plan` |
+| Phase 4 — Finition | ✅ Done (deploy secrets manuel) | Profil, détail compte, `/plan`, dark mode, tests |
 
 ## Tech Stack
 - **Framework**: Next.js 14+ with App Router + TypeScript (strict mode)
@@ -90,5 +90,5 @@ Dashboard / Accounts / Expenses / Incomes / Transfers / Budget / Fixed Charges /
 
 ### Phase 4 routes
 - `/settings/profile` — user profile (display name + password change)
-- `/accounts/[id]` — account detail (transactions history + balance chart); edit moved to `/accounts/[id]/edit`
+- `/accounts/[id]` — account detail (transactions history + balance chart); edit/delete via modal
 - `/plan` — roadmap page, **no auth required**, outside `(app)` group, fully static Server Component

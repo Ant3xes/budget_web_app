@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { logout } from "@/app/(auth)/actions";
@@ -47,6 +48,11 @@ export default async function AppLayout({
           </div>
         </header>
         <main className="p-4">{children}</main>
+        <footer className="border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+          <Link href="/plan" className="underline underline-offset-2 hover:text-zinc-700 dark:hover:text-zinc-200">
+            Plan
+          </Link>
+        </footer>
       </div>
     </div>
   );
