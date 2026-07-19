@@ -14,7 +14,7 @@ const transactionSchema = z.object({
 });
 
 const querySchema = z.object({
-  kind: z.enum(["expense", "income"]).optional(),
+  kind: z.enum(["expense", "income", "transfer_debit", "transfer_credit"]).optional(),
   account_id: z.string().uuid().optional(),
   category_id: z.string().uuid().optional(),
   date_from: z.string().optional(),
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     )
     .eq("user_id", auth.user.id)
     .is("deleted_at", null)
-    .in("kind", kind ? [kind] : ["expense", "income"])
+    .in("kind", kind ? [kind] : ["expense", "income", "transfer_debit", "transfer_credit"])
     .order("date", { ascending: false })
     .order("created_at", { ascending: false })
     .range(from, to);

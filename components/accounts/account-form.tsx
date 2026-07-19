@@ -20,9 +20,10 @@ type AccountFormValues = z.infer<typeof accountSchema>;
 interface AccountFormProps {
   accountId?: string;
   defaultValues?: AccountFormValues;
+  onSuccess?: () => void;
 }
 
-export function AccountForm({ accountId, defaultValues }: AccountFormProps) {
+export function AccountForm({ accountId, defaultValues, onSuccess }: AccountFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,8 +60,13 @@ export function AccountForm({ accountId, defaultValues }: AccountFormProps) {
       return;
     }
 
-    router.push("/accounts");
-    router.refresh();
+    if (onSuccess) {
+      onSuccess();
+      router.refresh();
+    } else {
+      router.push("/accounts");
+      router.refresh();
+    }
   });
 
   return (
