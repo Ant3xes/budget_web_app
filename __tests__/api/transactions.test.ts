@@ -114,6 +114,36 @@ describe("GET /api/transactions", () => {
     expect(supabase._queryChain.lte).toHaveBeenCalledWith("date", "2026-07-31");
   });
 
+  it("accepts seed-style account UUIDs that are not RFC version/variant compliant", async () => {
+    const seedAccountId = "b0000000-0000-0000-0000-000000000001";
+    const supabase = buildSupabaseMock({
+      result: { data: [], error: null, count: 0 },
+    });
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
+    );
+
+    const url = new URL("http://localhost/api/transactions");
+    url.searchParams.set("account_id", seedAccountId);
+
+    const res = await GET(new Request(url));
+    expect(res.status).toBe(200);
+    expect(supabase._queryChain.eq).toHaveBeenCalledWith("account_id", seedAccountId);
+  });
+
+  it("rejects malformed account_id", async () => {
+    const supabase = buildSupabaseMock();
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
+    );
+
+    const url = new URL("http://localhost/api/transactions");
+    url.searchParams.set("account_id", "not-a-uuid");
+
+    const res = await GET(new Request(url));
+    expect(res.status).toBe(400);
+  });
+
   it("filters by a single kind when provided", async () => {
     const supabase = buildSupabaseMock({
       result: { data: [], error: null, count: 0 },

@@ -20,13 +20,14 @@ interface BarChartData {
 
 interface IncomeExpenseBarChartProps {
   data: BarChartData[];
+  height?: number;
 }
 
 function formatEuros(value: number): string {
   return (value / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
-export function IncomeExpenseBarChart({ data }: IncomeExpenseBarChartProps) {
+export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarChartProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
@@ -44,12 +45,35 @@ export function IncomeExpenseBarChart({ data }: IncomeExpenseBarChartProps) {
     );
   }
 
+  const dense = data.length > 8;
+  const bottomMargin = dense ? 28 : 4;
+
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: bottomMargin }}>
         <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-        <XAxis dataKey="month" tick={{ fontSize: 12, fill: tickColor }} />
-        <YAxis tickFormatter={(v: number) => `${(v / 100).toFixed(0)}€`} tick={{ fontSize: 12, fill: tickColor }} width={52} />
+        <XAxis
+          dataKey="month"
+          tick={{ fontSize: dense ? 10 : 11, fill: tickColor }}
+          interval="preserveStartEnd"
+          minTickGap={dense ? 8 : 16}
+          angle={dense ? -35 : 0}
+          textAnchor={dense ? "end" : "middle"}
+          height={dense ? 40 : 24}
+        />
+        <YAxis
+          tickFormatter={(v: number) => {
+            const euros = v / 100;
+            if (Math.abs(euros) >= 10_000) {
+              return `${(euros / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 0 })}k€`;
+            }
+            return `${euros.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€`;
+          }}
+          tick={{ fontSize: 11, fill: tickColor }}
+          width={48}
+          axisLine={false}
+          tickLine={false}
+        />
         <Tooltip
           formatter={(value, name) => [
             typeof value === "number" ? formatEuros(value) : String(value ?? ""),

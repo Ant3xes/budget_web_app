@@ -5,13 +5,19 @@ import { useTheme } from "@/components/theme-provider";
 
 interface DonutChartProps {
   data: { name: string; value: number; color: string }[];
+  height?: number;
+  emptyLabel?: string;
 }
 
 function formatEuros(value: number): string {
   return (value / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
-export function DonutChart({ data }: DonutChartProps) {
+export function DonutChart({
+  data,
+  height = 280,
+  emptyLabel = "Aucune dépense",
+}: DonutChartProps) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
@@ -23,13 +29,13 @@ export function DonutChart({ data }: DonutChartProps) {
   if (data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-zinc-400">
-        Aucune dépense ce mois
+        {emptyLabel}
       </div>
     );
   }
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height={height}>
       <PieChart>
         <Pie
           data={data}
@@ -37,8 +43,8 @@ export function DonutChart({ data }: DonutChartProps) {
           nameKey="name"
           cx="50%"
           cy="50%"
-          innerRadius={60}
-          outerRadius={100}
+          innerRadius={height < 240 ? 40 : 60}
+          outerRadius={height < 240 ? 70 : 100}
           paddingAngle={2}
           stroke="transparent"
         >

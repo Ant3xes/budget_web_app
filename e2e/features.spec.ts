@@ -119,6 +119,9 @@ test.describe("Import", () => {
   test("shows preview table after uploading valid N26 CSV", async ({ page }) => {
     await page.goto("/expenses");
     await page.getByRole("button", { name: /importer/i }).click();
+    // Wait for the account list to load and auto-select a destination account
+    // before uploading, otherwise the analyse can race ahead of the fetch.
+    await expect(page.getByLabel(/compte de destination/i)).not.toHaveValue("");
 
     const csvContent = [
       `"Booking Date","Value Date","Partner Name","Partner Iban","Type","Payment Reference","Account Name","Amount (EUR)","Original Amount","Original Currency","Exchange Rate"`,
@@ -137,8 +140,9 @@ test.describe("Import", () => {
     await page.getByRole("button", { name: /analyser le fichier/i }).click();
 
     // Preview table should appear with the transactions
-    await expect(page.getByRole("table")).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText("Netflix")).toBeVisible();
-    await expect(page.getByText("Lidl")).toBeVisible();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("table")).toBeVisible({ timeout: 10000 });
+    await expect(dialog.getByText("Netflix")).toBeVisible();
+    await expect(dialog.getByText("Lidl")).toBeVisible();
   });
 });
