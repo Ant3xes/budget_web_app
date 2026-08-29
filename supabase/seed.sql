@@ -2,6 +2,9 @@
 -- SEED — Données de test
 -- Utilisateur test : test@budget.local / Password1234!
 -- UUID fixe : a0000000-0000-0000-0000-000000000001
+--
+-- Historique transactions : janv. 2024 → mai 2026 (~30 mois)
+-- pour vérifier les filtres du graphique « Évolution du solde ».
 -- ============================================================
 
 -- 1. Utilisateur Auth (bypass RLS — s'exécute en tant que postgres)
@@ -71,6 +74,11 @@ declare
   -- Transactions
   transfer_id  uuid := gen_random_uuid();
 
+  -- Boucle historique long (> 2 ans) pour le graphique
+  hist_month   date;
+  hist_i       int;
+  month_lbl    text;
+
 begin
 
   -- Récupération des IDs de catégories
@@ -96,7 +104,59 @@ begin
   on conflict (id) do nothing;
 
   -- ============================================================
-  -- 4. Transactions — mai 2026
+  -- 4. Transactions — historique long (janv. 2024 → mars 2026)
+  -- Permet de tester les filtres 3m / 6m / 1an / 2ans / Tout
+  -- sur le graphique « Évolution du solde ».
+  -- Dépenses en cents négatifs (convention app).
+  -- ============================================================
+  hist_month := date '2024-01-01';
+  hist_i := 0;
+  while hist_month < date '2026-04-01' loop
+    hist_i := hist_i + 1;
+    month_lbl := to_char(hist_month, 'YYYY-MM');
+
+    insert into public.transactions
+      (user_id, account_id, category_id, kind, amount_cents, date, description)
+    values
+      -- Salaire (5 du mois)
+      (uid, acc_courant, cat_salaire, 'income', 285000,
+        (hist_month + 4)::timestamptz, 'Salaire ' || month_lbl),
+      -- Loyer (1er)
+      (uid, acc_courant, cat_loge, 'expense', -85000,
+        hist_month::timestamptz, 'Loyer ' || month_lbl),
+      -- Navigo (4)
+      (uid, acc_courant, cat_trans, 'expense', -8400,
+        (hist_month + 3)::timestamptz, 'Navigo mensuel'),
+      -- Netflix (10)
+      (uid, acc_courant, cat_abo, 'expense', -1799,
+        (hist_month + 9)::timestamptz, 'Netflix'),
+      -- Courses variables (8)
+      (uid, acc_courant, cat_alim, 'expense', -(9000 + (hist_i % 6) * 700),
+        (hist_month + 7)::timestamptz, 'Courses ' || month_lbl);
+
+    -- Freelance trimestriel → variation visible sur le solde
+    if hist_i % 3 = 0 then
+      insert into public.transactions
+        (user_id, account_id, category_id, kind, amount_cents, date, description)
+      values
+        (uid, acc_courant, cat_freelan, 'income', 45000 + (hist_i % 4) * 10000,
+          (hist_month + 14)::timestamptz, 'Mission freelance — ' || month_lbl);
+    end if;
+
+    -- Petite dépense resto annuelle (juin) pour casser la monotonie
+    if extract(month from hist_month) = 6 then
+      insert into public.transactions
+        (user_id, account_id, category_id, kind, amount_cents, date, description)
+      values
+        (uid, acc_courant, cat_resto, 'expense', -12500,
+          (hist_month + 19)::timestamptz, 'Restaurant été ' || extract(year from hist_month)::text);
+    end if;
+
+    hist_month := (hist_month + interval '1 month')::date;
+  end loop;
+
+  -- ============================================================
+  -- 4b. Transactions détaillées — avril & mai 2026
   -- ============================================================
   insert into public.transactions
     (user_id, account_id, category_id, kind, amount_cents, date, description)
@@ -106,38 +166,37 @@ begin
     (uid, acc_courant, cat_freelan, 'income',   75000, '2026-05-12 00:00:00+00', 'Mission UX — client Acme'),
     (uid, acc_courant, cat_remb,    'income',    3200, '2026-05-18 00:00:00+00', 'Remboursement mutuelle'),
 
-    -- Dépenses
-    (uid, acc_courant, cat_loge,   'expense', 85000,  '2026-05-01 00:00:00+00', 'Loyer mai'),
-    (uid, acc_courant, cat_alim,   'expense',  9850,  '2026-05-03 00:00:00+00', 'Courses Carrefour'),
-    (uid, acc_courant, cat_trans,  'expense',  8400,  '2026-05-04 00:00:00+00', 'Navigo mensuel'),
-    (uid, acc_courant, cat_resto,  'expense',  3200,  '2026-05-07 00:00:00+00', 'Déjeuner équipe'),
-    (uid, acc_courant, cat_abo,    'expense',  1799,  '2026-05-10 00:00:00+00', 'Netflix'),
-    (uid, acc_courant, cat_sante,  'expense',  4500,  '2026-05-14 00:00:00+00', 'Dentiste'),
-    (uid, acc_courant, cat_loisir, 'expense',  2999,  '2026-05-16 00:00:00+00', 'Spotify Premium'),
-    (uid, acc_courant, cat_alim,   'expense', 12350,  '2026-05-17 00:00:00+00', 'Courses Monoprix'),
-    (uid, acc_courant, cat_resto,  'expense',  5600,  '2026-05-20 00:00:00+00', 'Restaurant L''Étoile'),
-    (uid, acc_courant, cat_abo,    'expense',   999,  '2026-05-22 00:00:00+00', 'iCloud 50 Go'),
-    (uid, acc_courant, cat_trans,  'expense',  6500,  '2026-05-24 00:00:00+00', 'Essence Total'),
-    (uid, acc_courant, cat_loisir, 'expense',  1800,  '2026-05-26 00:00:00+00', 'Cinéma × 2'),
+    -- Dépenses (cents négatifs)
+    (uid, acc_courant, cat_loge,   'expense', -85000,  '2026-05-01 00:00:00+00', 'Loyer mai'),
+    (uid, acc_courant, cat_alim,   'expense',  -9850,  '2026-05-03 00:00:00+00', 'Courses Carrefour'),
+    (uid, acc_courant, cat_trans,  'expense',  -8400,  '2026-05-04 00:00:00+00', 'Navigo mensuel'),
+    (uid, acc_courant, cat_resto,  'expense',  -3200,  '2026-05-07 00:00:00+00', 'Déjeuner équipe'),
+    (uid, acc_courant, cat_abo,    'expense',  -1799,  '2026-05-10 00:00:00+00', 'Netflix'),
+    (uid, acc_courant, cat_sante,  'expense',  -4500,  '2026-05-14 00:00:00+00', 'Dentiste'),
+    (uid, acc_courant, cat_loisir, 'expense',  -2999,  '2026-05-16 00:00:00+00', 'Spotify Premium'),
+    (uid, acc_courant, cat_alim,   'expense', -12350,  '2026-05-17 00:00:00+00', 'Courses Monoprix'),
+    (uid, acc_courant, cat_resto,  'expense',  -5600,  '2026-05-20 00:00:00+00', 'Restaurant L''Étoile'),
+    (uid, acc_courant, cat_abo,    'expense',   -999,  '2026-05-22 00:00:00+00', 'iCloud 50 Go'),
+    (uid, acc_courant, cat_trans,  'expense',  -6500,  '2026-05-24 00:00:00+00', 'Essence Total'),
+    (uid, acc_courant, cat_loisir, 'expense',  -1800,  '2026-05-26 00:00:00+00', 'Cinéma × 2'),
 
-    -- Transactions avril 2026 (historique)
+    -- Transactions avril 2026
     (uid, acc_courant, cat_salaire, 'income',  285000, '2026-04-05 00:00:00+00', 'Salaire avril 2026'),
-    (uid, acc_courant, cat_loge,   'expense',  85000,  '2026-04-01 00:00:00+00', 'Loyer avril'),
-    (uid, acc_courant, cat_alim,   'expense',  11200,  '2026-04-08 00:00:00+00', 'Courses Grand Frais'),
-    (uid, acc_courant, cat_resto,  'expense',   4200,  '2026-04-15 00:00:00+00', 'Brunch du dimanche'),
-    (uid, acc_courant, cat_trans,  'expense',   8400,  '2026-04-04 00:00:00+00', 'Navigo mensuel'),
-    (uid, acc_courant, cat_abo,    'expense',   1799,  '2026-04-10 00:00:00+00', 'Netflix'),
+    (uid, acc_courant, cat_loge,   'expense', -85000,  '2026-04-01 00:00:00+00', 'Loyer avril'),
+    (uid, acc_courant, cat_alim,   'expense', -11200,  '2026-04-08 00:00:00+00', 'Courses Grand Frais'),
+    (uid, acc_courant, cat_resto,  'expense',  -4200,  '2026-04-15 00:00:00+00', 'Brunch du dimanche'),
+    (uid, acc_courant, cat_trans,  'expense',  -8400,  '2026-04-04 00:00:00+00', 'Navigo mensuel'),
+    (uid, acc_courant, cat_abo,    'expense',  -1799,  '2026-04-10 00:00:00+00', 'Netflix'),
 
     -- Transactions sur livret A
     (uid, acc_epargne, cat_remb,   'income',   10000,  '2026-05-01 00:00:00+00', 'Intérêts livret A');
 
-  -- Virement interne (courant → livret A)
+  -- Virement interne (courant → livret A) — débit négatif / crédit positif
   insert into public.transactions
     (user_id, account_id, category_id, transfer_id, kind, amount_cents, date, description)
   values
-    (uid, acc_courant, cat_virt, transfer_id, 'transfer_debit',  20000, '2026-05-25 00:00:00+00', 'Virement vers Livret A'),
+    (uid, acc_courant, cat_virt, transfer_id, 'transfer_debit', -20000, '2026-05-25 00:00:00+00', 'Virement vers Livret A'),
     (uid, acc_epargne, cat_virt, transfer_id, 'transfer_credit', 20000, '2026-05-25 00:00:00+00', 'Virement depuis BNP');
-
   -- ============================================================
   -- 5. Budgets — mai 2026
   -- ============================================================

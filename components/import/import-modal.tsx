@@ -20,6 +20,7 @@ type Account = { id: string; name: string };
 
 interface ImportModalProps {
   kind?: "expense" | "income";
+  defaultAccountId?: string;
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -38,11 +39,11 @@ const formatDate = (iso: string) =>
     year: "numeric",
   });
 
-export function ImportModal({ kind, onSuccess, onClose }: ImportModalProps) {
+export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: ImportModalProps) {
   const [step, setStep] = useState<Step>("upload");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = useState("");
+  const [selectedAccountId, setSelectedAccountId] = useState(defaultAccountId ?? "");
   const [expensePreview, setExpensePreview] = useState<PreviewRow[]>([]);
   const [incomePreview, setIncomePreview] = useState<PreviewRow[]>([]);
   const [isTransfer, setIsTransfer] = useState<Record<string, boolean>>({}); // hash -> treat as transfer
@@ -61,7 +62,13 @@ export function ImportModal({ kind, onSuccess, onClose }: ImportModalProps) {
       if (accRes.ok) {
         const d = (await accRes.json()) as { accounts: Account[] };
         setAccounts(d.accounts ?? []);
-        if (d.accounts.length > 0) setSelectedAccountId(d.accounts[0]!.id);
+        if (d.accounts.length > 0) {
+          const preferred =
+            defaultAccountId && d.accounts.some((a) => a.id === defaultAccountId)
+              ? defaultAccountId
+              : d.accounts[0]!.id;
+          setSelectedAccountId(preferred);
+        }
       }
       if (catRes.ok) {
         const d = (await catRes.json()) as { categories: Category[] };
@@ -69,7 +76,7 @@ export function ImportModal({ kind, onSuccess, onClose }: ImportModalProps) {
       }
     };
     void load();
-  }, []);
+  }, [defaultAccountId]);
 
   const handleUpload = async () => {
     const file = fileRef.current?.files?.[0];
@@ -195,9 +202,9 @@ export function ImportModal({ kind, onSuccess, onClose }: ImportModalProps) {
     if (transferFilter === "non_transfer") return !isTransfer[r.rowId];
     return true;
   });
-  const checkedInView = displayedPreview.filter((r) => !!checked[r.hash]);
-  const expenseSelectedCount = expensePreview.filter((r) => checked[r.hash]).length;
-  const incomeSelectedCount = incomePreview.filter((r) => checked[r.hash]).length;
+  const checkedInView = displayedPreview.filter((r) => !!checked[r.rowId]);
+  const expenseSelectedCount = expensePreview.filter((r) => checked[r.rowId]).length;
+  const incomeSelectedCount = incomePreview.filter((r) => checked[r.rowId]).length;
   const totalSelectedCount = expenseSelectedCount + incomeSelectedCount;
 
   return (
@@ -242,21 +249,30 @@ export function ImportModal({ kind, onSuccess, onClose }: ImportModalProps) {
                 Formats supportés : <strong>N26</strong> (.csv) et <strong>BNP</strong> (.xls, .xlsx).
               </p>
 
-              <label className="block text-sm font-medium">
-                Compte de destination
-                <select
-                  value={selectedAccountId}
-                  onChange={(e) => setSelectedAccountId(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-                >
-                  <option value="">— Sélectionner —</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {defaultAccountId ? (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Compte :{" "}
+                  <span className="font-medium text-zinc-800 dark:text-zinc-200">
+                    {accounts.find((a) => a.id === defaultAccountId)?.name ?? "…"}
+                  </span>
+                </p>
+              ) : (
+                <label className="block text-sm font-medium">
+                  Compte de destination
+                  <select
+                    value={selectedAccountId}
+                    onChange={(e) => setSelectedAccountId(e.target.value)}
+                    className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
+                  >
+                    <option value="">— Sélectionner —</option>
+                    {accounts.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
               <label className="block text-sm font-medium">
                 Fichier

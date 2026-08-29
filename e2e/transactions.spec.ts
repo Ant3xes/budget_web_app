@@ -18,7 +18,7 @@ test.describe("Accounts", () => {
 
   test("accounts page loads", async ({ page }) => {
     await page.goto("/accounts");
-    await expect(page.getByRole("heading", { name: /comptes/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Comptes", exact: true })).toBeVisible();
   });
 
   test("can create an account", async ({ page }) => {
@@ -40,8 +40,8 @@ test.describe("Accounts", () => {
     await expect(page.getByRole("heading", { name: /^dépenses$/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /^revenus$/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /^virements$/i })).toBeVisible();
-    await page.getByRole("button", { name: "→" }).click();
-    await expect(page).toHaveURL(/\?month=\d{4}-\d{2}/);
+    await page.getByRole("button", { name: /mois suivant/i }).click();
+    await expect(page).toHaveURL(/\?period=\d{4}-\d{2}/);
   });
 });
 

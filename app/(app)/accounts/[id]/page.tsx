@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { AccountDetail } from "@/components/accounts/account-detail";
-import { computeBalanceSeries } from "@/lib/accounts/compute-balance-series";
+import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
+import { periodToParam, parsePeriodParam } from "@/lib/dates/period";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type TxRow = {
@@ -15,32 +16,17 @@ type TxRow = {
   categories: { name: string; color: string | null; icon: string | null } | null;
 };
 
-function currentMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function isValidMonth(value: string | undefined): value is string {
-  return !!value && /^\d{4}-\d{2}$/.test(value);
-}
-
-function monthBounds(yyyyMM: string): { from: string; to: string } {
-  const [y, m] = yyyyMM.split("-").map(Number);
-  const from = `${yyyyMM}-01`;
-  const to = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
-  return { from, to };
-}
-
 export default async function AccountDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ period?: string; month?: string }>;
 }) {
   const { id } = await params;
-  const { month: monthParam } = await searchParams;
-  const initialMonth = isValidMonth(monthParam) ? monthParam : currentMonth();
+  const { period: periodParam, month: monthParam } = await searchParams;
+  // Support legacy ?month=YYYY-MM as well as ?period=
+  const initialPeriod = periodToParam(parsePeriodParam(periodParam ?? monthParam));
 
   const supabase = await createServerSupabaseClient();
   const { data: account } = await supabase
@@ -77,7 +63,7 @@ export default async function AccountDetailPage({
       kind: row.kind as TxRow["kind"],
       amount_cents: Number(row.amount_cents),
       currency: row.currency as string,
-      date: row.date as string,
+      date: String(row.date).slice(0, 10),
       description: row.description as string,
       notes: (row.notes as string | null) ?? null,
       categories,
@@ -88,16 +74,18 @@ export default async function AccountDetailPage({
     Number(account.initial_balance_cents) +
     transactions.reduce((sum, t) => sum + Number(t.amount_cents), 0);
 
-  const chartData = computeBalanceSeries(
-    transactions.map((t) => ({ date: t.date, amount_cents: Number(t.amount_cents) })),
-    Number(account.initial_balance_cents),
+  const incomeExpenseData = computeIncomeExpenseSeries(
+    transactions.map((t) => ({
+      date: t.date,
+      kind: t.kind,
+      amount_cents: Number(t.amount_cents),
+    })),
+    null,
   );
 
-  const { from, to } = monthBounds(initialMonth);
-  const monthTransactions = transactions
-    .filter((t) => t.date >= from && t.date <= to)
-    .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id))
-    .slice(0, 100);
+  const allTransactions = [...transactions].sort(
+    (a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id),
+  );
 
   return (
     <AccountDetail
@@ -109,9 +97,21 @@ export default async function AccountDetailPage({
         initial_balance_cents: account.initial_balance_cents,
       }}
       balanceCents={balanceCents}
-      initialMonth={initialMonth}
-      initialTransactions={monthTransactions}
-      chartData={chartData}
+      initialPeriod={initialPeriod}
+      allTransactions={allTransactions}
+      balanceTxs={transactions.map((t) => ({
+        date: t.date,
+        amount_cents: t.amount_cents,
+      }))}
+      incomeExpenseData={incomeExpenseData}
+      expenseHistory={transactions
+        .filter((t) => t.kind === "expense")
+        .map((t) => ({
+          date: t.date,
+          amount_cents: t.amount_cents,
+          categoryName: t.categories?.name ?? null,
+          categoryColor: t.categories?.color ?? null,
+        }))}
     />
   );
 }

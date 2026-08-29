@@ -2,21 +2,22 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { uuidSchema } from "@/lib/validation/uuid";
 
 const transactionSchema = z.object({
-  account_id: z.string().uuid(),
+  account_id: uuidSchema,
   kind: z.enum(["expense", "income"]),
   amount_cents: z.number().int(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   description: z.string().trim().min(1).max(255),
-  category_id: z.string().uuid().optional().nullable(),
+  category_id: uuidSchema.optional().nullable(),
   notes: z.string().trim().max(1000).optional().nullable(),
 });
 
 const querySchema = z.object({
   kind: z.enum(["expense", "income", "transfer_debit", "transfer_credit"]).optional(),
-  account_id: z.string().uuid().optional(),
-  category_id: z.string().uuid().optional(),
+  account_id: uuidSchema.optional(),
+  category_id: uuidSchema.optional(),
   date_from: z.string().optional(),
   date_to: z.string().optional(),
   q: z.string().optional(),

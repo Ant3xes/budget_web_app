@@ -1,8 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { IncomeExpenseBarChart } from "@/components/dashboard/bar-chart";
 import { DonutChart } from "@/components/dashboard/donut-chart";
-
-const MONTH_ABBR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 
 function formatEuros(cents: number): string {
   return (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
@@ -129,27 +128,7 @@ export default async function DashboardPage() {
   const donutData = Object.values(expenseByCat).sort((a, b) => b.value - a.value);
 
   // ── Bar chart data (6 months) ─────────────────────────────────────────────
-  const barByMonth: Record<string, { income: number; expense: number }> = {};
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now);
-    d.setMonth(d.getMonth() - i);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    barByMonth[key] = { income: 0, expense: 0 };
-  }
-  for (const tx of barChartRes.data ?? []) {
-    const key = tx.date.slice(0, 7);
-    if (barByMonth[key]) {
-      if (tx.kind === "income") {
-        barByMonth[key]!.income += tx.amount_cents;
-      } else {
-        barByMonth[key]!.expense += Math.abs(tx.amount_cents);
-      }
-    }
-  }
-  const barData = Object.entries(barByMonth).map(([key, vals]) => {
-    const [, mon] = key.split("-");
-    return { month: MONTH_ABBR[parseInt(mon ?? "1") - 1] ?? key, ...vals };
-  });
+  const barData = computeIncomeExpenseSeries(barChartRes.data ?? []);
 
   // ── Budget utilization ───────────────────────────────────────────────────
   const budgets = budgetsRes.data ?? [];
@@ -247,7 +226,7 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
           <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Dépenses par catégorie (mois en cours)</h2>
-          <DonutChart data={donutData} />
+          <DonutChart data={donutData} emptyLabel="Aucune dépense ce mois" />
         </article>
         <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
           <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Revenus vs Dépenses (6 mois)</h2>
