@@ -114,7 +114,7 @@ export function ImportRulesModal({ ruleId, defaultValues, onSuccess, onClose }: 
               className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
             />
             <p className="mt-1 text-xs text-zinc-500">
-              Si la description d'une transaction contient ce mot-clé, la catégorie sera appliquée automatiquement.
+              Si la description d&apos;une transaction contient ce mot-clé, la catégorie sera appliquée automatiquement.
             </p>
             {errors.keyword && <p className="mt-1 text-xs text-red-500">{errors.keyword.message}</p>}
           </div>

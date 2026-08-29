@@ -103,16 +103,19 @@ export function TransactionList({ kind }: TransactionListProps) {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reference data fetch on mount
     void loadRefData();
   }, [loadRefData]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- refetch when filters change
     void load(1);
     setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, accountId, categoryId, dateFrom, dateTo, q]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- refetch when the page changes
     void load(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);

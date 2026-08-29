@@ -16,7 +16,7 @@ const fixedChargeSchema = z.object({
 
 function advanceDueDate(dateStr: string, frequency: "monthly" | "quarterly" | "yearly"): string {
   const [y, m, d] = dateStr.split("-").map(Number) as [number, number, number];
-  let date = new Date(Date.UTC(y, m - 1, d));
+  const date = new Date(Date.UTC(y, m - 1, d));
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
