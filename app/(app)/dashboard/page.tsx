@@ -81,7 +81,7 @@ export default async function DashboardPage() {
         .from("fixed_charges")
         .select("id, name, next_due_date, amount_cents")
         .eq("status", "active")
-        .lte("next_due_date", new Date(Date.now() + 7 * 86400 * 1000).toISOString().slice(0, 10))
+        .lte("next_due_date", new Date(now.getTime() + 7 * 86400 * 1000).toISOString().slice(0, 10))
         .is("deleted_at", null)
         .order("next_due_date", { ascending: true }),
     ]);

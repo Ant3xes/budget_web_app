@@ -60,6 +60,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on month change
     void loadData(month);
   }, [month, loadData]);
 
