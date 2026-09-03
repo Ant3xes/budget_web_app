@@ -1,17 +1,17 @@
 "use client";
 
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { useTheme } from "@/components/theme-provider";
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import { formatEuros } from "@/lib/format";
+import { EXPENSE_COLOR, INCOME_COLOR } from "@/lib/constants";
 
 export interface BarChartData {
   month: string; // e.g. "Jan", "Fév"
@@ -24,19 +24,27 @@ interface IncomeExpenseBarChartProps {
   height?: number;
 }
 
+const chartConfig = {
+  income: { label: "Revenus", color: INCOME_COLOR },
+  expense: { label: "Dépenses", color: EXPENSE_COLOR },
+} satisfies ChartConfig;
+
+/**
+ * Plan §Étape 2 (visual polish): rebuilt on the shadcn `ChartContainer` —
+ * replaces the manual `useTheme()`/`isDark` color computation (also
+ * duplicated in donut-chart.tsx, now fixed too) with the app's design
+ * tokens, which the container's own CSS already targets
+ * (`recharts-cartesian-grid`, `-tooltip-cursor`, `-cartesian-axis-tick`
+ * selectors). Series colors come from the validated `--income`/`--expense`
+ * tokens (plan §Étape 0) instead of hardcoded `#22c55e`/`#ef4444`.
+ * components/accounts/balance-chart.tsx still has the same duplicated
+ * pattern — deferred, it's on the /accounts page, out of this étape's
+ * dashboard-only scope.
+ */
 export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarChartProps) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-
-  const gridColor = isDark ? "#3f3f46" : "#f0f0f0";
-  const tickColor = isDark ? "#a1a1aa" : "#71717a";
-  const tooltipStyle = isDark
-    ? { backgroundColor: "#18181b", border: "1px solid #3f3f46", color: "#fafafa", fontSize: "12px" }
-    : { fontSize: "12px" };
-
   if (data.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center text-sm text-zinc-400">
+      <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
         Pas encore de données
       </div>
     );
@@ -46,12 +54,14 @@ export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarCh
   const bottomMargin = dense ? 28 : 4;
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
       <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: bottomMargin }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+        <CartesianGrid strokeDasharray="3 3" />
         <XAxis
           dataKey="month"
-          tick={{ fontSize: dense ? 10 : 11, fill: tickColor }}
+          tickLine={false}
+          axisLine={false}
+          tick={{ fontSize: dense ? 10 : 11 }}
           interval="preserveStartEnd"
           minTickGap={dense ? 8 : 16}
           angle={dense ? -35 : 0}
@@ -66,29 +76,34 @@ export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarCh
             }
             return `${euros.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€`;
           }}
-          tick={{ fontSize: 11, fill: tickColor }}
+          tick={{ fontSize: 11 }}
           width={48}
           axisLine={false}
           tickLine={false}
         />
-        <Tooltip
-          formatter={(value, name) => [
-            typeof value === "number" ? formatEuros(value) : String(value ?? ""),
-            name === "income" ? "Revenus" : "Dépenses",
-          ]}
-          contentStyle={tooltipStyle}
-          cursor={{ fill: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" }}
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              formatter={(value, name, item) => (
+                <div className="flex w-full items-center justify-between gap-4">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: item.color }} />
+                    <span className="text-muted-foreground">
+                      {chartConfig[name as keyof typeof chartConfig]?.label ?? name}
+                    </span>
+                  </div>
+                  <span className="font-mono font-medium text-foreground tabular-nums">
+                    {typeof value === "number" ? formatEuros(value) : String(value ?? "")}
+                  </span>
+                </div>
+              )}
+            />
+          }
         />
-        <Legend
-          formatter={(value) => (
-            <span style={{ fontSize: "12px" }}>
-              {value === "income" ? "Revenus" : "Dépenses"}
-            </span>
-          )}
-        />
-        <Bar dataKey="income" fill="#22c55e" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="expense" fill="#ef4444" radius={[3, 3, 0, 0]} />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Bar dataKey="income" fill="var(--color-income)" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="expense" fill="var(--color-expense)" radius={[3, 3, 0, 0]} />
       </BarChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   );
 }

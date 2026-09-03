@@ -142,16 +142,17 @@ export default async function DashboardPage() {
   }
 
   const budgetRows = budgets
-    .map((b) => ({
-      id: b.id,
-      categoryName:
-        (b.categories as unknown as { name: string; color: string | null; icon: string | null } | null)?.name ??
-        "Sans catégorie",
-      categoryIcon:
-        (b.categories as unknown as { name: string; color: string | null; icon: string | null } | null)?.icon ?? null,
-      amount: b.amount_cents,
-      consumed: budgetConsumption[b.category_id] ?? 0,
-    }))
+    .map((b) => {
+      const category = b.categories as unknown as { name: string; color: string | null; icon: string | null } | null;
+      return {
+        id: b.id,
+        categoryName: category?.name ?? "Sans catégorie",
+        categoryIcon: category?.icon ?? null,
+        categoryColor: category?.color ?? null,
+        amount: b.amount_cents,
+        consumed: budgetConsumption[b.category_id] ?? 0,
+      };
+    })
     .sort((a, b) => {
       const ra = a.amount > 0 ? a.consumed / a.amount : 0;
       const rb = b.amount > 0 ? b.consumed / b.amount : 0;
