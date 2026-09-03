@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { IncomeExpenseBarChart } from "@/components/dashboard/bar-chart";
 import { DonutChart } from "@/components/dashboard/donut-chart";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
+import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
 function formatEuros(cents: number): string {
   return (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
@@ -120,7 +121,7 @@ export default async function DashboardPage() {
     .reduce<Record<string, { name: string; value: number; color: string }>>((acc, tx) => {
       const catObj = tx.categories as unknown as { name: string; color: string | null } | null;
       const catName = catObj?.name ?? "Sans catégorie";
-      const color = catObj?.color ?? "#94a3b8";
+      const color = catObj?.color ?? CATEGORY_COLOR_FALLBACK;
       if (!acc[catName]) acc[catName] = { name: catName, value: 0, color };
       acc[catName]!.value += Math.abs(tx.amount_cents);
       return acc;

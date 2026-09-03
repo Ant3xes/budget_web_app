@@ -1,3 +1,5 @@
+import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
+
 export type ExpenseByCategoryTx = {
   date: string; // YYYY-MM-DD
   amount_cents: number;
@@ -28,7 +30,7 @@ export function computeExpenseByCategory(
     if (to && tx.date > to) continue;
 
     const name = tx.categoryName ?? "Sans catégorie";
-    const color = tx.categoryColor ?? "#94a3b8";
+    const color = tx.categoryColor ?? CATEGORY_COLOR_FALLBACK;
     if (!byCat[name]) byCat[name] = { name, value: 0, color };
     byCat[name]!.value += Math.abs(tx.amount_cents);
   }

@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { CATEGORY_COLOR_FALLBACK, CATEGORY_COLOR_SWATCHES } from "@/lib/constants";
+
 const goalFormSchema = z.object({
   name: z.string().trim().min(1, "Nom requis").max(120),
   target_amount: z
@@ -40,11 +42,12 @@ interface GoalsModalProps {
   onClose: () => void;
 }
 
-const DEFAULT_COLORS = [
-  "#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6",
-  "#ec4899", "#f97316", "#06b6d4", "#6366f1", "#84cc16",
-  "#f43f5e", "#64748b",
-];
+// Same underlying palette as the category picker (components/settings/category-
+// form.tsx), minus the fallback gray — preserves this modal's exact
+// pre-existing 12-swatch selection (Étape 0 is a non-visual refactor; unifying
+// to the full swatch list is deferred to Étape 2 as a deliberate visual
+// decision, not a side effect of centralizing the constant).
+const DEFAULT_COLORS = CATEGORY_COLOR_SWATCHES.filter((color) => color !== CATEGORY_COLOR_FALLBACK);
 
 export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsModalProps) {
   const [categories, setCategories] = useState<Category[]>([]);

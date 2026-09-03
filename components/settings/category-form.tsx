@@ -5,6 +5,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { CATEGORY_COLOR_SWATCHES } from "@/lib/constants";
+
 const categorySchema = z.object({
   name: z.string().trim().min(1, "Nom requis").max(80),
   kind: z.enum(["expense", "income", "transfer"]),
@@ -26,12 +28,6 @@ const KIND_LABELS: Record<string, string> = {
   income: "Revenu",
   transfer: "Virement",
 };
-
-const DEFAULT_COLORS = [
-  "#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6",
-  "#ec4899", "#f97316", "#06b6d4", "#6366f1", "#84cc16",
-  "#f43f5e", "#64748b", "#94a3b8",
-];
 
 export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }: CategoryFormProps) {
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +112,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
       <div className="block text-sm font-medium">
         Couleur
         <div className="mt-2 flex flex-wrap gap-2">
-          {DEFAULT_COLORS.map((color) => (
+          {CATEGORY_COLOR_SWATCHES.map((color) => (
             <button
               key={color}
               type="button"
