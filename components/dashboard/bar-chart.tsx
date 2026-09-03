@@ -11,8 +11,9 @@ import {
   YAxis,
 } from "recharts";
 import { useTheme } from "@/components/theme-provider";
+import { formatEuros } from "@/lib/format";
 
-interface BarChartData {
+export interface BarChartData {
   month: string; // e.g. "Jan", "Fév"
   income: number; // cents
   expense: number; // cents (positive value)
@@ -21,10 +22,6 @@ interface BarChartData {
 interface IncomeExpenseBarChartProps {
   data: BarChartData[];
   height?: number;
-}
-
-function formatEuros(value: number): string {
-  return (value / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
 export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarChartProps) {

@@ -2,15 +2,12 @@
 
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useTheme } from "@/components/theme-provider";
+import { formatEuros } from "@/lib/format";
 
 interface DonutChartProps {
   data: { name: string; value: number; color: string }[];
   height?: number;
   emptyLabel?: string;
-}
-
-function formatEuros(value: number): string {
-  return (value / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
 export function DonutChart({
