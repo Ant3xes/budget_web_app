@@ -3,8 +3,11 @@
 -- Utilisateur test : test@budget.local / Password1234!
 -- UUID fixe : a0000000-0000-0000-0000-000000000001
 --
--- Historique transactions : janv. 2024 → mai 2026 (~30 mois)
+-- Historique transactions : janv. 2024 → sept. 2026 (~32 mois)
 -- pour vérifier les filtres du graphique « Évolution du solde ».
+-- Juin → sept. 2026 : jeu de données exhaustif sur les 3 comptes
+-- (courant / Livret A / PEL), avec virements croisés dans les deux sens,
+-- dépenses et revenus sur chaque compte, pour exercer tous les graphiques.
 -- ============================================================
 
 -- 1. Utilisateur Auth (bypass RLS — s'exécute en tant que postgres)
@@ -70,9 +73,24 @@ declare
   cat_freelan  uuid;
   cat_remb     uuid;
   cat_virt     uuid;
+  cat_vetement uuid;
+  cat_voyage   uuid;
+  cat_educ     uuid;
+  cat_cadeau   uuid;
+  cat_banque   uuid;
+  cat_autrerev uuid;
 
   -- Transactions
   transfer_id  uuid := gen_random_uuid();
+
+  -- Virements multi-comptes (juin → sept. 2026)
+  tr_jun_ce    uuid := gen_random_uuid(); -- courant -> épargne
+  tr_jul_ec    uuid := gen_random_uuid(); -- épargne -> courant (retrait vacances)
+  tr_jul_ce    uuid := gen_random_uuid(); -- courant -> épargne
+  tr_aug_cp    uuid := gen_random_uuid(); -- courant -> PEL
+  tr_aug_ep    uuid := gen_random_uuid(); -- épargne -> PEL
+  tr_aug_ce    uuid := gen_random_uuid(); -- courant -> épargne
+  tr_sep_ce    uuid := gen_random_uuid(); -- courant -> épargne
 
   -- Boucle historique long (> 2 ans) pour le graphique
   hist_month   date;
@@ -93,6 +111,12 @@ begin
   select id into cat_freelan from public.categories where user_id = uid and name = 'Freelance'       and kind = 'income';
   select id into cat_remb    from public.categories where user_id = uid and name = 'Remboursement'   and kind = 'income';
   select id into cat_virt    from public.categories where user_id = uid and name = 'Virement interne' and kind = 'transfer';
+  select id into cat_vetement from public.categories where user_id = uid and name = 'Vêtements'       and kind = 'expense';
+  select id into cat_voyage  from public.categories where user_id = uid and name = 'Voyages'          and kind = 'expense';
+  select id into cat_educ    from public.categories where user_id = uid and name = 'Education'        and kind = 'expense';
+  select id into cat_cadeau  from public.categories where user_id = uid and name = 'Cadeaux'           and kind = 'expense';
+  select id into cat_banque  from public.categories where user_id = uid and name = 'Banque & Frais'   and kind = 'expense';
+  select id into cat_autrerev from public.categories where user_id = uid and name = 'Autre revenu'    and kind = 'income';
 
   -- ============================================================
   -- 3. Comptes
@@ -197,8 +221,118 @@ begin
   values
     (uid, acc_courant, cat_virt, transfer_id, 'transfer_debit', -20000, '2026-05-25 00:00:00+00', 'Virement vers Livret A'),
     (uid, acc_epargne, cat_virt, transfer_id, 'transfer_credit', 20000, '2026-05-25 00:00:00+00', 'Virement depuis BNP');
+
   -- ============================================================
-  -- 5. Budgets — mai 2026
+  -- 4c. Transactions détaillées — juin → sept. 2026 (3 derniers mois pleins
+  -- + mois en cours), sur les 3 comptes, pour exercer tous les graphiques :
+  -- barres revenus/dépenses, donut par catégorie, courbe de solde par compte,
+  -- et virements croisés entre les 3 comptes.
+  -- ============================================================
+  insert into public.transactions
+    (user_id, account_id, category_id, kind, amount_cents, date, description)
+  values
+    -- ---------- Juin 2026 (compte courant) ----------
+    (uid, acc_courant, cat_salaire,  'income',  285000, '2026-06-05 00:00:00+00', 'Salaire juin 2026'),
+    (uid, acc_courant, cat_freelan,  'income',   60000, '2026-06-18 00:00:00+00', 'Mission freelance — refonte site'),
+    (uid, acc_courant, cat_autrerev, 'income',    3000, '2026-06-30 00:00:00+00', 'Cashback carte bancaire'),
+    (uid, acc_courant, cat_loge,     'expense', -85000, '2026-06-01 00:00:00+00', 'Loyer juin'),
+    (uid, acc_courant, cat_trans,    'expense',  -8400, '2026-06-04 00:00:00+00', 'Navigo mensuel'),
+    (uid, acc_courant, cat_alim,     'expense',  -9800, '2026-06-03 00:00:00+00', 'Courses Carrefour'),
+    (uid, acc_courant, cat_resto,    'expense',  -4200, '2026-06-12 00:00:00+00', 'Déjeuner équipe'),
+    (uid, acc_courant, cat_abo,      'expense',  -1799, '2026-06-10 00:00:00+00', 'Netflix'),
+    (uid, acc_courant, cat_vetement, 'expense',  -7800, '2026-06-20 00:00:00+00', 'Zara — vestiaire été'),
+    (uid, acc_courant, cat_cadeau,   'expense',  -6000, '2026-06-21 00:00:00+00', 'Cadeau fête des pères'),
+    (uid, acc_courant, cat_alim,     'expense', -11200, '2026-06-15 00:00:00+00', 'Courses Monoprix'),
+    (uid, acc_courant, cat_loisir,   'expense',  -2999, '2026-06-16 00:00:00+00', 'Spotify Premium'),
+    (uid, acc_courant, cat_resto,    'expense',  -6800, '2026-06-27 00:00:00+00', 'Restaurant anniversaire'),
+    (uid, acc_courant, cat_alim,     'expense',  -8700, '2026-06-24 00:00:00+00', 'Courses Franprix'),
+    (uid, acc_courant, cat_abo,      'expense',   -999, '2026-06-22 00:00:00+00', 'iCloud 50 Go'),
+    (uid, acc_courant, cat_banque,   'expense',   -250, '2026-06-28 00:00:00+00', 'Frais de tenue de compte'),
+
+    -- ---------- Juillet 2026 (compte courant) ----------
+    (uid, acc_courant, cat_salaire,  'income',  285000, '2026-07-05 00:00:00+00', 'Salaire juillet 2026'),
+    (uid, acc_courant, cat_remb,     'income',    4200, '2026-07-22 00:00:00+00', 'Remboursement mutuelle'),
+    (uid, acc_courant, cat_loge,     'expense', -85000, '2026-07-01 00:00:00+00', 'Loyer juillet'),
+    (uid, acc_courant, cat_trans,    'expense',  -8400, '2026-07-04 00:00:00+00', 'Navigo mensuel'),
+    (uid, acc_courant, cat_alim,     'expense', -10500, '2026-07-02 00:00:00+00', 'Courses Carrefour'),
+    (uid, acc_courant, cat_sante,    'expense',  -3500, '2026-07-09 00:00:00+00', 'Consultation médecin'),
+    (uid, acc_courant, cat_abo,      'expense',  -1799, '2026-07-10 00:00:00+00', 'Netflix'),
+    (uid, acc_courant, cat_alim,     'expense',  -9200, '2026-07-14 00:00:00+00', 'Courses Monoprix'),
+    (uid, acc_courant, cat_loisir,   'expense',  -2999, '2026-07-16 00:00:00+00', 'Spotify Premium'),
+    (uid, acc_courant, cat_resto,    'expense',  -5400, '2026-07-19 00:00:00+00', 'Restaurant terrasse'),
+    (uid, acc_courant, cat_alim,     'expense', -12100, '2026-07-23 00:00:00+00', 'Courses Franprix'),
+    (uid, acc_courant, cat_abo,      'expense',   -999, '2026-07-22 00:00:00+00', 'iCloud 50 Go'),
+    (uid, acc_courant, cat_banque,   'expense',   -250, '2026-07-28 00:00:00+00', 'Frais de tenue de compte'),
+
+    -- ---------- Août 2026 (compte courant) — mois des vacances ----------
+    (uid, acc_courant, cat_salaire,  'income',  285000, '2026-08-05 00:00:00+00', 'Salaire août 2026'),
+    (uid, acc_courant, cat_freelan,  'income',   55000, '2026-08-25 00:00:00+00', 'Mission freelance — audit UX'),
+    (uid, acc_courant, cat_loge,     'expense', -85000, '2026-08-01 00:00:00+00', 'Loyer août'),
+    (uid, acc_courant, cat_vetement, 'expense', -12000, '2026-08-02 00:00:00+00', 'Vêtements vacances'),
+    (uid, acc_courant, cat_voyage,   'expense', -45000, '2026-08-06 00:00:00+00', 'Hôtel — vacances été'),
+    (uid, acc_courant, cat_voyage,   'expense', -18000, '2026-08-07 00:00:00+00', 'Billets de train'),
+    (uid, acc_courant, cat_resto,    'expense',  -9200, '2026-08-08 00:00:00+00', 'Restaurant en vacances'),
+    (uid, acc_courant, cat_trans,    'expense',  -8400, '2026-08-04 00:00:00+00', 'Navigo mensuel'),
+    (uid, acc_courant, cat_alim,     'expense',  -8900, '2026-08-03 00:00:00+00', 'Courses avant départ'),
+    (uid, acc_courant, cat_sante,    'expense',  -6200, '2026-08-14 00:00:00+00', 'Pharmacie'),
+    (uid, acc_courant, cat_cadeau,   'expense',  -4500, '2026-08-15 00:00:00+00', 'Cadeau anniversaire ami'),
+    (uid, acc_courant, cat_alim,     'expense',  -7600, '2026-08-18 00:00:00+00', 'Courses Monoprix'),
+    (uid, acc_courant, cat_abo,      'expense',  -1799, '2026-08-10 00:00:00+00', 'Netflix'),
+    (uid, acc_courant, cat_loisir,   'expense',  -2999, '2026-08-16 00:00:00+00', 'Spotify Premium'),
+    (uid, acc_courant, cat_abo,      'expense',   -999, '2026-08-22 00:00:00+00', 'iCloud 50 Go'),
+    (uid, acc_courant, cat_resto,    'expense',  -3100, '2026-08-22 00:00:00+00', 'Déjeuner rentrée'),
+    (uid, acc_courant, cat_banque,   'expense',   -250, '2026-08-28 00:00:00+00', 'Frais de tenue de compte'),
+
+    -- ---------- Septembre 2026 (compte courant, mois en cours au 03/09) ----------
+    (uid, acc_courant, cat_autrerev, 'income',    1500, '2026-09-02 00:00:00+00', 'Vente objet occasion'),
+    (uid, acc_courant, cat_loge,     'expense', -85000, '2026-09-01 00:00:00+00', 'Loyer septembre'),
+    (uid, acc_courant, cat_alim,     'expense', -10200, '2026-09-02 00:00:00+00', 'Courses Carrefour'),
+    (uid, acc_courant, cat_educ,     'expense', -15000, '2026-09-01 00:00:00+00', 'Rentrée — fournitures & formation'),
+    (uid, acc_courant, cat_resto,    'expense',  -2800, '2026-09-03 00:00:00+00', 'Déjeuner client'),
+
+    -- ---------- Livret A — intérêts mensuels + rachat/versement ----------
+    (uid, acc_epargne, cat_remb, 'income', 1800, '2026-06-01 00:00:00+00', 'Intérêts Livret A — juin'),
+    (uid, acc_epargne, cat_remb, 'income', 1850, '2026-07-01 00:00:00+00', 'Intérêts Livret A — juillet'),
+    (uid, acc_epargne, cat_remb, 'income', 1900, '2026-08-01 00:00:00+00', 'Intérêts Livret A — août'),
+    (uid, acc_epargne, cat_remb, 'income', 1950, '2026-09-01 00:00:00+00', 'Intérêts Livret A — septembre'),
+
+    -- ---------- PEL CIC — intérêts semestriels ----------
+    (uid, acc_livret, cat_remb, 'income', 3200, '2026-06-30 00:00:00+00', 'Intérêts PEL — 1er semestre 2026');
+
+  -- Virements croisés entre les 3 comptes (débit négatif / crédit positif)
+  insert into public.transactions
+    (user_id, account_id, category_id, transfer_id, kind, amount_cents, date, description)
+  values
+    -- Juin : épargne mensuelle courant → épargne
+    (uid, acc_courant, cat_virt, tr_jun_ce, 'transfer_debit',  -30000, '2026-06-25 00:00:00+00', 'Virement mensuel épargne'),
+    (uid, acc_epargne, cat_virt, tr_jun_ce, 'transfer_credit',  30000, '2026-06-25 00:00:00+00', 'Virement depuis BNP'),
+
+    -- Juillet : retrait du Livret A pour financer les vacances
+    (uid, acc_epargne, cat_virt, tr_jul_ec, 'transfer_debit',  -50000, '2026-07-10 00:00:00+00', 'Retrait pour vacances'),
+    (uid, acc_courant, cat_virt, tr_jul_ec, 'transfer_credit',  50000, '2026-07-10 00:00:00+00', 'Virement depuis Livret A'),
+
+    -- Juillet : épargne mensuelle courant → épargne
+    (uid, acc_courant, cat_virt, tr_jul_ce, 'transfer_debit',  -25000, '2026-07-26 00:00:00+00', 'Virement mensuel épargne'),
+    (uid, acc_epargne, cat_virt, tr_jul_ce, 'transfer_credit',  25000, '2026-07-26 00:00:00+00', 'Virement depuis BNP'),
+
+    -- Août : versement PEL depuis le courant
+    (uid, acc_courant, cat_virt, tr_aug_cp, 'transfer_debit', -150000, '2026-08-05 00:00:00+00', 'Versement PEL'),
+    (uid, acc_livret,  cat_virt, tr_aug_cp, 'transfer_credit', 150000, '2026-08-05 00:00:00+00', 'Virement depuis BNP'),
+
+    -- Août : réallocation Livret A → PEL
+    (uid, acc_epargne, cat_virt, tr_aug_ep, 'transfer_debit',  -40000, '2026-08-20 00:00:00+00', 'Réallocation vers PEL'),
+    (uid, acc_livret,  cat_virt, tr_aug_ep, 'transfer_credit',  40000, '2026-08-20 00:00:00+00', 'Virement depuis Livret A'),
+
+    -- Août : épargne mensuelle courant → épargne
+    (uid, acc_courant, cat_virt, tr_aug_ce, 'transfer_debit',  -30000, '2026-08-27 00:00:00+00', 'Virement mensuel épargne'),
+    (uid, acc_epargne, cat_virt, tr_aug_ce, 'transfer_credit',  30000, '2026-08-27 00:00:00+00', 'Virement depuis BNP'),
+
+    -- Septembre : épargne mensuelle courant → épargne
+    (uid, acc_courant, cat_virt, tr_sep_ce, 'transfer_debit',  -20000, '2026-09-02 00:00:00+00', 'Virement mensuel épargne'),
+    (uid, acc_epargne, cat_virt, tr_sep_ce, 'transfer_credit',  20000, '2026-09-02 00:00:00+00', 'Virement depuis BNP');
+
+  -- ============================================================
+  -- 5. Budgets — mai → sept. 2026
   -- ============================================================
   insert into public.budgets (user_id, category_id, month, amount_cents) values
     (uid, cat_alim,   '2026-05-01', 30000),
@@ -207,7 +341,47 @@ begin
     (uid, cat_sante,  '2026-05-01', 10000),
     (uid, cat_loisir, '2026-05-01', 8000),
     (uid, cat_resto,  '2026-05-01', 12000),
-    (uid, cat_abo,    '2026-05-01', 5000)
+    (uid, cat_abo,    '2026-05-01', 5000),
+
+    -- Juin 2026
+    (uid, cat_alim,     '2026-06-01', 30000),
+    (uid, cat_loge,     '2026-06-01', 90000),
+    (uid, cat_trans,    '2026-06-01', 15000),
+    (uid, cat_loisir,   '2026-06-01', 8000),
+    (uid, cat_resto,    '2026-06-01', 12000),
+    (uid, cat_abo,      '2026-06-01', 5000),
+    (uid, cat_vetement, '2026-06-01', 6000),
+    (uid, cat_cadeau,   '2026-06-01', 5000),
+
+    -- Juillet 2026
+    (uid, cat_alim,   '2026-07-01', 30000),
+    (uid, cat_loge,   '2026-07-01', 90000),
+    (uid, cat_trans,  '2026-07-01', 15000),
+    (uid, cat_sante,  '2026-07-01', 10000),
+    (uid, cat_loisir, '2026-07-01', 8000),
+    (uid, cat_resto,  '2026-07-01', 12000),
+    (uid, cat_abo,    '2026-07-01', 5000),
+
+    -- Août 2026 — budget voyages volontairement dépassé (63k dépensés / 30k prévus)
+    (uid, cat_alim,     '2026-08-01', 30000),
+    (uid, cat_loge,     '2026-08-01', 90000),
+    (uid, cat_trans,    '2026-08-01', 15000),
+    (uid, cat_sante,    '2026-08-01', 10000),
+    (uid, cat_loisir,   '2026-08-01', 8000),
+    (uid, cat_resto,    '2026-08-01', 12000),
+    (uid, cat_abo,      '2026-08-01', 5000),
+    (uid, cat_vetement, '2026-08-01', 8000),
+    (uid, cat_voyage,   '2026-08-01', 30000),
+    (uid, cat_cadeau,   '2026-08-01', 5000),
+
+    -- Septembre 2026 (mois en cours) — budget alimentation volontairement
+    -- trop bas pour déclencher l'alerte « budget dépassé » sur le dashboard
+    (uid, cat_alim,   '2026-09-01', 5000),
+    (uid, cat_loge,   '2026-09-01', 90000),
+    (uid, cat_trans,  '2026-09-01', 15000),
+    (uid, cat_educ,   '2026-09-01', 10000),
+    (uid, cat_resto,  '2026-09-01', 12000),
+    (uid, cat_abo,    '2026-09-01', 5000)
   on conflict (user_id, category_id, month) do nothing;
 
   -- ============================================================
@@ -216,11 +390,12 @@ begin
   insert into public.fixed_charges
     (user_id, name, amount_cents, frequency, next_due_date, account_id, category_id, notes, status)
   values
-    (uid, 'Loyer',              85000, 'monthly',   '2026-06-01', acc_courant, cat_loge,   'Virement proprio',        'active'),
-    (uid, 'Navigo mensuel',      8400, 'monthly',   '2026-06-04', acc_courant, cat_trans,  'Rechargement station',    'active'),
-    (uid, 'Netflix',             1799, 'monthly',   '2026-06-10', acc_courant, cat_abo,    null,                      'active'),
-    (uid, 'Spotify',             2999, 'monthly',   '2026-06-16', acc_courant, cat_loisir, null,                      'active'),
-    (uid, 'iCloud 50 Go',         999, 'monthly',   '2026-06-22', acc_courant, cat_abo,    null,                      'active'),
+    (uid, 'Loyer',              85000, 'monthly',   '2026-10-01', acc_courant, cat_loge,   'Virement proprio',        'active'),
+    (uid, 'Navigo mensuel',      8400, 'monthly',   '2026-10-04', acc_courant, cat_trans,  'Rechargement station',    'active'),
+    (uid, 'Netflix',             1799, 'monthly',   '2026-10-10', acc_courant, cat_abo,    null,                      'active'),
+    (uid, 'Spotify',             2999, 'monthly',   '2026-10-16', acc_courant, cat_loisir, null,                      'active'),
+    (uid, 'iCloud 50 Go',         999, 'monthly',   '2026-10-22', acc_courant, cat_abo,    null,                      'active'),
+    (uid, 'Assurance auto',      9800, 'quarterly', '2026-09-08', acc_courant, cat_banque, 'Prélèvement trimestriel', 'active'),
     (uid, 'Assurance habitation',7200, 'yearly',    '2027-01-15', acc_courant, null,        'Prélevement annuel AXA',  'active'),
     (uid, 'Taxe foncière',      45000, 'yearly',    '2026-10-15', acc_courant, null,        null,                      'active')
   on conflict do nothing;
@@ -231,9 +406,9 @@ begin
   insert into public.savings_goals
     (user_id, name, target_amount_cents, current_amount_cents, currency, deadline)
   values
-    (uid, 'Voyage au Japon',   400000,  85000, 'EUR', '2026-12-31'),
-    (uid, 'Fonds d''urgence',  300000, 180000, 'EUR', null),
-    (uid, 'Nouvelle voiture', 1500000, 320000, 'EUR', '2028-06-01')
+    (uid, 'Voyage au Japon',   400000, 165000, 'EUR', '2026-12-31'),
+    (uid, 'Fonds d''urgence',  300000, 230000, 'EUR', null),
+    (uid, 'Nouvelle voiture', 1500000, 510000, 'EUR', '2028-06-01')
   on conflict do nothing;
 
   -- ============================================================
