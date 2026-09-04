@@ -44,16 +44,22 @@ function formatMonthLabel(yyyyMM: string): string {
 
 /**
  * Monthly income vs expense totals.
- * - `monthCount` number: last N months including current
- * - `monthCount` null: from earliest transaction (or current month if none) through now
+ * - `monthCount` number: last N months ending at `endMonth` (defaults to `now`'s month)
+ * - `monthCount` null: from earliest transaction (or `endMonth` if none) through `endMonth`
  * Only `expense` and `income` kinds count; transfers are ignored.
+ *
+ * `endMonth` matters for a past custom date range (dashboard/analytics'
+ * "Personnalisé" period picker): without it, this always assumed the window
+ * ends "now", so selecting e.g. mars–mai while today is septembre would
+ * silently bucket transactions into juillet–septembre instead.
  */
 export function computeIncomeExpenseSeries(
   transactions: IncomeExpenseSeriesTx[],
   monthCount: number | null = 6,
   now: Date = new Date(),
+  endMonth?: string,
 ): IncomeExpenseSeriesPoint[] {
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentMonth = endMonth ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   let startMonth = currentMonth;
   if (monthCount === null) {

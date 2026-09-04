@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { X } from "lucide-react";
 import { z } from "zod";
 
 const fixedChargeFormSchema = z.object({
@@ -138,8 +139,8 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
           <h2 className="text-lg font-semibold">
             {chargeId ? "Modifier la charge fixe" : "Nouvelle charge fixe"}
           </h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 text-xl leading-none dark:text-zinc-500 dark:hover:text-zinc-200" aria-label="Fermer">
-            ✕
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200" aria-label="Fermer">
+            <X className="h-5 w-5" />
           </button>
         </div>
 

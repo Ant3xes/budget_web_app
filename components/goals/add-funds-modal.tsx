@@ -4,6 +4,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { X } from "lucide-react";
 
 const addFundsSchema = z.object({
   amount: z.string().regex(/^\d+([.,]\d{1,2})?$/, "Montant invalide (ex: 200 ou 200,50)"),
@@ -61,10 +62,10 @@ export function AddFundsModal({ goalId, goalName, onSuccess, onClose }: AddFunds
           <h2 className="text-lg font-semibold">Ajouter des fonds</h2>
           <button
             onClick={onClose}
-            className="text-xl leading-none text-zinc-400 hover:text-zinc-700"
+            className="text-zinc-400 hover:text-zinc-700"
             aria-label="Fermer"
           >
-            ✕
+            <X className="h-5 w-5" />
           </button>
         </div>
 

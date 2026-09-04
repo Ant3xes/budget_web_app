@@ -1,5 +1,7 @@
 "use client";
 
+import { X } from "lucide-react";
+
 import { CategoryForm, type CategoryFormValues } from "@/components/settings/category-form";
 
 interface CategoryModalProps {
@@ -22,7 +24,7 @@ export function CategoryModal({ categoryId, defaultValues, onClose, onSuccess }:
             className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
             aria-label="Fermer"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
         <div className="p-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 
 type PreviewItem = {
   id: string;
@@ -125,7 +126,7 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
             <p className="text-sm text-zinc-500">Chargement…</p>
           ) : appliedCount !== null ? (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <span className="text-4xl">✅</span>
+              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
               <p className="text-lg font-semibold">Catégorisation appliquée</p>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 {appliedCount} {kindLabel} catégorisée{appliedCount > 1 ? "s" : ""} avec succès.

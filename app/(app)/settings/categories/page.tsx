@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 
+import { CategoryBadge } from "@/components/category-badge";
 import { CategoryModal } from "@/components/settings/category-modal";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
 type Category = {
   id: string;
@@ -94,14 +94,7 @@ export default function CategoriesPage() {
                     <li key={cat.id}>
                       <div className="group flex items-center justify-between rounded-md px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                         <div className="flex items-center gap-3">
-                          <span
-                            className="h-4 w-4 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: cat.color ?? CATEGORY_COLOR_FALLBACK }}
-                          />
-                          <span className="text-sm">
-                            {cat.icon ? `${cat.icon} ` : ""}
-                            {cat.name}
-                          </span>
+                          <CategoryBadge name={cat.name} color={cat.color} icon={cat.icon} className="text-sm" />
                         </div>
                         <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                           <Button

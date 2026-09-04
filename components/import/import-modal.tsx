@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Check, CheckCircle2 } from "lucide-react";
 
 type PreviewRowRaw = {
   hash: string;
@@ -431,7 +432,9 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                     <table className="min-w-full text-xs">
                       <thead>
                         <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                          <th className="px-3 py-2">✓</th>
+                          <th className="px-3 py-2">
+                            <Check className="h-3.5 w-3.5" />
+                          </th>
                           <th className="px-3 py-2">Date</th>
                           <th className="px-3 py-2">Description</th>
                           <th className="px-3 py-2 text-right">Montant</th>
@@ -545,7 +548,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
 
           {step === "done" && (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <span className="text-4xl">✅</span>
+              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
               <p className="text-lg font-semibold">Import terminé</p>
               <p className="text-sm text-zinc-600">
                 {importedCount} transaction{importedCount > 1 ? "s" : ""} importée{importedCount > 1 ? "s" : ""} avec succès.

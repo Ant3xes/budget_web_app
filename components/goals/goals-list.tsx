@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 
 import { AddFundsModal } from "@/components/goals/add-funds-modal";
 import { GoalsModal } from "@/components/goals/goals-modal";
@@ -142,8 +143,8 @@ export function GoalsList() {
                     </button>
                   )}
                   {isComplete && (
-                    <span className="flex-1 rounded-md bg-emerald-50 px-3 py-1.5 text-center text-xs font-medium text-emerald-700">
-                      ✓ Objectif atteint
+                    <span className="flex flex-1 items-center justify-center gap-1 rounded-md bg-emerald-50 px-3 py-1.5 text-center text-xs font-medium text-emerald-700">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Objectif atteint
                     </span>
                   )}
                   <button

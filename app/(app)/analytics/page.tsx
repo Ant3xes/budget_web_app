@@ -47,8 +47,12 @@ export default async function AnalyticsPage({
     period.type === "preset" && period.value === "tout"
       ? await resolveEarliestTransactionDate(supabase, accountIds)
       : null;
-  const { from: windowFrom, monthCount: windowMonthCount } = periodBounds(period, { now, earliestDate });
+  const { from: windowFrom, to: windowTo, monthCount: windowMonthCount } = periodBounds(period, { now, earliestDate });
   const windowLabel = resolvePeriodLabel(period, now);
+  // Every widget's series must end where the *selected* window ends, not
+  // always "now" — true for every period type except the new "range" one
+  // (a past custom range must bucket into its own months, not today's).
+  const windowToMonth = windowTo.slice(0, 7);
   // computeBalanceSeries always spans from the earliest transaction through
   // now (it has no `monthCount` window of its own — the running balance
   // must start from account inception to be correct), so the selected
@@ -62,7 +66,10 @@ export default async function AnalyticsPage({
       supabase.from("transactions").select("amount_cents, date").in("account_id", accountIds).is("deleted_at", null),
     ),
 
-    // 2. Window-bounded transactions for cash-flow + expense-trend.
+    // 2. Window-bounded transactions for cash-flow + expense-trend. Bounded
+    // above by windowTo too — open-ended used to be harmless when every
+    // period type ran through today, but a past "range" period must not
+    // pull in transactions after its own end.
     runScopedQuery<{ kind: string; amount_cents: number; date: string }>([accountIds], () =>
       supabase
         .from("transactions")
@@ -70,15 +77,16 @@ export default async function AnalyticsPage({
         .in("account_id", accountIds)
         .in("kind", ["expense", "income"])
         .is("deleted_at", null)
-        .gte("date", windowFrom),
+        .gte("date", windowFrom)
+        .lte("date", windowTo),
     ),
   ]);
 
   const initialBalanceTotal = (accountsRes.data ?? []).reduce((sum, a) => sum + a.initial_balance_cents, 0);
-  const fullNetWorthSeries = computeBalanceSeries(allTxRes.data ?? [], initialBalanceTotal, now);
+  const fullNetWorthSeries = computeBalanceSeries(allTxRes.data ?? [], initialBalanceTotal, now, windowToMonth);
   const netWorthSeries = windowMonthCount === null ? fullNetWorthSeries : fullNetWorthSeries.slice(-windowMonthCount);
 
-  const windowSeries = computeIncomeExpenseSeries(windowTxRes.data ?? [], windowMonthCount, now);
+  const windowSeries = computeIncomeExpenseSeries(windowTxRes.data ?? [], windowMonthCount, now, windowToMonth);
 
   return (
     <section className="space-y-4">

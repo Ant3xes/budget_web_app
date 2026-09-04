@@ -2,15 +2,15 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, Pencil, Search, Trash2, X } from "lucide-react";
 
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
 import { ImportModal } from "@/components/import/import-modal";
 import { TransactionModal } from "@/components/transactions/transaction-modal";
+import { CategoryBadge } from "@/components/category-badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
-import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
 type Transaction = {
   id: string;
@@ -244,8 +244,9 @@ export function TransactionList({ kind }: TransactionListProps) {
           <button
             onClick={() => setQ(qInput)}
             className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            aria-label="Rechercher"
           >
-            🔍
+            <Search className="h-4 w-4" />
           </button>
           {q && (
             <button
@@ -254,8 +255,9 @@ export function TransactionList({ kind }: TransactionListProps) {
                 setQInput("");
               }}
               className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              aria-label="Effacer la recherche"
             >
-              ✕
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -277,13 +279,13 @@ export function TransactionList({ kind }: TransactionListProps) {
                 <th className="px-4 py-3">Description</th>
                 <th className="px-4 py-3">Catégorie</th>
                 <th className="px-4 py-3">Compte</th>
-                <th className="px-4 py-3 text-right">Montant</th>
+                <th className="px-4 py-3 text-left">Montant</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {transactions.map((t) => (
-                <tr key={t.id} className="group border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
+                <tr key={t.id} className="border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
                   <td className="px-4 py-3 whitespace-nowrap text-zinc-500 dark:text-zinc-400">{formatDate(t.date)}</td>
                   <td className="px-4 py-3 max-w-xs truncate">
                     {t.description}
@@ -293,21 +295,18 @@ export function TransactionList({ kind }: TransactionListProps) {
                   </td>
                   <td className="px-4 py-3">
                     {t.categories ? (
-                      <span className="flex items-center gap-1">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: t.categories.color ?? CATEGORY_COLOR_FALLBACK }}
-                        />
-                        {t.categories.icon ? `${t.categories.icon} ` : ""}
-                        {t.categories.name}
-                      </span>
+                      <CategoryBadge
+                        name={t.categories.name}
+                        color={t.categories.color}
+                        icon={t.categories.icon}
+                      />
                     ) : (
                       <span className="text-zinc-400">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">{t.accounts?.name ?? "—"}</td>
                   <td
-                    className={`px-4 py-3 text-right font-medium whitespace-nowrap ${
+                    className={`px-4 py-3 text-left font-medium whitespace-nowrap ${
                       t.kind === "expense" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"
                     }`}
                   >
@@ -316,7 +315,7 @@ export function TransactionList({ kind }: TransactionListProps) {
                   </td>
                   <td className="px-4 py-3">
                     {!t.transfer_id ? (
-                      <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                      <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="icon-sm"

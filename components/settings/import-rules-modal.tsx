@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { X } from "lucide-react";
 import { z } from "zod";
 
 const ruleFormSchema = z.object({
@@ -118,10 +119,10 @@ export function ImportRulesModal({ ruleId, defaultValues, onSuccess, onClose }: 
           </h2>
           <button
             onClick={onClose}
-            className="text-xl leading-none text-zinc-400 hover:text-zinc-700"
+            className="text-zinc-400 hover:text-zinc-700"
             aria-label="Fermer"
           >
-            ✕
+            <X className="h-5 w-5" />
           </button>
         </div>
 

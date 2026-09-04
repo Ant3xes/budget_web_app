@@ -58,15 +58,21 @@ function formatDayLabel(isoDate: string): string {
 
 /**
  * End-of-month balance series: for each month from the earliest transaction
- * (or current month if none) through the current month,
+ * (or `endMonth` if none) through `endMonth` (defaults to `now`'s month),
  * balance = initialBalanceCents + SUM(amount_cents where date <= end of month).
+ *
+ * `endMonth` matters when a caller slices the tail of this series for a
+ * window that doesn't end "now" (e.g. /analytics' net-worth chart for a
+ * past custom date range) — without it, the series always ran through
+ * today, so slicing its last N months would grab the wrong months entirely.
  */
 export function computeBalanceSeries(
   transactions: BalanceSeriesTx[],
   initialBalanceCents: number,
   now: Date = new Date(),
+  endMonth?: string,
 ): BalanceSeriesPoint[] {
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentMonth = endMonth ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   let startMonth = currentMonth;
   if (transactions.length > 0) {

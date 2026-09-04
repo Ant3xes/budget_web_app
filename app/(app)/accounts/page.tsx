@@ -1,5 +1,6 @@
 import { AccountsList } from "@/components/accounts/accounts-list";
 import { AccountsImportButton } from "@/components/accounts/accounts-import-button";
+import { groupAccountsByBank } from "@/lib/accounts/group-accounts-by-bank";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 type AccountWithTransactions = {
@@ -7,6 +8,7 @@ type AccountWithTransactions = {
   name: string;
   type: string;
   currency: string;
+  bank: string | null;
   initial_balance_cents: number;
   transactions: { amount_cents: number; deleted_at: string | null; kind: string; date: string }[] | null;
 };
@@ -15,7 +17,7 @@ export default async function AccountsPage() {
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from("accounts")
-    .select("id, name, type, currency, initial_balance_cents, transactions(amount_cents, deleted_at, kind, date)")
+    .select("id, name, type, currency, bank, initial_balance_cents, transactions(amount_cents, deleted_at, kind, date)")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -39,14 +41,21 @@ export default async function AccountsPage() {
       name: account.name,
       type: account.type,
       currency: account.currency,
+      bank: account.bank,
       balanceCents,
       monthExpenseCents,
     };
   });
 
+  // Group by bank (alphabetical, fr locale, no-bank trailing), then by
+  // account type within each group, so accounts read like a bank statement
+  // list rather than most-recently-created-first (plan: accounts page bank
+  // grouping).
+  const groups = groupAccountsByBank(accountCards);
+
   return (
     <section className="space-y-6">
-      <AccountsList accounts={accountCards} importButton={<AccountsImportButton />} />
+      <AccountsList groups={groups} importButton={<AccountsImportButton />} />
     </section>
   );
 }
