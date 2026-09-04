@@ -1,21 +1,12 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { IncomeExpenseBarChart } from "@/components/dashboard/bar-chart";
-import { DonutChart } from "@/components/dashboard/donut-chart";
+import { AlertBanners } from "@/components/dashboard/alert-banners";
+import { KpiRow } from "@/components/dashboard/kpi-row";
+import { ExpenseByCategoryWidget } from "@/components/dashboard/expense-by-category-widget";
+import { IncomeVsExpenseWidget } from "@/components/dashboard/income-vs-expense-widget";
+import { BudgetUtilization } from "@/components/dashboard/budget-utilization";
+import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
-
-function formatEuros(cents: number): string {
-  return (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "Europe/Paris",
-  });
-}
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient();
@@ -171,124 +162,29 @@ export default async function DashboardPage() {
   const upcomingCharges = fixedChargesAlertRes.data ?? [];
   const exceededBudgets = budgetRows.filter((b) => b.consumed > b.amount);
 
+  const recentTransactions = (last10Res.data ?? []).map((tx) => ({
+    id: tx.id,
+    amount_cents: tx.amount_cents,
+    description: tx.description,
+    categories: tx.categories as unknown as { name: string } | null,
+  }));
+
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">Dashboard</h1>
 
-      {/* Alert banners */}
-      {(upcomingCharges.length > 0 || exceededBudgets.length > 0) && (
-        <div className="space-y-2">
-          {upcomingCharges.map((charge) => (
-            <div
-              key={charge.id}
-              className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
-            >
-              <span>⚠</span>
-              <span>
-                Charge fixe <strong>{charge.name}</strong> ({formatEuros(charge.amount_cents)}) — échéance le{" "}
-                {formatDate(charge.next_due_date)}
-              </span>
-            </div>
-          ))}
-          {exceededBudgets.map((b) => (
-            <div
-              key={b.id}
-              className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700"
-            >
-              <span>📊</span>
-              <span>
-                Budget <strong>{b.categoryName}</strong> dépassé — {formatEuros(b.consumed)} /{" "}
-                {formatEuros(b.amount)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      <AlertBanners upcomingCharges={upcomingCharges} exceededBudgets={exceededBudgets} />
 
-      {/* KPI cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="text-sm text-zinc-500 dark:text-zinc-400">Solde consolidé</h2>
-          <p className={`mt-1 text-xl font-semibold ${consolidatedBalance < 0 ? "text-red-600" : "text-zinc-900 dark:text-zinc-100"}`}>
-            {formatEuros(consolidatedBalance)}
-          </p>
-        </article>
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="text-sm text-zinc-500 dark:text-zinc-400">Dépenses ce mois</h2>
-          <p className="mt-1 text-xl font-semibold text-red-600">−{formatEuros(monthExpense)}</p>
-        </article>
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="text-sm text-zinc-500 dark:text-zinc-400">Revenus ce mois</h2>
-          <p className="mt-1 text-xl font-semibold text-green-600">+{formatEuros(monthIncome)}</p>
-        </article>
-      </div>
+      <KpiRow consolidatedBalance={consolidatedBalance} monthExpense={monthExpense} monthIncome={monthIncome} />
 
-      {/* Charts */}
       <div className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Dépenses par catégorie (mois en cours)</h2>
-          <DonutChart data={donutData} emptyLabel="Aucune dépense ce mois" />
-        </article>
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Revenus vs Dépenses (6 mois)</h2>
-          <IncomeExpenseBarChart data={barData} />
-        </article>
+        <ExpenseByCategoryWidget data={donutData} />
+        <IncomeVsExpenseWidget data={barData} />
       </div>
 
-      {/* Budget utilization */}
-      {budgetRows.length > 0 && (
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Budgets du mois en cours</h2>
-          <div className="space-y-3">
-            {budgetRows.map((b) => {
-              const ratio = b.amount > 0 ? b.consumed / b.amount : 0;
-              const pct = Math.min(ratio * 100, 100);
-              const barColor =
-                ratio > 1 ? "bg-red-500" : ratio >= 0.8 ? "bg-orange-400" : "bg-green-500";
-              return (
-                <div key={b.id}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span>
-                      {b.categoryIcon && <span className="mr-1">{b.categoryIcon}</span>}
-                      {b.categoryName}
-                    </span>
-                    <span className="text-zinc-500">
-                      {formatEuros(b.consumed)} / {formatEuros(b.amount)}
-                    </span>
-                  </div>
-                  <div className="mt-1 h-2 w-full rounded-full bg-zinc-100">
-                    <div className={`h-2 rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </article>
-      )}
+      <BudgetUtilization rows={budgetRows} />
 
-      {/* Last 10 transactions */}
-      <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-        <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Dernières transactions</h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          {(last10Res.data ?? []).map((tx) => (
-            <li key={tx.id} className="flex justify-between border-b border-zinc-100 pb-2 dark:border-zinc-800">
-              <span className="truncate max-w-xs text-zinc-700 dark:text-zinc-300">
-                {tx.description ?? "Transaction"}
-                {(tx.categories as unknown as { name: string } | null)?.name && (
-                  <span className="ml-1.5 text-xs text-zinc-400">
-                    · {(tx.categories as unknown as { name: string }).name}
-                  </span>
-                )}
-              </span>
-              <span className={`ml-4 shrink-0 font-medium ${tx.amount_cents < 0 ? "text-red-600" : "text-green-600"}`}>
-                {tx.amount_cents < 0 ? "−" : "+"}
-                {formatEuros(Math.abs(tx.amount_cents))}
-              </span>
-            </li>
-          ))}
-          {!last10Res.data?.length && <li className="text-zinc-500">Aucune transaction.</li>}
-        </ul>
-      </article>
+      <RecentTransactions transactions={recentTransactions} />
     </section>
   );
 }
