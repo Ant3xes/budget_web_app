@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 
 import { BudgetModal } from "@/components/budget/budget-modal";
 import { BudgetBar } from "@/components/dashboard/budget-bar";
+import { DonutChart } from "@/components/dashboard/donut-chart";
 import { CategoryBadge } from "@/components/category-badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 import { formatEuros } from "@/lib/format";
 
 type BudgetCategory = { name: string; color: string | null; icon: string | null };
@@ -129,6 +131,20 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
   const totalBudget = budgets.reduce((s, b) => s + b.amount_cents, 0);
   const totalConsumed = budgets.reduce((s, b) => s + (consumption[b.category_id] ?? 0), 0);
 
+  const donutData = useMemo(
+    () =>
+      budgets
+        .map((b) => ({
+          name: b.categories?.name ?? "—",
+          value: consumption[b.category_id] ?? 0,
+          color: b.categories?.color ?? CATEGORY_COLOR_FALLBACK,
+          icon: b.categories?.icon,
+          categoryId: b.category_id,
+        }))
+        .filter((d) => d.value > 0),
+    [budgets, consumption],
+  );
+
   return (
     <div className="space-y-4">
       {/* Month navigation */}
@@ -177,6 +193,14 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
         </div>
       ) : (
         <>
+          {/* Spending by category */}
+          <div className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
+            <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Répartition des dépenses
+            </h2>
+            <DonutChart data={donutData} emptyLabel="Aucune dépense" />
+          </div>
+
           {/* Summary */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
@@ -223,7 +247,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                     const ratio = budget.amount_cents > 0 ? consumed / budget.amount_cents : 0;
 
                     return (
-                      <tr key={budget.id} className="group border-b border-zinc-50 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
+                      <tr key={budget.id} className="border-b border-zinc-50 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <CategoryBadge
@@ -252,7 +276,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                           </p>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                          <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="icon-sm"

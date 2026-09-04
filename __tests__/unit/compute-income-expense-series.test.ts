@@ -50,4 +50,23 @@ describe("computeIncomeExpenseSeries", () => {
     expect(series[0]).toEqual({ key: "2025-12", month: "Déc 25", income: 0, expense: 1_000 });
     expect(series[3]).toEqual({ key: "2026-03", month: "Mar 26", income: 5_000, expense: 0 });
   });
+
+  it("with an explicit endMonth, buckets end there instead of at now's month (past custom range)", () => {
+    // Regression: a past "Personnalisé" range (e.g. mars–mai) while today is
+    // septembre must NOT silently bucket into juillet–septembre.
+    const now = new Date(2026, 8, 4); // September 2026
+    const series = computeIncomeExpenseSeries(
+      [
+        { date: "2026-03-01", kind: "income", amount_cents: 100_000 },
+        { date: "2026-09-01", kind: "expense", amount_cents: -50_000 }, // outside the requested window
+      ],
+      3,
+      now,
+      "2026-05",
+    );
+
+    expect(series.map((p) => p.key)).toEqual(["2026-03", "2026-04", "2026-05"]);
+    expect(series[0]).toEqual({ key: "2026-03", month: "Mar 26", income: 100_000, expense: 0 });
+    expect(series.every((p) => p.expense === 0)).toBe(true);
+  });
 });

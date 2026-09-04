@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertTriangle, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import { FixedChargeModal } from "@/components/fixed-charges/fixed-charges-modal";
+import { Button } from "@/components/ui/button";
 
 type FixedCharge = {
   id: string;
@@ -179,7 +181,11 @@ export function FixedChargesList() {
                     <td className="px-4 py-3">{FREQUENCY_LABELS[charge.frequency]}</td>
                     <td className={`px-4 py-3 ${dueSoon ? "font-semibold text-red-700 dark:text-red-400" : ""}`}>
                       {formatDate(charge.next_due_date)}
-                      {dueSoon && <span className="ml-1 text-xs text-red-500">⚠ Bientôt</span>}
+                      {dueSoon && (
+                        <span className="ml-1 inline-flex items-center gap-0.5 text-xs text-red-500">
+                          <AlertTriangle className="h-3 w-3" /> Bientôt
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-zinc-500">{charge.accounts?.name ?? "—"}</td>
                     <td className="px-4 py-3">
@@ -188,55 +194,64 @@ export function FixedChargesList() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="relative inline-block" ref={openMenuId === charge.id ? menuRef : null}>
-                        <button
-                          onClick={() => setOpenMenuId(openMenuId === charge.id ? null : charge.id)}
-                          className="rounded-md px-2 py-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
-                          aria-label="Actions"
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setEditingCharge(charge)}
+                          aria-label="Modifier la charge fixe"
+                          title="Modifier"
                         >
-                          ⋯
-                        </button>
-                        {openMenuId === charge.id && (
-                          <div className="absolute right-0 z-10 mt-1 w-44 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-                            <button
-                              onClick={() => { setOpenMenuId(null); setEditingCharge(charge); }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 dark:text-zinc-300"
-                            >
-                              Modifier
-                            </button>
-                            {charge.status === "active" && (
-                              <button
-                                onClick={() => handleStatusChange(charge.id, "suspended")}
-                                className="w-full px-4 py-2 text-left text-sm text-yellow-700 hover:bg-zinc-50"
-                              >
-                                Suspendre
-                              </button>
-                            )}
-                            {charge.status === "suspended" && (
-                              <button
-                                onClick={() => handleStatusChange(charge.id, "active")}
-                                className="w-full px-4 py-2 text-left text-sm text-green-700 hover:bg-zinc-50"
-                              >
-                                Réactiver
-                              </button>
-                            )}
-                            {charge.status !== "cancelled" && (
-                              <button
-                                onClick={() => handleStatusChange(charge.id, "cancelled")}
-                                className="w-full px-4 py-2 text-left text-sm text-zinc-500 hover:bg-zinc-50"
-                              >
-                                Marquer annulé
-                              </button>
-                            )}
-                            <hr className="my-1 border-zinc-100" />
-                            <button
-                              onClick={() => handleDelete(charge.id)}
-                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-zinc-50"
-                            >
-                              Supprimer
-                            </button>
-                          </div>
-                        )}
+                          <Pencil />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="icon-sm"
+                          onClick={() => handleDelete(charge.id)}
+                          aria-label="Supprimer la charge fixe"
+                          title="Supprimer"
+                        >
+                          <Trash2 />
+                        </Button>
+                        <div className="relative inline-block" ref={openMenuId === charge.id ? menuRef : null}>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setOpenMenuId(openMenuId === charge.id ? null : charge.id)}
+                            aria-label="Autres actions"
+                            title="Autres actions"
+                          >
+                            <MoreVertical />
+                          </Button>
+                          {openMenuId === charge.id && (
+                            <div className="absolute right-0 z-10 mt-1 w-44 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+                              {charge.status === "active" && (
+                                <button
+                                  onClick={() => handleStatusChange(charge.id, "suspended")}
+                                  className="w-full px-4 py-2 text-left text-sm text-yellow-700 hover:bg-zinc-50"
+                                >
+                                  Suspendre
+                                </button>
+                              )}
+                              {charge.status === "suspended" && (
+                                <button
+                                  onClick={() => handleStatusChange(charge.id, "active")}
+                                  className="w-full px-4 py-2 text-left text-sm text-green-700 hover:bg-zinc-50"
+                                >
+                                  Réactiver
+                                </button>
+                              )}
+                              {charge.status !== "cancelled" && (
+                                <button
+                                  onClick={() => handleStatusChange(charge.id, "cancelled")}
+                                  className="w-full px-4 py-2 text-left text-sm text-zinc-500 hover:bg-zinc-50"
+                                >
+                                  Marquer annulé
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>

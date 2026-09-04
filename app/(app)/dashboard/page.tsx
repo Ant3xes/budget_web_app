@@ -4,15 +4,24 @@ import { PeriodSelector } from "@/components/period-selector";
 import { AccountBalances } from "@/components/dashboard/account-balances";
 import { ExpenseByCategoryWidget } from "@/components/dashboard/expense-by-category-widget";
 import { IncomeVsExpenseWidget } from "@/components/dashboard/income-vs-expense-widget";
-import { BudgetUtilization } from "@/components/dashboard/budget-utilization";
+import { BudgetStackedChart } from "@/components/dashboard/budget-stacked-chart";
 import { SavingsGoalsSummary } from "@/components/dashboard/savings-goals-summary";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
+import { RemainingToLive } from "@/components/dashboard/remaining-to-live";
+import { SavingsThisMonth } from "@/components/dashboard/savings-this-month";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { computeExpenseByCategory } from "@/lib/accounts/compute-expense-by-category";
 import { groupAccountBalancesByBank, type AccountBalance } from "@/lib/accounts/group-account-balances";
 import { runScopedQuery } from "@/lib/accounts/run-scoped-query";
 import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amount";
-import { parsePeriodParam, periodBounds, floorMonthWindow, periodLabel as resolvePeriodLabel } from "@/lib/dates/period";
+import {
+  parsePeriodParam,
+  periodBounds,
+  floorMonthWindow,
+  periodLabel as resolvePeriodLabel,
+  todayISO,
+  toMonthLabel,
+} from "@/lib/dates/period";
 import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-transaction-date";
 
 /** Sums `amount_cents` by `category_id`, dropping rows with no category — used for both budget consumption and linked-goal totals below. */
@@ -41,6 +50,11 @@ export default async function DashboardPage({
     currentMonthNum === 12
       ? `${currentYear + 1}-01-01`
       : `${currentYear}-${String(currentMonthNum + 1).padStart(2, "0")}-01`;
+  // Current month's last day (mirrors periodBounds()'s own month-end calc)
+  // — bounds "Reste à vivre"'s upcoming-fixed-charges query below.
+  const currentMonthLastDay = new Date(Date.UTC(currentYear, currentMonthNum, 0)).getUTCDate();
+  const currentMonthEnd = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-${String(currentMonthLastDay).padStart(2, "0")}`;
+  const todayStr = todayISO(now);
 
   // Active accounts — fetched first (own round-trip, a deliberate one-request
   // trade-off for correctness) because every transactions query on this page
@@ -74,10 +88,20 @@ export default async function DashboardPage({
     to: periodTo,
     monthCount: periodMonthCount,
   } = periodBounds(period, { now, earliestDate });
+  // The trend chart's month buckets must end where the *selected* window
+  // ends, not always "now" — true for every period type except the new
+  // "range" one (a past custom range, e.g. mars–mai while today is
+  // septembre, must bucket into mars/avril/mai, not juillet/août/septembre).
+  const periodToMonth = periodTo.slice(0, 7);
   // `parsePeriodParam` also accepts an arbitrary `?period=YYYY-MM` (not just
   // the 5 presets `PeriodSelector` links to) — label that case properly
   // instead of always falling back to "ce mois".
   const periodLabel = resolvePeriodLabel(period, now);
+  // "Dépensé par catégorie" gets its own dedicated label: an explicit month
+  // name (e.g. "septembre 2026") instead of the shared periodLabel's "ce
+  // mois" wording for the current-month case — the shared helper stays
+  // untouched since it's also used by the KPI row and /analytics.
+  const categoryWidgetLabel = period.type === "month" ? toMonthLabel(period.month) : periodLabel;
 
   // The trend chart always shows at least 6 months (a 1-bar chart when the
   // filter is "ce mois" would defeat the point of a trend view) — the
@@ -88,10 +112,11 @@ export default async function DashboardPage({
     periodMonthCount,
     6,
     now,
+    periodToMonth,
   );
   const trendLabel = trendIsFloored ? "6 mois" : periodLabel;
 
-  const [periodTxRes, monthTxRes, trendTxRes, budgetsRes, goalsRes] = await Promise.all([
+  const [periodTxRes, monthTxRes, trendTxRes, budgetsRes, goalsRes, fixedChargesRes] = await Promise.all([
     // 1. Selected-period transactions for donut + KPIs (category_id is
     // also used for the drill-down link into /expenses)
     runScopedQuery<{ kind: string; amount_cents: number; category_id: string | null; categories: unknown }>(
@@ -112,6 +137,7 @@ export default async function DashboardPage({
     // paginated client-side, rather than a hard-capped top-10.
     runScopedQuery<{
       id: string;
+      account_id: string;
       amount_cents: number;
       date: string;
       description: string | null;
@@ -120,7 +146,7 @@ export default async function DashboardPage({
     }>([accountIds], () =>
       supabase
         .from("transactions")
-        .select("id, amount_cents, date, description, kind, categories(name)")
+        .select("id, account_id, amount_cents, date, description, kind, categories(name)")
         .in("account_id", accountIds)
         .is("deleted_at", null)
         .gte("date", monthStart)
@@ -129,7 +155,10 @@ export default async function DashboardPage({
         .order("created_at", { ascending: false }),
     ),
 
-    // 3. Income/expense trend chart (at least 6 months — see trendFrom)
+    // 3. Income/expense trend chart (at least 6 months — see trendFrom).
+    // Bounded above by periodTo too — open-ended used to be harmless when
+    // every period type ran through today, but a past "range" period must
+    // not pull in transactions after its own end.
     runScopedQuery<{ kind: string; amount_cents: number; date: string }>([accountIds], () =>
       supabase
         .from("transactions")
@@ -137,6 +166,7 @@ export default async function DashboardPage({
         .in("account_id", accountIds)
         .in("kind", ["expense", "income"])
         .gte("date", trendFrom)
+        .lte("date", periodTo)
         .is("deleted_at", null),
     ),
 
@@ -154,6 +184,16 @@ export default async function DashboardPage({
       .select("id, name, target_amount_cents, current_amount_cents, color, icon, linked_category_id")
       .is("deleted_at", null)
       .order("created_at", { ascending: true }),
+
+    // 6. Upcoming active fixed charges (today through the current month's
+    // last day) — feeds "Reste à vivre"'s secondary/parenthetical figure.
+    supabase
+      .from("fixed_charges")
+      .select("amount_cents")
+      .eq("status", "active")
+      .gte("next_due_date", todayStr)
+      .lte("next_due_date", currentMonthEnd)
+      .is("deleted_at", null),
   ]);
 
   // ── Per-account / per-category running totals ────────────────────────────
@@ -211,6 +251,21 @@ export default async function DashboardPage({
   const consolidatedBalance = accountBalances.reduce((sum, acc) => sum + acc.balanceCents, 0);
   const bankGroups = groupAccountBalancesByBank(accountBalances);
 
+  // ── "Reste à vivre" (courant accounts only) ──────────────────────────────
+  const courantBalanceCents = accountBalances
+    .filter((a) => a.type === "courant")
+    .reduce((sum, a) => sum + a.balanceCents, 0);
+  const upcomingFixedChargesCents = (fixedChargesRes.data ?? []).reduce((sum, fc) => sum + fc.amount_cents, 0);
+  const remainingToLiveAfterChargesCents = courantBalanceCents - upcomingFixedChargesCents;
+
+  // ── "Épargne ce mois" (non-courant accounts, any transaction kind —
+  // transfers are stored as two rows so summing amount_cents already nets
+  // deposits/withdrawals correctly) ────────────────────────────────────────
+  const nonCourantAccountIds = new Set(accountBalances.filter((a) => a.type !== "courant").map((a) => a.id));
+  const savingsThisMonthCents = (monthTxRes.data ?? [])
+    .filter((tx) => nonCourantAccountIds.has(tx.account_id))
+    .reduce((sum, tx) => sum + tx.amount_cents, 0);
+
   // ── Period KPIs ───────────────────────────────────────────────────────────
   const periodTx = periodTxRes.data ?? [];
   const periodExpense = periodTx
@@ -240,7 +295,7 @@ export default async function DashboardPage({
   );
 
   // ── Income/expense trend chart (same period) ─────────────────────────────
-  const barData = computeIncomeExpenseSeries(trendTxRes.data ?? [], trendMonthCount, now);
+  const barData = computeIncomeExpenseSeries(trendTxRes.data ?? [], trendMonthCount, now, periodToMonth);
 
   // ── Budget utilization ───────────────────────────────────────────────────
   const budgetConsumption = sumAbsByCategoryId(budgetConsumptionRes.data ?? []);
@@ -303,7 +358,12 @@ export default async function DashboardPage({
       />
 
       <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
-        <ExpenseByCategoryWidget data={donutData} periodLabel={periodLabel} />
+        <RemainingToLive amountCents={courantBalanceCents} afterChargesCents={remainingToLiveAfterChargesCents} />
+        <SavingsThisMonth amountCents={savingsThisMonthCents} />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
+        <ExpenseByCategoryWidget data={donutData} periodLabel={categoryWidgetLabel} />
         <IncomeVsExpenseWidget data={barData} periodLabel={trendLabel} />
       </div>
 
@@ -312,7 +372,7 @@ export default async function DashboardPage({
         <SavingsGoalsSummary goals={goalSummaries} />
       </div>
 
-      <BudgetUtilization rows={budgetRows} />
+      <BudgetStackedChart rows={budgetRows} />
 
       <RecentTransactions transactions={recentTransactions} />
     </section>

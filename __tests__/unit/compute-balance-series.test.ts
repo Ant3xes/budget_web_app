@@ -71,6 +71,25 @@ describe("computeBalanceSeries", () => {
     expect(series.slice(-24)[0].month).not.toBe(series[0].month);
     expect(series[series.length - 1].balance).toBe(3000);
   });
+
+  it("with an explicit endMonth, the series ends there instead of at now's month (past custom range)", () => {
+    // Regression: a caller slicing the tail for a past "Personnalisé" range
+    // (e.g. mars–mai) while today is septembre must NOT run all the way
+    // through septembre — slicing the tail would then grab the wrong months.
+    const now = new Date(2026, 8, 4); // September 2026
+    const series = computeBalanceSeries(
+      [
+        { date: "2026-03-15", amount_cents: 1000 },
+        { date: "2026-09-01", amount_cents: 9_999 }, // after the requested window
+      ],
+      0,
+      now,
+      "2026-05",
+    );
+
+    expect(series).toHaveLength(3); // Mar, Apr, May
+    expect(series[series.length - 1].balance).toBe(1000); // September's tx must not be included
+  });
 });
 
 describe("computeDailyBalanceSeries", () => {

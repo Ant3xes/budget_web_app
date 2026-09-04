@@ -181,7 +181,7 @@ export function ImportRulesList() {
       </div>
 
       {rules.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-zinc-300 py-12 text-center text-sm text-zinc-500">
+        <div className="rounded-lg border border-dashed border-zinc-300 py-12 text-center text-sm text-zinc-500 dark:border-zinc-700">
           Aucune règle de catégorisation. Les règles s&apos;appliquent automatiquement lors de l&apos;import CSV.
         </div>
       ) : (

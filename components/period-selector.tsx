@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PERIOD_PRESET_LABELS, currentMonth, type Period, type PeriodPreset } from "@/lib/dates/period";
+import { PeriodSelectorCustom } from "@/components/period-selector-custom";
 
 interface PeriodSelectorProps {
   current: Period;
@@ -36,7 +37,7 @@ const DEFAULT_PRESETS: PeriodPreset[] = ["1m", "3m", "6m", "1a", "tout"];
  */
 export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS }: PeriodSelectorProps) {
   return (
-    <div className="inline-flex gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
+    <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
       {presets.map((preset) => {
         const isActive =
           preset === "1m"
@@ -58,6 +59,7 @@ export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS }:
           </Link>
         );
       })}
+      <PeriodSelectorCustom current={current} basePath={basePath} />
     </div>
   );
 }

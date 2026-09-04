@@ -10,7 +10,7 @@ export function DeleteAccountButton({ accountId }: { accountId: string }) {
   return (
     <button
       type="button"
-      className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 disabled:opacity-50"
+      className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
       disabled={isDeleting}
       onClick={async () => {
         setIsDeleting(true);

@@ -105,22 +105,22 @@ export function TransferList() {
                 <th className="px-4 py-3">De</th>
                 <th className="px-4 py-3">Vers</th>
                 <th className="px-4 py-3">Description</th>
-                <th className="px-4 py-3 text-right">Montant</th>
+                <th className="px-4 py-3 text-left">Montant</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {transfers.map((t) => (
-                <tr key={t.transfer_id} className="group border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
+                <tr key={t.transfer_id} className="border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
                   <td className="px-4 py-3 whitespace-nowrap text-zinc-500">{formatDate(t.date)}</td>
                   <td className="px-4 py-3">{t.from_account?.name ?? "—"}</td>
                   <td className="px-4 py-3">{t.to_account?.name ?? "—"}</td>
                   <td className="px-4 py-3 text-zinc-500 truncate max-w-xs">{t.description ?? "—"}</td>
-                  <td className="px-4 py-3 text-right font-medium whitespace-nowrap text-blue-600">
+                  <td className="px-4 py-3 text-left font-medium whitespace-nowrap text-blue-600">
                     {formatAmount(t.amount_cents, t.currency)}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                    <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon-sm"

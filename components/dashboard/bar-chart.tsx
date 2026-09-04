@@ -26,8 +26,8 @@ interface IncomeExpenseBarChartProps {
 }
 
 const chartConfig = {
-  income: { label: "Revenus", color: INCOME_COLOR },
   expense: { label: "Dépenses", color: EXPENSE_COLOR },
+  income: { label: "Revenus", color: INCOME_COLOR },
 } satisfies ChartConfig;
 
 /**
@@ -92,8 +92,21 @@ export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarCh
           }
         />
         <ChartLegend content={<ChartLegendContent />} />
-        <Bar dataKey="income" fill="var(--color-income)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+        {/*
+         * Declared expense-then-income (reversed from chartConfig's more
+         * natural reading order) to match a Recharts quirk: for a grouped
+         * (non-stacked) 2-series BarChart, ChartLegendContent's `payload`
+         * — populated by Recharts itself, not reordered by our code (see
+         * components/ui/chart.tsx) — comes back in the *reverse* of these
+         * <Bar> elements' declaration order. Verified empirically in a dev
+         * preview: with income-then-expense, the legend read "Dépenses,
+         * Revenus" while the bars themselves rendered income-left/expense-
+         * right — legend and graph disagreeing. Swapping the declaration
+         * order here makes the legend read "Revenus, Dépenses" while the
+         * bars render revenue-left/expense-right, so both now agree.
+         */}
         <Bar dataKey="expense" fill="var(--color-expense)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+        <Bar dataKey="income" fill="var(--color-income)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ChartContainer>
   );
