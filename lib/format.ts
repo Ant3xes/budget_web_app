@@ -16,6 +16,22 @@ export function formatEuros(cents: number): string {
   return (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
+/**
+ * Compact euro axis label for chart Y-axis ticks — cents to "1 234€" or,
+ * above 10 000€, "12k€". Extracted from bar-chart.tsx (Étape 4) where it was
+ * the first of what became 4 independent copies (net-worth-chart.tsx,
+ * cashflow-chart.tsx, expense-trend-chart.tsx) once /analytics reused the
+ * same tick shape — centralized here so a future formatting tweak (e.g. the
+ * 10k threshold) only needs one edit.
+ */
+export function formatEurosAxisTick(cents: number): string {
+  const euros = cents / 100;
+  if (Math.abs(euros) >= 10_000) {
+    return `${(euros / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 0 })}k€`;
+  }
+  return `${euros.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€`;
+}
+
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("fr-FR", {
     day: "2-digit",

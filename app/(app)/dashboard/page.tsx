@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { AlertBanners } from "@/components/dashboard/alert-banners";
 import { KpiRow } from "@/components/dashboard/kpi-row";
-import { PeriodSelector } from "@/components/dashboard/period-selector";
+import { PeriodSelector } from "@/components/period-selector";
 import { AccountBalances } from "@/components/dashboard/account-balances";
 import { ExpenseByCategoryWidget } from "@/components/dashboard/expense-by-category-widget";
 import { IncomeVsExpenseWidget } from "@/components/dashboard/income-vs-expense-widget";
@@ -12,7 +12,8 @@ import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expens
 import { computeExpenseByCategory } from "@/lib/accounts/compute-expense-by-category";
 import { groupAccountBalancesByBank, type AccountBalance } from "@/lib/accounts/group-account-balances";
 import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amount";
-import { parsePeriodParam, periodBounds, currentMonth, addMonths, toMonthLabel, PERIOD_PRESET_LABELS } from "@/lib/dates/period";
+import { parsePeriodParam, periodBounds, floorMonthWindow, periodLabel as resolvePeriodLabel } from "@/lib/dates/period";
+import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-transaction-date";
 
 /** Sums `amount_cents` by `category_id`, dropping rows with no category — used for both budget consumption and linked-goal totals below. */
 function sumAbsByCategoryId(rows: { category_id: string | null; amount_cents: number }[]): Record<string, number> {
@@ -48,17 +49,8 @@ export default async function DashboardPage({
   // when actually selected, to avoid an extra query on every other render.
   const { period: periodParam } = await searchParams;
   const period = parsePeriodParam(periodParam, now);
-  let earliestDate: string | null = null;
-  if (period.type === "preset" && period.value === "tout") {
-    const { data } = await supabase
-      .from("transactions")
-      .select("date")
-      .is("deleted_at", null)
-      .order("date", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    earliestDate = data?.date ?? null;
-  }
+  const earliestDate =
+    period.type === "preset" && period.value === "tout" ? await resolveEarliestTransactionDate(supabase) : null;
   const {
     from: periodFrom,
     to: periodTo,
@@ -67,22 +59,18 @@ export default async function DashboardPage({
   // `parsePeriodParam` also accepts an arbitrary `?period=YYYY-MM` (not just
   // the 5 presets `PeriodSelector` links to) — label that case properly
   // instead of always falling back to "ce mois".
-  const periodLabel =
-    period.type === "preset"
-      ? PERIOD_PRESET_LABELS[period.value].toLowerCase()
-      : period.month === currentMonth(now)
-        ? "ce mois"
-        : toMonthLabel(period.month);
+  const periodLabel = resolvePeriodLabel(period, now);
 
   // The trend chart always shows at least 6 months (a 1-bar chart when the
   // filter is "ce mois" would defeat the point of a trend view) — the
   // period filter can only widen this baseline (e.g. "1 an"/"tout"), never
-  // shrink it. Reuses periodBounds's own `monthCount` (same convention as
-  // /accounts/[id]'s account-detail.tsx) instead of re-deriving a month
-  // span by hand from date strings.
-  const trendMonthCount = periodMonthCount === null ? null : Math.max(6, periodMonthCount);
-  const trendIsFloored = trendMonthCount !== null && trendMonthCount !== periodMonthCount;
-  const trendFrom = trendIsFloored ? `${addMonths(currentMonth(now), -5)}-01` : periodFrom;
+  // shrink it. Same helper /analytics uses for all 3 of its widgets.
+  const { from: trendFrom, monthCount: trendMonthCount, isFloored: trendIsFloored } = floorMonthWindow(
+    periodFrom,
+    periodMonthCount,
+    6,
+    now,
+  );
   const trendLabel = trendIsFloored ? "6 mois" : periodLabel;
 
   const [accountsRes, periodTxRes, last10Res, trendTxRes, budgetsRes, fixedChargesAlertRes, goalsRes] =
@@ -282,7 +270,7 @@ export default async function DashboardPage({
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <PeriodSelector current={period} />
+        <PeriodSelector current={period} basePath="/dashboard" />
       </div>
 
       <AlertBanners upcomingCharges={upcomingCharges} exceededBudgets={exceededBudgets} />
