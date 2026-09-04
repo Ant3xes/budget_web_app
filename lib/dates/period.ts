@@ -97,3 +97,38 @@ export function periodBounds(
   const from = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
   return { from, to, monthCount: months };
 }
+
+/**
+ * Human label for a `Period` — "ce mois" / a preset's own label / an
+ * explicit "mars 2026" for an arbitrary `?period=YYYY-MM`. Shared by
+ * /dashboard and /analytics (plan §Étape 3 dashboard, generalized §Étape 4)
+ * — both computed this identically inline before being extracted here.
+ */
+export function periodLabel(period: Period, now: Date = new Date()): string {
+  if (period.type === "preset") return PERIOD_PRESET_LABELS[period.value].toLowerCase();
+  return period.month === currentMonth(now) ? "ce mois" : toMonthLabel(period.month);
+}
+
+/**
+ * Widens a `periodBounds()` window up to `minMonths` when it's narrower —
+ * a trend chart (bar/line series bucketed by month) showing a single bar
+ * for "ce mois" defeats the point of a trend view. Never *shrinks* a wider
+ * selection (including "tout", `monthCount: null`, which is already
+ * maximal). Shared by the dashboard's income/expense trend and every
+ * /analytics widget (plan §Étape 3 dashboard trend, generalized §Étape 4).
+ */
+export function floorMonthWindow(
+  periodFrom: string,
+  periodMonthCount: number | null,
+  minMonths: number,
+  now: Date = new Date(),
+): { from: string; monthCount: number | null; isFloored: boolean } {
+  if (periodMonthCount === null || periodMonthCount >= minMonths) {
+    return { from: periodFrom, monthCount: periodMonthCount, isFloored: false };
+  }
+  return {
+    from: `${addMonths(currentMonth(now), -(minMonths - 1))}-01`,
+    monthCount: minMonths,
+    isFloored: true,
+  };
+}

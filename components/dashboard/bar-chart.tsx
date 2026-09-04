@@ -10,8 +10,9 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { formatEuros } from "@/lib/format";
+import { formatEuros, formatEurosAxisTick } from "@/lib/format";
 import { EXPENSE_COLOR, INCOME_COLOR } from "@/lib/constants";
+import { ChartEmptyState } from "@/components/chart-empty-state";
 
 export interface BarChartData {
   month: string; // e.g. "Jan", "Fév"
@@ -43,11 +44,7 @@ const chartConfig = {
  */
 export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarChartProps) {
   if (data.length === 0) {
-    return (
-      <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-        Pas encore de données
-      </div>
-    );
+    return <ChartEmptyState />;
   }
 
   const dense = data.length > 8;
@@ -69,13 +66,7 @@ export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarCh
           height={dense ? 40 : 24}
         />
         <YAxis
-          tickFormatter={(v: number) => {
-            const euros = v / 100;
-            if (Math.abs(euros) >= 10_000) {
-              return `${(euros / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 0 })}k€`;
-            }
-            return `${euros.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}€`;
-          }}
+          tickFormatter={formatEurosAxisTick}
           tick={{ fontSize: 11 }}
           width={48}
           axisLine={false}

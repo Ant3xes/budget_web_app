@@ -21,6 +21,7 @@ export const ACCOUNT_TYPE_LABELS: Record<(typeof ACCOUNT_TYPES)[number], string>
 
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/analytics", label: "Analytics" },
   { href: "/accounts", label: "Accounts" },
   { href: "/expenses", label: "Expenses" },
   { href: "/incomes", label: "Incomes" },
@@ -83,3 +84,6 @@ export const CATEGORY_COLOR_FALLBACK = CATEGORY_COLOR_SWATCHES[CATEGORY_COLOR_SW
  */
 export const INCOME_COLOR = "var(--income)";
 export const EXPENSE_COLOR = "var(--expense)";
+
+/** Single-series color for the "patrimoine net" chart (plan §Étape 4) — the validated categorical palette's first (blue) slot, per the dataviz skill's "sequential hue: blue" default. */
+export const NET_WORTH_COLOR = "var(--chart-1)";
