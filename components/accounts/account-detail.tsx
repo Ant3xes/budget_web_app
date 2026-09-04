@@ -8,6 +8,7 @@ import { BalanceChart } from "@/components/accounts/balance-chart";
 import { DonutChart } from "@/components/dashboard/donut-chart";
 import { IncomeExpenseBarChart } from "@/components/dashboard/bar-chart";
 import { ImportModal } from "@/components/import/import-modal";
+import { Pagination } from "@/components/ui/pagination";
 import {
   computeDailyBalanceSeries,
   type BalanceSeriesTx,
@@ -98,7 +99,14 @@ interface TxTableProps {
   amountColor: (tx: Transaction) => string;
 }
 
+const TX_PER_PAGE = 10;
+
 function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxTableProps) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(transactions.length / TX_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = transactions.slice((currentPage - 1) * TX_PER_PAGE, currentPage * TX_PER_PAGE);
+
   return (
     <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
       <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
@@ -124,7 +132,7 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
               </tr>
             </thead>
             <tbody>
-              {transactions.map((tx) => (
+              {pageItems.map((tx) => (
                 <tr key={tx.id} className="border-b border-zinc-50 last:border-0 dark:border-zinc-800">
                   <td className="px-3 py-2 text-xs text-zinc-500">{formatDate(tx.date)}</td>
                   <td className="max-w-[160px] truncate px-3 py-2 text-xs">{tx.description}</td>
@@ -161,6 +169,14 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
               ))}
             </tbody>
           </table>
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            total={transactions.length}
+            onPageChange={setPage}
+            itemLabel="opération"
+            className="border-t border-zinc-100 px-4 py-2 dark:border-zinc-800"
+          />
         </div>
       )}
     </div>
@@ -404,7 +420,7 @@ export function AccountDetail({
           <BalanceChart data={visibleBalanceData} currency={account.currency} />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
           <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
             <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
               Revenus vs Dépenses
@@ -416,7 +432,11 @@ export function AccountDetail({
             <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
               Dépenses par catégorie
             </h2>
-            <DonutChart data={donutData} height={200} />
+            {/* Taller than the bar chart next to it: the legend needs room
+                to wrap onto several rows without being clipped when the
+                account has many categories (unlike a fixed axis chart, this
+                one's content height genuinely depends on the data). */}
+            <DonutChart data={donutData} height={280} />
           </div>
         </div>
       </div>
