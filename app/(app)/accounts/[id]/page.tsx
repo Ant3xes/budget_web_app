@@ -112,6 +112,7 @@ export default async function AccountDetailPage({
           amount_cents: t.amount_cents,
           categoryName: t.categories?.name ?? null,
           categoryColor: t.categories?.color ?? null,
+          categoryIcon: t.categories?.icon ?? null,
         }))}
     />
   );

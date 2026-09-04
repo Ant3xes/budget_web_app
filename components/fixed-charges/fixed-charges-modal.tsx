@@ -20,6 +20,21 @@ type FixedChargeFormValues = z.infer<typeof fixedChargeFormSchema>;
 type Account = { id: string; name: string };
 type Category = { id: string; name: string; icon: string | null };
 
+/**
+ * Backend errors can be raw/technical (zod issue messages, Postgres error
+ * text, "Invalid UUID" — see app/api/fixed-charges/route.ts) rather than
+ * something a user should see verbatim. Only known French, user-facing
+ * messages are passed through as-is; anything else falls back to a generic
+ * message instead of leaking the raw string.
+ */
+const FRIENDLY_BACKEND_ERRORS = new Set(["Date invalide"]);
+
+function resolveErrorMessage(raw: string | undefined): string {
+  const fallback = "Impossible d'enregistrer la charge fixe, réessayez.";
+  if (!raw) return fallback;
+  return FRIENDLY_BACKEND_ERRORS.has(raw) ? raw : fallback;
+}
+
 interface FixedChargeModalProps {
   chargeId?: string;
   defaultValues?: Partial<{
@@ -109,7 +124,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? "Impossible de sauvegarder");
+      setError(resolveErrorMessage(result.error));
       return;
     }
 

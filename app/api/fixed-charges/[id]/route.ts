@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { uuidSchema } from "@/lib/validation/uuid";
 
 const fixedChargeUpdateSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
@@ -11,8 +12,8 @@ const fixedChargeUpdateSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
-  account_id: z.string().uuid().optional().nullable(),
-  category_id: z.string().uuid().optional().nullable(),
+  account_id: uuidSchema.optional().nullable(),
+  category_id: uuidSchema.optional().nullable(),
   notes: z.string().trim().max(1000).optional().nullable(),
   status: z.enum(["active", "suspended", "cancelled"]).optional(),
 });

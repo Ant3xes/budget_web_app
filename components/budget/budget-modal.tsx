@@ -142,13 +142,6 @@ export function BudgetModal({ month, budgetId, defaultValues, onSuccess, onClose
 
           <div className="flex justify-end gap-2 pt-2">
             <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              Annuler
-            </button>
-            <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"

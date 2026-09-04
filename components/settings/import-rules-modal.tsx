@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -36,6 +36,7 @@ export function ImportRulesModal({ ruleId, defaultValues, onSuccess, onClose }: 
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<RuleFormValues>({
     resolver: zodResolver(ruleFormSchema),
@@ -47,6 +48,12 @@ export function ImportRulesModal({ ruleId, defaultValues, onSuccess, onClose }: 
   });
 
   const selectedKind = watch("kind");
+  // Tracks whether the user has touched the category select themselves —
+  // read via a ref (not `formState.dirtyFields`) so the check below sees the
+  // latest value even though it runs inside an async callback captured at
+  // mount, not at render time.
+  const categoryTouchedRef = useRef(false);
+  const categoryIdField = register("category_id");
 
   useEffect(() => {
     const load = async () => {
@@ -54,13 +61,28 @@ export function ImportRulesModal({ ruleId, defaultValues, onSuccess, onClose }: 
       if (res.ok) {
         const data = (await res.json()) as { categories: Category[] };
         setCategories(data.categories ?? []);
+        // `category_id` is registered via `register()`, so at mount time
+        // (categories still []) there's no matching <option> for the rule's
+        // real category_id yet, and the DOM select never re-syncs once the
+        // options exist. Force it back onto the form's actual value now
+        // that the <option> elements exist — but only if the user hasn't
+        // already picked something themselves while this fetch was in
+        // flight, or we'd silently clobber their choice. `setValue` (not
+        // `reset`) so we don't touch keyword/kind.
+        if (!categoryTouchedRef.current) {
+          setValue("category_id", defaultValues?.category_id ?? "");
+        }
       }
     };
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredCategories = categories.filter(
-    (c) => (c as { kind?: string }).kind === selectedKind || (c as { kind?: string }).kind === undefined,
+    (c) =>
+      (c as { kind?: string }).kind === selectedKind ||
+      (c as { kind?: string }).kind === undefined ||
+      c.id === defaultValues?.category_id,
   );
 
   const onSubmit = handleSubmit(async (values) => {
@@ -136,7 +158,11 @@ export function ImportRulesModal({ ruleId, defaultValues, onSuccess, onClose }: 
           <div>
             <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Catégorie à assigner</label>
             <select
-              {...register("category_id")}
+              {...categoryIdField}
+              onChange={(e) => {
+                categoryTouchedRef.current = true;
+                void categoryIdField.onChange(e);
+              }}
               className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
             >
               <option value="">Sélectionner une catégorie…</option>

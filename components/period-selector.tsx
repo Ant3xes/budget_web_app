@@ -6,9 +6,11 @@ interface PeriodSelectorProps {
   current: Period;
   /** Page to link back to with the new `?period=` — e.g. "/dashboard" or "/analytics" (plan §Étape 4). */
   basePath: string;
+  /** Which preset options to render — defaults to the full list. */
+  presets?: PeriodPreset[];
 }
 
-const PRESETS: PeriodPreset[] = ["1m", "3m", "6m", "1a", "tout"];
+const DEFAULT_PRESETS: PeriodPreset[] = ["1m", "3m", "6m", "1a", "tout"];
 
 /**
  * Shared period filter (plan §Étape 3, generalized in §Étape 4 to also
@@ -32,10 +34,10 @@ const PRESETS: PeriodPreset[] = ["1m", "3m", "6m", "1a", "tout"];
  * are scoped by it (each still floors to its own minimum window, same
  * pattern as the dashboard trend chart — see analytics/page.tsx).
  */
-export function PeriodSelector({ current, basePath }: PeriodSelectorProps) {
+export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS }: PeriodSelectorProps) {
   return (
     <div className="inline-flex gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
-      {PRESETS.map((preset) => {
+      {presets.map((preset) => {
         const isActive =
           preset === "1m"
             ? current.type === "month" && current.month === currentMonth()

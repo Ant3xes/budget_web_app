@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Calendar } from "lucide-react";
 
 import { AccountModal } from "@/components/accounts/account-modal";
 import { BalanceChart } from "@/components/accounts/balance-chart";
@@ -201,6 +202,7 @@ export function AccountDetail({
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const monthInputRef = useRef<HTMLInputElement>(null);
 
   const earliestDate = useMemo(() => {
     if (balanceTxs.length === 0) return null;
@@ -399,15 +401,34 @@ export function AccountDetail({
           >
             →
           </button>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => {
-              if (e.target.value) applyPeriod({ type: "month", month: e.target.value });
-            }}
-            className="rounded border border-zinc-200 bg-transparent px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
-            aria-label="Choisir un mois"
-          />
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                const input = monthInputRef.current;
+                if (input?.showPicker) {
+                  input.showPicker();
+                } else {
+                  input?.focus();
+                }
+              }}
+              className="flex items-center rounded p-1 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              aria-label="Choisir un mois"
+            >
+              <Calendar className="h-4 w-4" />
+            </button>
+            <input
+              ref={monthInputRef}
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => {
+                if (e.target.value) applyPeriod({ type: "month", month: e.target.value });
+              }}
+              className="absolute inset-0 h-full w-full pointer-events-none opacity-0"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+          </div>
         </div>
       </div>
 
