@@ -93,8 +93,17 @@ export function AccountsList({ accounts }: AccountsListProps) {
                 </div>
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs text-zinc-400 dark:text-zinc-500">Dépenses ce mois</span>
-                  <span className="text-sm font-medium text-red-500">
-                    -{formatEuros(Math.abs(account.monthExpenseCents), account.currency)}
+                  {/* No leading "-" (and no red) for a genuinely zero month —
+                      a minus sign on 0,00 € misreads as spending, and red is
+                      a status color reserved for an actual expense (plan
+                      §Étape 5 dark-mode/a11y polish pass). */}
+                  <span
+                    className={`text-sm font-medium ${
+                      account.monthExpenseCents === 0 ? "text-zinc-400 dark:text-zinc-500" : "text-red-500"
+                    }`}
+                  >
+                    {account.monthExpenseCents === 0 ? "" : "-"}
+                    {formatEuros(Math.abs(account.monthExpenseCents), account.currency)}
                   </span>
                 </div>
               </div>
