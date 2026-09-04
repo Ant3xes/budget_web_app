@@ -107,6 +107,7 @@ export function BalanceChart({ data, currency = "EUR" }: BalanceChartProps) {
           strokeWidth={2}
           dot={data.length <= 31 ? { r: 2, fill: lineColor } : false}
           activeDot={{ r: 5 }}
+          isAnimationActive={false}
         />
       </LineChart>
     </ResponsiveContainer>

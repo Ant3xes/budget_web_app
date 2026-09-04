@@ -57,6 +57,7 @@ export function NetWorthChart({ data, height = 280 }: NetWorthChartProps) {
           fill="var(--color-balance)"
           fillOpacity={0.1}
           strokeWidth={2}
+          isAnimationActive={false}
         />
       </AreaChart>
     </ChartContainer>

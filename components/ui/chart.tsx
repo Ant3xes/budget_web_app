@@ -59,6 +59,27 @@ function ChartContainer({
   const uniqueId = React.useId()
   const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
 
+  // recharts' `ResponsiveContainer` measures its size via a `ResizeObserver`
+  // set up on mount; on this app that first measurement sometimes lands
+  // before the surrounding grid/flex layout has settled (Turbopack dev +
+  // React 19 hydration), leaving the chart painted at a stale/zero size
+  // until something else nudges the browser into re-measuring (e.g. the
+  // user resizing the window). Nudging it ourselves right after mount
+  // avoids relying on that external event. Separately, every series in
+  // every recharts chart in this app also sets `isAnimationActive={false}`:
+  // recharts' entrance animation runs on `requestAnimationFrame`, which can
+  // stall while a tab/frame isn't actively compositing and then never
+  // resume — leaving fully-sized, correctly-colored shapes painted at their
+  // animation-start (invisible) state indefinitely. Skipping the animation
+  // removes that failure mode entirely rather than just shortening the
+  // window for it.
+  React.useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      window.dispatchEvent(new Event("resize"))
+    })
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   return (
     <ChartContext.Provider value={{ config }}>
       <div

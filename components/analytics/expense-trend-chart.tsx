@@ -71,6 +71,7 @@ export function ExpenseTrendChart({ data, height = 240 }: ExpenseTrendChartProps
             stroke="var(--color-expense)"
             strokeWidth={2}
             dot={{ r: 4, fill: "var(--color-expense)" }}
+            isAnimationActive={false}
           />
         </LineChart>
       </ChartContainer>

@@ -92,8 +92,8 @@ export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarCh
           }
         />
         <ChartLegend content={<ChartLegendContent />} />
-        <Bar dataKey="income" fill="var(--color-income)" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="expense" fill="var(--color-expense)" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="income" fill="var(--color-income)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+        <Bar dataKey="expense" fill="var(--color-expense)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ChartContainer>
   );
