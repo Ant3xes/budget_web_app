@@ -1,13 +1,31 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { formatEuros } from "@/lib/format";
 
+interface DonutDatum {
+  name: string;
+  value: number;
+  color: string;
+  categoryId?: string | null;
+}
+
 interface DonutChartProps {
-  data: { name: string; value: number; color: string }[];
+  data: DonutDatum[];
   height?: number;
   emptyLabel?: string;
+  /**
+   * Drill-down base path (plan §Étape 3), e.g. "/expenses" — a slice with a
+   * `categoryId` links to `${drillDownBasePath}?category_id=${categoryId}`
+   * on click; a slice with no categoryId (e.g. "Sans catégorie") stays
+   * non-interactive (there's no "uncategorized" filter on /expenses to link
+   * to). A plain string rather than a callback prop: DonutChart is a Client
+   * Component but its callers (e.g. expense-by-category-widget.tsx) are
+   * Server Components, and a function prop can't cross that boundary.
+   */
+  drillDownBasePath?: string;
 }
 
 /**
@@ -35,7 +53,10 @@ export function DonutChart({
   data,
   height = 280,
   emptyLabel = "Aucune dépense",
+  drillDownBasePath,
 }: DonutChartProps) {
+  const router = useRouter();
+
   if (data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
@@ -58,9 +79,20 @@ export function DonutChart({
           paddingAngle={2}
           stroke="transparent"
         >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
-          ))}
+          {data.map((entry, index) => {
+            const href =
+              drillDownBasePath && entry.categoryId
+                ? `${drillDownBasePath}?category_id=${entry.categoryId}`
+                : null;
+            return (
+              <Cell
+                key={`cell-${index}`}
+                fill={entry.color}
+                onClick={href ? () => router.push(href) : undefined}
+                style={{ cursor: href ? "pointer" : "default" }}
+              />
+            );
+          })}
         </Pie>
         <Tooltip
           formatter={(value) => [typeof value === "number" ? formatEuros(value) : String(value ?? ""), ""]}

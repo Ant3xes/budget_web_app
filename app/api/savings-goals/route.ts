@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amount";
 
 const goalSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -66,9 +67,7 @@ export async function GET() {
 
   const enriched = (goals ?? []).map((g) => ({
     ...g,
-    current_amount_cents: g.linked_category_id
-      ? (categoryTotals[g.linked_category_id] ?? 0)
-      : g.current_amount_cents,
+    current_amount_cents: resolveGoalCurrentCents(g, categoryTotals),
   }));
 
   return NextResponse.json({ goals: enriched });

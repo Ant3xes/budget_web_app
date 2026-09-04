@@ -8,6 +8,7 @@ const accountSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(80),
   type: z.enum(ACCOUNT_TYPES),
+  bank: z.string().trim().max(80).optional().or(z.literal("")),
   initialBalanceCents: z.coerce.number().int(),
   currency: z.string().length(3).default("EUR"),
 });
@@ -35,7 +36,7 @@ export async function GET() {
 
   const { data, error } = await auth.supabase
     .from("accounts")
-    .select("id, name, type, currency, initial_balance_cents")
+    .select("id, name, type, bank, currency, initial_balance_cents")
     .eq("user_id", auth.user.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
     user_id: auth.user.id,
     name: payload.data.name,
     type: payload.data.type,
+    bank: payload.data.bank || null,
     initial_balance_cents: payload.data.initialBalanceCents,
     currency: payload.data.currency.toUpperCase(),
   });
@@ -89,6 +91,7 @@ export async function PATCH(request: Request) {
     .update({
       name: payload.data.name,
       type: payload.data.type,
+      bank: payload.data.bank || null,
       initial_balance_cents: payload.data.initialBalanceCents,
       currency: payload.data.currency.toUpperCase(),
     })

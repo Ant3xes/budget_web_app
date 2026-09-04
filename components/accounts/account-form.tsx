@@ -11,11 +11,12 @@ import { ACCOUNT_TYPES } from "@/lib/constants";
 const accountSchema = z.object({
   name: z.string().trim().min(1, "Le nom est requis").max(80),
   type: z.enum(ACCOUNT_TYPES),
+  bank: z.string().trim().max(80).optional().or(z.literal("")),
   initialBalanceCents: z.number().int(),
   currency: z.string().length(3),
 });
 
-type AccountFormValues = z.infer<typeof accountSchema>;
+export type AccountFormValues = z.infer<typeof accountSchema>;
 
 interface AccountFormProps {
   accountId?: string;
@@ -37,6 +38,7 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
     defaultValues: defaultValues ?? {
       name: "",
       type: "courant",
+      bank: "",
       initialBalanceCents: 0,
       currency: "EUR",
     },
@@ -86,6 +88,15 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
             </option>
           ))}
         </select>
+      </label>
+
+      <label className="block text-sm font-medium">
+        Banque <span className="font-normal text-zinc-400">(optionnel)</span>
+        <input
+          className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          placeholder="BNP, N26…"
+          {...register("bank")}
+        />
       </label>
 
       <label className="block text-sm font-medium">
