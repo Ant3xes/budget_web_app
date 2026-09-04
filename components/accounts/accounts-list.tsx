@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AccountModal } from "@/components/accounts/account-modal";
-import { ACCOUNT_TYPES } from "@/lib/constants";
+import { ACCOUNT_TYPE_LABELS, ACCOUNT_TYPES } from "@/lib/constants";
 
 type AccountCardData = {
   id: string;
@@ -22,14 +22,6 @@ interface AccountsListProps {
 
 const formatEuros = (cents: number, currency: string) =>
   `${(cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
-
-const TYPE_LABELS: Record<(typeof ACCOUNT_TYPES)[number], string> = {
-  courant: "Courant",
-  épargne: "Épargne",
-  livret: "Livret",
-  PEL: "PEL",
-  autre: "Autre",
-};
 
 export function AccountsList({ accounts }: AccountsListProps) {
   const router = useRouter();
@@ -83,7 +75,7 @@ export function AccountsList({ accounts }: AccountsListProps) {
                     {account.name}
                   </p>
                   <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                    {TYPE_LABELS[account.type as (typeof ACCOUNT_TYPES)[number]] ?? account.type}
+                    {ACCOUNT_TYPE_LABELS[account.type as (typeof ACCOUNT_TYPES)[number]] ?? account.type}
                   </span>
                 </div>
               </div>

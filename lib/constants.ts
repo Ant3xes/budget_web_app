@@ -6,6 +6,19 @@ export const ACCOUNT_TYPES = [
   "autre",
 ] as const;
 
+/**
+ * Display labels for ACCOUNT_TYPES — centralized here (plan §Étape 3),
+ * previously a private const duplicated only in accounts-list.tsx; now also
+ * used by components/dashboard/account-balances.tsx.
+ */
+export const ACCOUNT_TYPE_LABELS: Record<(typeof ACCOUNT_TYPES)[number], string> = {
+  courant: "Courant",
+  épargne: "Épargne",
+  livret: "Livret",
+  PEL: "PEL",
+  autre: "Autre",
+};
+
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/accounts", label: "Accounts" },

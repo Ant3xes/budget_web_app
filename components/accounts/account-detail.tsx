@@ -42,6 +42,7 @@ type AccountInfo = {
   id: string;
   name: string;
   type: string;
+  bank: string | null;
   currency: string;
   initial_balance_cents: number;
 };
@@ -452,6 +453,7 @@ export function AccountDetail({
           defaultValues={{
             name: account.name,
             type: account.type as (typeof ACCOUNT_TYPES)[number],
+            bank: account.bank ?? "",
             initialBalanceCents: account.initial_balance_cents,
             currency: account.currency,
           }}

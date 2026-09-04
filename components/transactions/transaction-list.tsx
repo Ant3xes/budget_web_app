@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
@@ -45,6 +46,11 @@ const formatDate = (iso: string) =>
   });
 
 export function TransactionList({ kind }: TransactionListProps) {
+  // Pre-filter from a drill-down link (e.g. the dashboard's category donut
+  // or budget rows — plan §Étape 3), read once on mount. Read via
+  // useSearchParams rather than a page-level prop so /expenses and /incomes
+  // don't each need to thread a searchParams prop through just for this.
+  const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -52,7 +58,7 @@ export function TransactionList({ kind }: TransactionListProps) {
 
   // Filters
   const [accountId, setAccountId] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [categoryId, setCategoryId] = useState(() => searchParams.get("category_id") ?? "");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [q, setQ] = useState("");
