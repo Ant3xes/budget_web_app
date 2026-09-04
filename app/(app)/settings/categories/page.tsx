@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { CategoryForm } from "@/components/settings/category-form";
+import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
 type Category = {
   id: string;
@@ -116,7 +117,7 @@ export default function CategoriesPage() {
                           <div className="flex items-center gap-3">
                             <span
                               className="h-4 w-4 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: cat.color ?? "#94a3b8" }}
+                              style={{ backgroundColor: cat.color ?? CATEGORY_COLOR_FALLBACK }}
                             />
                             <span className="text-sm">
                               {cat.icon ? `${cat.icon} ` : ""}

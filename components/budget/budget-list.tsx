@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { BudgetModal } from "@/components/budget/budget-modal";
+import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
 type BudgetCategory = { name: string; color: string | null; icon: string | null };
 
@@ -225,7 +226,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                             )}
                             <span
                               className="inline-block h-2 w-2 rounded-full"
-                              style={{ backgroundColor: budget.categories?.color ?? "#94a3b8" }}
+                              style={{ backgroundColor: budget.categories?.color ?? CATEGORY_COLOR_FALLBACK }}
                             />
                             {budget.categories?.name ?? "—"}
                           </span>

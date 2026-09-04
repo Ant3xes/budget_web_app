@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
 import { ImportModal } from "@/components/import/import-modal";
 import { TransactionModal } from "@/components/transactions/transaction-modal";
+import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
 type Transaction = {
   id: string;
@@ -272,7 +273,7 @@ export function TransactionList({ kind }: TransactionListProps) {
                       <span className="flex items-center gap-1">
                         <span
                           className="h-2.5 w-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: t.categories.color ?? "#94a3b8" }}
+                          style={{ backgroundColor: t.categories.color ?? CATEGORY_COLOR_FALLBACK }}
                         />
                         {t.categories.icon ? `${t.categories.icon} ` : ""}
                         {t.categories.name}
