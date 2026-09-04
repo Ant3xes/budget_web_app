@@ -89,9 +89,22 @@ export function CashflowChart({ data, height = 280 }: CashflowChartProps) {
           }
         />
         <ChartLegend content={<ChartLegendContent />} />
-        <Bar dataKey="income" stackId="cashflow" fill="var(--color-income)" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="expenseNegated" stackId="cashflow" fill="var(--color-expenseNegated)" radius={[0, 0, 3, 3]} />
-        <Line type="monotone" dataKey="net" stroke="var(--color-net)" strokeWidth={2} dot={{ r: 4 }} />
+        <Bar dataKey="income" stackId="cashflow" fill="var(--color-income)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+        <Bar
+          dataKey="expenseNegated"
+          stackId="cashflow"
+          fill="var(--color-expenseNegated)"
+          radius={[0, 0, 3, 3]}
+          isAnimationActive={false}
+        />
+        <Line
+          type="monotone"
+          dataKey="net"
+          stroke="var(--color-net)"
+          strokeWidth={2}
+          dot={{ r: 4 }}
+          isAnimationActive={false}
+        />
       </ComposedChart>
     </ChartContainer>
   );

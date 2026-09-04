@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { CategoryForm } from "@/components/settings/category-form";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
 type Category = {
@@ -24,6 +27,8 @@ export default function CategoriesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -40,11 +45,14 @@ export default function CategoriesPage() {
     void load();
   }, [load]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Supprimer cette catégorie ?")) return;
-    const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+  const handleDelete = async () => {
+    if (!deletingCategory) return;
+    setIsDeleting(true);
+    const res = await fetch(`/api/categories/${deletingCategory.id}`, { method: "DELETE" });
+    setIsDeleting(false);
     if (res.ok) {
-      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setCategories((prev) => prev.filter((c) => c.id !== deletingCategory.id));
+      setDeletingCategory(null);
     }
   };
 
@@ -113,7 +121,7 @@ export default function CategoriesPage() {
                           />
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-zinc-50">
+                        <div className="group flex items-center justify-between rounded-md px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">
                           <div className="flex items-center gap-3">
                             <span
                               className="h-4 w-4 rounded-full flex-shrink-0"
@@ -124,19 +132,25 @@ export default function CategoriesPage() {
                               {cat.name}
                             </span>
                           </div>
-                          <div className="flex gap-2">
-                            <button
+                          <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => setEditingId(cat.id)}
-                              className="rounded-md border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600 dark:text-zinc-300"
+                              aria-label="Modifier la catégorie"
+                              title="Modifier"
                             >
-                              Modifier
-                            </button>
-                            <button
-                              onClick={() => handleDelete(cat.id)}
-                              className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                              <Pencil />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="icon-sm"
+                              onClick={() => setDeletingCategory(cat)}
+                              aria-label="Supprimer la catégorie"
+                              title="Supprimer"
                             >
-                              Supprimer
-                            </button>
+                              <Trash2 />
+                            </Button>
                           </div>
                         </div>
                       )}
@@ -148,6 +162,15 @@ export default function CategoriesPage() {
           );
         })
       )}
+
+      <AlertDialog
+        open={deletingCategory !== null}
+        onOpenChange={(open) => !open && setDeletingCategory(null)}
+        title="Supprimer cette catégorie ?"
+        description={deletingCategory ? `La catégorie "${deletingCategory.name}" sera supprimée.` : undefined}
+        onConfirm={handleDelete}
+        isConfirming={isDeleting}
+      />
     </div>
   );
 }

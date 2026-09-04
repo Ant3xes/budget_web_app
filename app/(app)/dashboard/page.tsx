@@ -1,5 +1,4 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { AlertBanners } from "@/components/dashboard/alert-banners";
 import { KpiRow } from "@/components/dashboard/kpi-row";
 import { PeriodSelector } from "@/components/period-selector";
 import { AccountBalances } from "@/components/dashboard/account-balances";
@@ -92,13 +91,7 @@ export default async function DashboardPage({
   );
   const trendLabel = trendIsFloored ? "6 mois" : periodLabel;
 
-  // fixed_charges.account_id is nullable (a charge can be tied to a specific
-  // account or left general) — excluding a deleted account must only drop
-  // charges actually linked to it, not every unlinked one.
-  const fixedChargeAccountFilter =
-    accountIds.length > 0 ? `account_id.is.null,account_id.in.(${accountIds.join(",")})` : "account_id.is.null";
-
-  const [periodTxRes, last10Res, trendTxRes, budgetsRes, fixedChargesAlertRes, goalsRes] = await Promise.all([
+  const [periodTxRes, monthTxRes, trendTxRes, budgetsRes, goalsRes] = await Promise.all([
     // 1. Selected-period transactions for donut + KPIs (category_id is
     // also used for the drill-down link into /expenses)
     runScopedQuery<{ kind: string; amount_cents: number; category_id: string | null; categories: unknown }>(
@@ -114,7 +107,9 @@ export default async function DashboardPage({
           .is("deleted_at", null),
     ),
 
-    // 2. Last 10 transactions
+    // 2. All transactions (every kind, including transfers) for the real
+    // current month — "Dernières transactions" now shows the whole month,
+    // paginated client-side, rather than a hard-capped top-10.
     runScopedQuery<{
       id: string;
       amount_cents: number;
@@ -128,10 +123,10 @@ export default async function DashboardPage({
         .select("id, amount_cents, date, description, kind, categories(name)")
         .in("account_id", accountIds)
         .is("deleted_at", null)
-        .not("kind", "in", '("transfer_debit","transfer_credit")')
+        .gte("date", monthStart)
+        .lt("date", nextMonthStart)
         .order("date", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(10),
+        .order("created_at", { ascending: false }),
     ),
 
     // 3. Income/expense trend chart (at least 6 months — see trendFrom)
@@ -153,18 +148,7 @@ export default async function DashboardPage({
       .eq("month", monthStart)
       .is("deleted_at", null),
 
-    // 5. Upcoming fixed charges (active, due in ≤ 7 days) — excludes charges
-    // linked to a deleted account, but keeps unlinked ones (see filter above).
-    supabase
-      .from("fixed_charges")
-      .select("id, name, next_due_date, amount_cents")
-      .eq("status", "active")
-      .or(fixedChargeAccountFilter)
-      .lte("next_due_date", new Date(now.getTime() + 7 * 86400 * 1000).toISOString().slice(0, 10))
-      .is("deleted_at", null)
-      .order("next_due_date", { ascending: true }),
-
-    // 6. Savings goals summary
+    // 5. Savings goals summary
     supabase
       .from("savings_goals")
       .select("id, name, target_amount_cents, current_amount_cents, color, icon, linked_category_id")
@@ -294,14 +278,12 @@ export default async function DashboardPage({
     targetCents: g.target_amount_cents,
   }));
 
-  // ── Alerts ───────────────────────────────────────────────────────────────
-  const upcomingCharges = fixedChargesAlertRes.data ?? [];
-  const exceededBudgets = budgetRows.filter((b) => b.consumed > b.amount);
-
-  const recentTransactions = (last10Res.data ?? []).map((tx) => ({
+  const recentTransactions = (monthTxRes.data ?? []).map((tx) => ({
     id: tx.id,
     amount_cents: tx.amount_cents,
+    date: tx.date,
     description: tx.description,
+    kind: tx.kind,
     categories: tx.categories as unknown as { name: string } | null,
   }));
 
@@ -312,8 +294,6 @@ export default async function DashboardPage({
         <PeriodSelector current={period} basePath="/dashboard" />
       </div>
 
-      <AlertBanners upcomingCharges={upcomingCharges} exceededBudgets={exceededBudgets} />
-
       <KpiRow
         consolidatedBalance={consolidatedBalance}
         periodExpense={periodExpense}
@@ -321,12 +301,12 @@ export default async function DashboardPage({
         periodLabel={periodLabel}
       />
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
         <ExpenseByCategoryWidget data={donutData} periodLabel={periodLabel} />
         <IncomeVsExpenseWidget data={barData} periodLabel={trendLabel} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
         <AccountBalances groups={bankGroups} />
         <SavingsGoalsSummary goals={goalSummaries} />
       </div>

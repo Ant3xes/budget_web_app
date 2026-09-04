@@ -7,7 +7,7 @@ import { ExpenseTrendChart } from "@/components/analytics/expense-trend-chart";
 import { computeBalanceSeries } from "@/lib/accounts/compute-balance-series";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { runScopedQuery } from "@/lib/accounts/run-scoped-query";
-import { parsePeriodParam, periodBounds, floorMonthWindow, periodLabel as resolvePeriodLabel } from "@/lib/dates/period";
+import { parsePeriodParam, periodBounds, periodLabel as resolvePeriodLabel } from "@/lib/dates/period";
 import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-transaction-date";
 
 /**
@@ -15,9 +15,9 @@ import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-tra
  * cash-flow mensuel, tendance des dépenses. Every widget here is itself "a
  * flow over a time window" (unlike /dashboard, which also has snapshot/
  * calendar-fixed widgets that stay unscoped — see period-selector.tsx), so
- * all three are scoped by the same global period filter, each floored to a
- * minimum 6-month window via `floorMonthWindow` (same rule as the
- * dashboard's own trend chart).
+ * all three are scoped by the same global period filter (`PeriodSelector`),
+ * exactly as selected — no artificial minimum window, so "Ce mois" genuinely
+ * shows one month of data on all three charts.
  */
 export default async function AnalyticsPage({
   searchParams,
@@ -43,21 +43,13 @@ export default async function AnalyticsPage({
     period.type === "preset" && period.value === "tout"
       ? await resolveEarliestTransactionDate(supabase, accountIds)
       : null;
-  const { from: periodFrom, monthCount: periodMonthCount } = periodBounds(period, { now, earliestDate });
-  const periodLabel = resolvePeriodLabel(period, now);
-
-  const {
-    from: windowFrom,
-    monthCount: windowMonthCount,
-    isFloored,
-  } = floorMonthWindow(periodFrom, periodMonthCount, 6, now);
-  const windowLabel = isFloored ? "6 mois" : periodLabel;
+  const { from: windowFrom, monthCount: windowMonthCount } = periodBounds(period, { now, earliestDate });
+  const windowLabel = resolvePeriodLabel(period, now);
   // computeBalanceSeries always spans from the earliest transaction through
   // now (it has no `monthCount` window of its own — the running balance
-  // must start from account inception to be correct), so the floored window
-  // is applied by slicing its result rather than by bounding that query;
-  // `windowFrom` (from floorMonthWindow, same as dashboard/page.tsx's
-  // trendFrom) only bounds the cash-flow/expense-trend query below.
+  // must start from account inception to be correct), so the selected
+  // window is applied by slicing its result rather than by bounding that
+  // query; `windowFrom` only bounds the cash-flow/expense-trend query below.
 
   const [allTxRes, windowTxRes] = await Promise.all([
     // 1. All-time transactions (unbounded) for the net-worth running total —

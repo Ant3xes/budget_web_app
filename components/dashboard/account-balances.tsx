@@ -22,9 +22,9 @@ export function AccountBalances({ groups }: AccountBalancesProps) {
   return (
     <DashboardCard>
       <h2 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Comptes par banque</h2>
-      <div className="space-y-4">
+      <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
         {groups.map((group) => (
-          <div key={group.bank ?? "__none__"}>
+          <div key={group.bank ?? "__none__"} className="py-3 first:pt-0 last:pb-0">
             <div className="flex items-baseline justify-between">
               <h3 className="text-xs font-semibold tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
                 {group.bank ?? "Sans banque renseignée"}
