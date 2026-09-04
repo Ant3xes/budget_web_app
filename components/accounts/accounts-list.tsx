@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AccountModal } from "@/components/accounts/account-modal";
-import { ACCOUNT_TYPES } from "@/lib/constants";
+import { ACCOUNT_TYPE_LABELS, ACCOUNT_TYPES } from "@/lib/constants";
 
 type AccountCardData = {
   id: string;
@@ -22,14 +22,6 @@ interface AccountsListProps {
 
 const formatEuros = (cents: number, currency: string) =>
   `${(cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
-
-const TYPE_LABELS: Record<(typeof ACCOUNT_TYPES)[number], string> = {
-  courant: "Courant",
-  épargne: "Épargne",
-  livret: "Livret",
-  PEL: "PEL",
-  autre: "Autre",
-};
 
 export function AccountsList({ accounts }: AccountsListProps) {
   const router = useRouter();
@@ -83,7 +75,7 @@ export function AccountsList({ accounts }: AccountsListProps) {
                     {account.name}
                   </p>
                   <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                    {TYPE_LABELS[account.type as (typeof ACCOUNT_TYPES)[number]] ?? account.type}
+                    {ACCOUNT_TYPE_LABELS[account.type as (typeof ACCOUNT_TYPES)[number]] ?? account.type}
                   </span>
                 </div>
               </div>
@@ -101,8 +93,17 @@ export function AccountsList({ accounts }: AccountsListProps) {
                 </div>
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs text-zinc-400 dark:text-zinc-500">Dépenses ce mois</span>
-                  <span className="text-sm font-medium text-red-500">
-                    -{formatEuros(Math.abs(account.monthExpenseCents), account.currency)}
+                  {/* No leading "-" (and no red) for a genuinely zero month —
+                      a minus sign on 0,00 € misreads as spending, and red is
+                      a status color reserved for an actual expense (plan
+                      §Étape 5 dark-mode/a11y polish pass). */}
+                  <span
+                    className={`text-sm font-medium ${
+                      account.monthExpenseCents === 0 ? "text-zinc-400 dark:text-zinc-500" : "text-red-500"
+                    }`}
+                  >
+                    {account.monthExpenseCents === 0 ? "" : "-"}
+                    {formatEuros(Math.abs(account.monthExpenseCents), account.currency)}
                   </span>
                 </div>
               </div>

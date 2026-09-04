@@ -31,7 +31,7 @@ export default async function AccountDetailPage({
   const supabase = await createServerSupabaseClient();
   const { data: account } = await supabase
     .from("accounts")
-    .select("id, name, type, initial_balance_cents, currency")
+    .select("id, name, type, bank, initial_balance_cents, currency")
     .eq("id", id)
     .is("deleted_at", null)
     .single();
@@ -93,6 +93,7 @@ export default async function AccountDetailPage({
         id: account.id,
         name: account.name,
         type: account.type,
+        bank: account.bank,
         currency: account.currency,
         initial_balance_cents: account.initial_balance_cents,
       }}

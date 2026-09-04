@@ -4,6 +4,8 @@ import {
   parsePeriodParam,
   periodBounds,
   periodToParam,
+  periodLabel,
+  floorMonthWindow,
 } from "@/lib/dates/period";
 
 describe("parsePeriodParam", () => {
@@ -72,5 +74,56 @@ describe("periodToParam", () => {
   it("serializes month and preset", () => {
     expect(periodToParam({ type: "month", month: "2026-07" })).toBe("2026-07");
     expect(periodToParam({ type: "preset", value: "6m" })).toBe("6m");
+  });
+});
+
+describe("periodLabel", () => {
+  const now = new Date(2026, 6, 20); // July 20, 2026
+
+  it("labels the current month as 'ce mois'", () => {
+    expect(periodLabel({ type: "month", month: "2026-07" }, now)).toBe("ce mois");
+  });
+
+  it("labels an arbitrary past month explicitly", () => {
+    expect(periodLabel({ type: "month", month: "2026-03" }, now)).toBe("mars 2026");
+  });
+
+  it("lowercases a preset's label", () => {
+    expect(periodLabel({ type: "preset", value: "3m" }, now)).toBe("3 mois");
+    expect(periodLabel({ type: "preset", value: "tout" }, now)).toBe("tout");
+  });
+});
+
+describe("floorMonthWindow", () => {
+  const now = new Date(2026, 6, 20); // July 20, 2026
+
+  it("widens a narrower window up to the minimum", () => {
+    const { from: periodFrom, monthCount } = periodBounds({ type: "month", month: "2026-07" }, { now });
+    expect(floorMonthWindow(periodFrom, monthCount, 6, now)).toEqual({
+      from: "2026-02-01",
+      monthCount: 6,
+      isFloored: true,
+    });
+  });
+
+  it("leaves a window already at or above the minimum untouched", () => {
+    const { from: periodFrom, monthCount } = periodBounds({ type: "preset", value: "1a" }, { now });
+    expect(floorMonthWindow(periodFrom, monthCount, 6, now)).toEqual({
+      from: periodFrom,
+      monthCount: 12,
+      isFloored: false,
+    });
+  });
+
+  it("never floors 'tout' (monthCount null)", () => {
+    const { from: periodFrom, monthCount } = periodBounds(
+      { type: "preset", value: "tout" },
+      { now, earliestDate: "2024-01-15" },
+    );
+    expect(floorMonthWindow(periodFrom, monthCount, 6, now)).toEqual({
+      from: "2024-01-15",
+      monthCount: null,
+      isFloored: false,
+    });
   });
 });

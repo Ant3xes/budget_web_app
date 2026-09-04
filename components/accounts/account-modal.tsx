@@ -1,14 +1,6 @@
 "use client";
 
-import { AccountForm } from "@/components/accounts/account-form";
-import { ACCOUNT_TYPES } from "@/lib/constants";
-
-type AccountFormValues = {
-  name: string;
-  type: (typeof ACCOUNT_TYPES)[number];
-  initialBalanceCents: number;
-  currency: string;
-};
+import { AccountForm, type AccountFormValues } from "@/components/accounts/account-form";
 
 interface AccountModalProps {
   accountId?: string;

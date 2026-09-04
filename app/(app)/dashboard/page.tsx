@@ -1,294 +1,339 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { IncomeExpenseBarChart } from "@/components/dashboard/bar-chart";
-import { DonutChart } from "@/components/dashboard/donut-chart";
+import { AlertBanners } from "@/components/dashboard/alert-banners";
+import { KpiRow } from "@/components/dashboard/kpi-row";
+import { PeriodSelector } from "@/components/period-selector";
+import { AccountBalances } from "@/components/dashboard/account-balances";
+import { ExpenseByCategoryWidget } from "@/components/dashboard/expense-by-category-widget";
+import { IncomeVsExpenseWidget } from "@/components/dashboard/income-vs-expense-widget";
+import { BudgetUtilization } from "@/components/dashboard/budget-utilization";
+import { SavingsGoalsSummary } from "@/components/dashboard/savings-goals-summary";
+import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
-import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
+import { computeExpenseByCategory } from "@/lib/accounts/compute-expense-by-category";
+import { groupAccountBalancesByBank, type AccountBalance } from "@/lib/accounts/group-account-balances";
+import { runScopedQuery } from "@/lib/accounts/run-scoped-query";
+import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amount";
+import { parsePeriodParam, periodBounds, floorMonthWindow, periodLabel as resolvePeriodLabel } from "@/lib/dates/period";
+import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-transaction-date";
 
-function formatEuros(cents: number): string {
-  return (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+/** Sums `amount_cents` by `category_id`, dropping rows with no category — used for both budget consumption and linked-goal totals below. */
+function sumAbsByCategoryId(rows: { category_id: string | null; amount_cents: number }[]): Record<string, number> {
+  return rows.reduce<Record<string, number>>((acc, row) => {
+    if (row.category_id) acc[row.category_id] = (acc[row.category_id] ?? 0) + Math.abs(row.amount_cents);
+    return acc;
+  }, {});
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "Europe/Paris",
-  });
-}
-
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
   const supabase = await createServerSupabaseClient();
 
   const now = new Date();
   const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1; // 1-based
-  const monthStart = `${currentYear}-${String(currentMonth).padStart(2, "0")}-01`;
+  const currentMonthNum = now.getMonth() + 1; // 1-based
+  // Budgets are inherently calendar-month envelopes (not rangeable), and
+  // "solde consolidé" is a snapshot — both stay tied to the real current
+  // month regardless of the period filter below (see period-selector.tsx).
+  const monthStart = `${currentYear}-${String(currentMonthNum).padStart(2, "0")}-01`;
   const nextMonthStart =
-    currentMonth === 12
+    currentMonthNum === 12
       ? `${currentYear + 1}-01-01`
-      : `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-01`;
+      : `${currentYear}-${String(currentMonthNum + 1).padStart(2, "0")}-01`;
 
-  // 6 months ago start
-  const sixMonthsAgo = new Date(now);
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-  sixMonthsAgo.setDate(1);
-  const sixMonthsAgoStr = sixMonthsAgo.toISOString().slice(0, 10);
+  // Active accounts — fetched first (own round-trip, a deliberate one-request
+  // trade-off for correctness) because every transactions query on this page
+  // needs accountIds to scope to them, including "tout"'s own earliest-date
+  // resolution below. Soft-deleting an account only sets accounts.deleted_at
+  // (no cascade to transactions.deleted_at), so without this every dashboard
+  // figure — KPIs, donut, trend, recent transactions, budget/goal
+  // consumption, upcoming fixed charges, and even "tout"'s start date — keeps
+  // silently including a deleted account's history forever. Decided
+  // explicitly: deleting an account removes it from every dashboard figure,
+  // not just the balance (accountTxRes further below).
+  const accountsRes = await supabase
+    .from("accounts")
+    .select("id, name, type, bank, initial_balance_cents")
+    .is("deleted_at", null);
+  const accountIds = (accountsRes.data ?? []).map((a) => a.id);
 
-  const [accountsRes, monthTxRes, last10Res, barChartRes, budgetsRes, fixedChargesAlertRes] =
-    await Promise.all([
-      // 1. Accounts with their transactions for correct balance calculation
-      supabase
-        .from("accounts")
-        .select("id, name, initial_balance_cents")
-        .is("deleted_at", null),
+  // Global period filter (plan §Étape 3) — scopes the KPI row, the category
+  // donut, and the income/expense trend. Defaults to "ce mois". The "tout"
+  // preset needs the earliest transaction date to bound its range (without
+  // it, periodBounds would collapse "tout" to a single day) — only fetched
+  // when actually selected, to avoid an extra query on every other render.
+  const { period: periodParam } = await searchParams;
+  const period = parsePeriodParam(periodParam, now);
+  const earliestDate =
+    period.type === "preset" && period.value === "tout"
+      ? await resolveEarliestTransactionDate(supabase, accountIds)
+      : null;
+  const {
+    from: periodFrom,
+    to: periodTo,
+    monthCount: periodMonthCount,
+  } = periodBounds(period, { now, earliestDate });
+  // `parsePeriodParam` also accepts an arbitrary `?period=YYYY-MM` (not just
+  // the 5 presets `PeriodSelector` links to) — label that case properly
+  // instead of always falling back to "ce mois".
+  const periodLabel = resolvePeriodLabel(period, now);
 
-      // 2. Current month transactions for donut + KPIs
-      supabase
-        .from("transactions")
-        .select("kind, amount_cents, category_id, categories(name, color)")
-        .in("kind", ["expense", "income"])
-        .gte("date", monthStart)
-        .lt("date", nextMonthStart)
-        .is("deleted_at", null),
+  // The trend chart always shows at least 6 months (a 1-bar chart when the
+  // filter is "ce mois" would defeat the point of a trend view) — the
+  // period filter can only widen this baseline (e.g. "1 an"/"tout"), never
+  // shrink it. Same helper /analytics uses for all 3 of its widgets.
+  const { from: trendFrom, monthCount: trendMonthCount, isFloored: trendIsFloored } = floorMonthWindow(
+    periodFrom,
+    periodMonthCount,
+    6,
+    now,
+  );
+  const trendLabel = trendIsFloored ? "6 mois" : periodLabel;
 
-      // 3. Last 10 transactions
+  // fixed_charges.account_id is nullable (a charge can be tied to a specific
+  // account or left general) — excluding a deleted account must only drop
+  // charges actually linked to it, not every unlinked one.
+  const fixedChargeAccountFilter =
+    accountIds.length > 0 ? `account_id.is.null,account_id.in.(${accountIds.join(",")})` : "account_id.is.null";
+
+  const [periodTxRes, last10Res, trendTxRes, budgetsRes, fixedChargesAlertRes, goalsRes] = await Promise.all([
+    // 1. Selected-period transactions for donut + KPIs (category_id is
+    // also used for the drill-down link into /expenses)
+    runScopedQuery<{ kind: string; amount_cents: number; category_id: string | null; categories: unknown }>(
+      [accountIds],
+      () =>
+        supabase
+          .from("transactions")
+          .select("kind, amount_cents, category_id, categories(name, color)")
+          .in("account_id", accountIds)
+          .in("kind", ["expense", "income"])
+          .gte("date", periodFrom)
+          .lte("date", periodTo)
+          .is("deleted_at", null),
+    ),
+
+    // 2. Last 10 transactions
+    runScopedQuery<{
+      id: string;
+      amount_cents: number;
+      date: string;
+      description: string | null;
+      kind: string;
+      categories: unknown;
+    }>([accountIds], () =>
       supabase
         .from("transactions")
         .select("id, amount_cents, date, description, kind, categories(name)")
+        .in("account_id", accountIds)
         .is("deleted_at", null)
         .not("kind", "in", '("transfer_debit","transfer_credit")')
         .order("date", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(10),
+    ),
 
-      // 4. Last 6 months for bar chart
+    // 3. Income/expense trend chart (at least 6 months — see trendFrom)
+    runScopedQuery<{ kind: string; amount_cents: number; date: string }>([accountIds], () =>
       supabase
         .from("transactions")
         .select("kind, amount_cents, date")
+        .in("account_id", accountIds)
         .in("kind", ["expense", "income"])
-        .gte("date", sixMonthsAgoStr)
+        .gte("date", trendFrom)
         .is("deleted_at", null),
+    ),
 
-      // 5. Budgets for current month (with consumption)
+    // 4. Budgets for the real current month (with consumption) — always
+    // "ce mois", independent of the period filter (see comment above).
+    supabase
+      .from("budgets")
+      .select("id, category_id, amount_cents, categories(name, color, icon)")
+      .eq("month", monthStart)
+      .is("deleted_at", null),
+
+    // 5. Upcoming fixed charges (active, due in ≤ 7 days) — excludes charges
+    // linked to a deleted account, but keeps unlinked ones (see filter above).
+    supabase
+      .from("fixed_charges")
+      .select("id, name, next_due_date, amount_cents")
+      .eq("status", "active")
+      .or(fixedChargeAccountFilter)
+      .lte("next_due_date", new Date(now.getTime() + 7 * 86400 * 1000).toISOString().slice(0, 10))
+      .is("deleted_at", null)
+      .order("next_due_date", { ascending: true }),
+
+    // 6. Savings goals summary
+    supabase
+      .from("savings_goals")
+      .select("id, name, target_amount_cents, current_amount_cents, color, icon, linked_category_id")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  // ── Per-account / per-category running totals ────────────────────────────
+  // These 3 queries are each derived from the main batch's results but don't
+  // depend on one another — fired together instead of one `await` after
+  // another (3 sequential round-trips → 1).
+  const budgets = budgetsRes.data ?? [];
+  const budgetCatIds = budgets.map((b) => b.category_id).filter(Boolean);
+  const goals = goalsRes.data ?? [];
+  const linkedCategoryIds = goals.map((g) => g.linked_category_id).filter((id): id is string => Boolean(id));
+
+  const [accountTxRes, budgetConsumptionRes, goalTxRes] = await Promise.all([
+    runScopedQuery<{ account_id: string; amount_cents: number }>([accountIds], () =>
       supabase
-        .from("budgets")
-        .select("id, category_id, amount_cents, categories(name, color, icon)")
-        .eq("month", monthStart)
+        .from("transactions")
+        .select("account_id, amount_cents")
+        .in("account_id", accountIds)
         .is("deleted_at", null),
+    ),
 
-      // 6. Upcoming fixed charges (active, due in ≤ 7 days)
+    runScopedQuery<{ category_id: string | null; amount_cents: number }>([accountIds, budgetCatIds], () =>
       supabase
-        .from("fixed_charges")
-        .select("id, name, next_due_date, amount_cents")
-        .eq("status", "active")
-        .lte("next_due_date", new Date(now.getTime() + 7 * 86400 * 1000).toISOString().slice(0, 10))
-        .is("deleted_at", null)
-        .order("next_due_date", { ascending: true }),
-    ]);
+        .from("transactions")
+        .select("category_id, amount_cents")
+        .eq("kind", "expense")
+        .in("account_id", accountIds)
+        .in("category_id", budgetCatIds)
+        .gte("date", monthStart)
+        .lt("date", nextMonthStart)
+        .is("deleted_at", null),
+    ),
 
-  // ── Consolidated balance (correct: per account) ──────────────────────────
-  const accountIds = (accountsRes.data ?? []).map((a) => a.id);
-  let accountTxTotals: Record<string, number> = {};
-  if (accountIds.length > 0) {
-    const { data: txTotals } = await supabase
-      .from("transactions")
-      .select("account_id, amount_cents")
-      .in("account_id", accountIds)
-      .is("deleted_at", null);
-    accountTxTotals = (txTotals ?? []).reduce<Record<string, number>>((acc, tx) => {
-      acc[tx.account_id] = (acc[tx.account_id] ?? 0) + tx.amount_cents;
-      return acc;
-    }, {});
-  }
-  const consolidatedBalance = (accountsRes.data ?? []).reduce(
-    (sum, acc) => sum + acc.initial_balance_cents + (accountTxTotals[acc.id] ?? 0),
-    0,
-  );
+    runScopedQuery<{ category_id: string | null; amount_cents: number }>([accountIds, linkedCategoryIds], () =>
+      supabase
+        .from("transactions")
+        .select("category_id, amount_cents")
+        .in("account_id", accountIds)
+        .in("category_id", linkedCategoryIds)
+        .is("deleted_at", null),
+    ),
+  ]);
 
-  // ── Current month KPIs ───────────────────────────────────────────────────
-  const monthTx = monthTxRes.data ?? [];
-  const monthExpense = monthTx
+  // ── Per-account balances (correct: initial + own transactions) ───────────
+  const accountTxTotals = (accountTxRes.data ?? []).reduce<Record<string, number>>((acc, tx) => {
+    acc[tx.account_id] = (acc[tx.account_id] ?? 0) + tx.amount_cents;
+    return acc;
+  }, {});
+  const accountBalances: AccountBalance[] = (accountsRes.data ?? []).map((acc) => ({
+    id: acc.id,
+    name: acc.name,
+    type: acc.type,
+    bank: acc.bank,
+    balanceCents: acc.initial_balance_cents + (accountTxTotals[acc.id] ?? 0),
+  }));
+  const consolidatedBalance = accountBalances.reduce((sum, acc) => sum + acc.balanceCents, 0);
+  const bankGroups = groupAccountBalancesByBank(accountBalances);
+
+  // ── Period KPIs ───────────────────────────────────────────────────────────
+  const periodTx = periodTxRes.data ?? [];
+  const periodExpense = periodTx
     .filter((t) => t.kind === "expense")
     .reduce((s, t) => s + Math.abs(t.amount_cents), 0);
-  const monthIncome = monthTx
+  const periodIncome = periodTx
     .filter((t) => t.kind === "income")
     .reduce((s, t) => s + t.amount_cents, 0);
 
   // ── Donut chart data ─────────────────────────────────────────────────────
-  const expenseByCat = monthTx
-    .filter((t) => t.kind === "expense")
-    .reduce<Record<string, { name: string; value: number; color: string }>>((acc, tx) => {
-      const catObj = tx.categories as unknown as { name: string; color: string | null } | null;
-      const catName = catObj?.name ?? "Sans catégorie";
-      const color = catObj?.color ?? CATEGORY_COLOR_FALLBACK;
-      if (!acc[catName]) acc[catName] = { name: catName, value: 0, color };
-      acc[catName]!.value += Math.abs(tx.amount_cents);
-      return acc;
-    }, {});
-  const donutData = Object.values(expenseByCat).sort((a, b) => b.value - a.value);
+  // Reuses the same helper as /accounts/[id] (account-detail.tsx) instead of
+  // a second inline reduce — already tested, and its (value desc, name asc)
+  // tie-break is a small improvement over the previous value-only sort.
+  const donutData = computeExpenseByCategory(
+    periodTx
+      .filter((t) => t.kind === "expense")
+      .map((tx) => {
+        const catObj = tx.categories as unknown as { name: string; color: string | null } | null;
+        return {
+          amount_cents: tx.amount_cents,
+          categoryName: catObj?.name ?? null,
+          categoryColor: catObj?.color ?? null,
+          categoryId: tx.category_id,
+        };
+      }),
+  );
 
-  // ── Bar chart data (6 months) ─────────────────────────────────────────────
-  const barData = computeIncomeExpenseSeries(barChartRes.data ?? []);
+  // ── Income/expense trend chart (same period) ─────────────────────────────
+  const barData = computeIncomeExpenseSeries(trendTxRes.data ?? [], trendMonthCount, now);
 
   // ── Budget utilization ───────────────────────────────────────────────────
-  const budgets = budgetsRes.data ?? [];
-  const budgetCatIds = budgets.map((b) => b.category_id).filter(Boolean);
-  let budgetConsumption: Record<string, number> = {};
-  if (budgetCatIds.length > 0) {
-    const { data: consumptionData } = await supabase
-      .from("transactions")
-      .select("category_id, amount_cents")
-      .eq("kind", "expense")
-      .in("category_id", budgetCatIds)
-      .gte("date", monthStart)
-      .lt("date", nextMonthStart)
-      .is("deleted_at", null);
-    budgetConsumption = (consumptionData ?? []).reduce<Record<string, number>>((acc, tx) => {
-      if (tx.category_id) acc[tx.category_id] = (acc[tx.category_id] ?? 0) + Math.abs(tx.amount_cents);
-      return acc;
-    }, {});
-  }
+  const budgetConsumption = sumAbsByCategoryId(budgetConsumptionRes.data ?? []);
 
   const budgetRows = budgets
-    .map((b) => ({
-      id: b.id,
-      categoryName:
-        (b.categories as unknown as { name: string; color: string | null; icon: string | null } | null)?.name ??
-        "Sans catégorie",
-      categoryIcon:
-        (b.categories as unknown as { name: string; color: string | null; icon: string | null } | null)?.icon ?? null,
-      amount: b.amount_cents,
-      consumed: budgetConsumption[b.category_id] ?? 0,
-    }))
+    .map((b) => {
+      const category = b.categories as unknown as { name: string; color: string | null; icon: string | null } | null;
+      return {
+        id: b.id,
+        categoryId: b.category_id,
+        categoryName: category?.name ?? "Sans catégorie",
+        categoryIcon: category?.icon ?? null,
+        categoryColor: category?.color ?? null,
+        amount: b.amount_cents,
+        consumed: budgetConsumption[b.category_id] ?? 0,
+      };
+    })
     .sort((a, b) => {
       const ra = a.amount > 0 ? a.consumed / a.amount : 0;
       const rb = b.amount > 0 ? b.consumed / b.amount : 0;
       return rb - ra;
     });
 
+  // ── Savings goals summary ────────────────────────────────────────────────
+  // The category-totals fetch (Supabase query) is duplicated from
+  // app/api/savings-goals/route.ts's GET handler rather than called over
+  // HTTP, since this is already a Server Component — but the actual
+  // resolution rule is shared via resolveGoalCurrentCents.
+  const goalCategoryTotals = sumAbsByCategoryId(goalTxRes.data ?? []);
+  const goalSummaries = goals.map((g) => ({
+    id: g.id,
+    name: g.name,
+    icon: g.icon,
+    color: g.color,
+    currentCents: resolveGoalCurrentCents(g, goalCategoryTotals),
+    targetCents: g.target_amount_cents,
+  }));
+
   // ── Alerts ───────────────────────────────────────────────────────────────
   const upcomingCharges = fixedChargesAlertRes.data ?? [];
   const exceededBudgets = budgetRows.filter((b) => b.consumed > b.amount);
 
+  const recentTransactions = (last10Res.data ?? []).map((tx) => ({
+    id: tx.id,
+    amount_cents: tx.amount_cents,
+    description: tx.description,
+    categories: tx.categories as unknown as { name: string } | null,
+  }));
+
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
-
-      {/* Alert banners */}
-      {(upcomingCharges.length > 0 || exceededBudgets.length > 0) && (
-        <div className="space-y-2">
-          {upcomingCharges.map((charge) => (
-            <div
-              key={charge.id}
-              className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400"
-            >
-              <span>⚠</span>
-              <span>
-                Charge fixe <strong>{charge.name}</strong> ({formatEuros(charge.amount_cents)}) — échéance le{" "}
-                {formatDate(charge.next_due_date)}
-              </span>
-            </div>
-          ))}
-          {exceededBudgets.map((b) => (
-            <div
-              key={b.id}
-              className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700"
-            >
-              <span>📊</span>
-              <span>
-                Budget <strong>{b.categoryName}</strong> dépassé — {formatEuros(b.consumed)} /{" "}
-                {formatEuros(b.amount)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* KPI cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="text-sm text-zinc-500 dark:text-zinc-400">Solde consolidé</h2>
-          <p className={`mt-1 text-xl font-semibold ${consolidatedBalance < 0 ? "text-red-600" : "text-zinc-900 dark:text-zinc-100"}`}>
-            {formatEuros(consolidatedBalance)}
-          </p>
-        </article>
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="text-sm text-zinc-500 dark:text-zinc-400">Dépenses ce mois</h2>
-          <p className="mt-1 text-xl font-semibold text-red-600">−{formatEuros(monthExpense)}</p>
-        </article>
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="text-sm text-zinc-500 dark:text-zinc-400">Revenus ce mois</h2>
-          <p className="mt-1 text-xl font-semibold text-green-600">+{formatEuros(monthIncome)}</p>
-        </article>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <PeriodSelector current={period} basePath="/dashboard" />
       </div>
 
-      {/* Charts */}
+      <AlertBanners upcomingCharges={upcomingCharges} exceededBudgets={exceededBudgets} />
+
+      <KpiRow
+        consolidatedBalance={consolidatedBalance}
+        periodExpense={periodExpense}
+        periodIncome={periodIncome}
+        periodLabel={periodLabel}
+      />
+
       <div className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Dépenses par catégorie (mois en cours)</h2>
-          <DonutChart data={donutData} emptyLabel="Aucune dépense ce mois" />
-        </article>
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Revenus vs Dépenses (6 mois)</h2>
-          <IncomeExpenseBarChart data={barData} />
-        </article>
+        <ExpenseByCategoryWidget data={donutData} periodLabel={periodLabel} />
+        <IncomeVsExpenseWidget data={barData} periodLabel={trendLabel} />
       </div>
 
-      {/* Budget utilization */}
-      {budgetRows.length > 0 && (
-        <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-          <h2 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Budgets du mois en cours</h2>
-          <div className="space-y-3">
-            {budgetRows.map((b) => {
-              const ratio = b.amount > 0 ? b.consumed / b.amount : 0;
-              const pct = Math.min(ratio * 100, 100);
-              const barColor =
-                ratio > 1 ? "bg-red-500" : ratio >= 0.8 ? "bg-orange-400" : "bg-green-500";
-              return (
-                <div key={b.id}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span>
-                      {b.categoryIcon && <span className="mr-1">{b.categoryIcon}</span>}
-                      {b.categoryName}
-                    </span>
-                    <span className="text-zinc-500">
-                      {formatEuros(b.consumed)} / {formatEuros(b.amount)}
-                    </span>
-                  </div>
-                  <div className="mt-1 h-2 w-full rounded-full bg-zinc-100">
-                    <div className={`h-2 rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </article>
-      )}
+      <div className="grid gap-4 md:grid-cols-2">
+        <AccountBalances groups={bankGroups} />
+        <SavingsGoalsSummary goals={goalSummaries} />
+      </div>
 
-      {/* Last 10 transactions */}
-      <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-        <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Dernières transactions</h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          {(last10Res.data ?? []).map((tx) => (
-            <li key={tx.id} className="flex justify-between border-b border-zinc-100 pb-2 dark:border-zinc-800">
-              <span className="truncate max-w-xs text-zinc-700 dark:text-zinc-300">
-                {tx.description ?? "Transaction"}
-                {(tx.categories as unknown as { name: string } | null)?.name && (
-                  <span className="ml-1.5 text-xs text-zinc-400">
-                    · {(tx.categories as unknown as { name: string }).name}
-                  </span>
-                )}
-              </span>
-              <span className={`ml-4 shrink-0 font-medium ${tx.amount_cents < 0 ? "text-red-600" : "text-green-600"}`}>
-                {tx.amount_cents < 0 ? "−" : "+"}
-                {formatEuros(Math.abs(tx.amount_cents))}
-              </span>
-            </li>
-          ))}
-          {!last10Res.data?.length && <li className="text-zinc-500">Aucune transaction.</li>}
-        </ul>
-      </article>
+      <BudgetUtilization rows={budgetRows} />
+
+      <RecentTransactions transactions={recentTransactions} />
     </section>
   );
 }
