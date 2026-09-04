@@ -1,4 +1,4 @@
-import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { StatTile } from "@/components/ui/stat-tile";
 import { formatEuros } from "@/lib/format";
 
 interface KpiRowProps {
@@ -9,28 +9,20 @@ interface KpiRowProps {
 
 /**
  * The 3 dashboard KPI cards (solde consolidé, dépenses/revenus du mois).
- * Extracted verbatim from app/(app)/dashboard/page.tsx — plan §Étape 1
- * (structural extraction, no visual change). Swapping this markup for a
- * `StatTile` primitive with the validated palette is Étape 2 (visual
- * polish).
+ * Plan §Étape 2 (visual polish): now built on the `StatTile` primitive and
+ * the validated `--income`/`--expense` tokens instead of hardcoded
+ * `text-red-600`/`text-green-600`.
  */
 export function KpiRow({ consolidatedBalance, monthExpense, monthIncome }: KpiRowProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <DashboardCard>
-        <h2 className="text-sm text-zinc-500 dark:text-zinc-400">Solde consolidé</h2>
-        <p className={`mt-1 text-xl font-semibold ${consolidatedBalance < 0 ? "text-red-600" : "text-zinc-900 dark:text-zinc-100"}`}>
-          {formatEuros(consolidatedBalance)}
-        </p>
-      </DashboardCard>
-      <DashboardCard>
-        <h2 className="text-sm text-zinc-500 dark:text-zinc-400">Dépenses ce mois</h2>
-        <p className="mt-1 text-xl font-semibold text-red-600">−{formatEuros(monthExpense)}</p>
-      </DashboardCard>
-      <DashboardCard>
-        <h2 className="text-sm text-zinc-500 dark:text-zinc-400">Revenus ce mois</h2>
-        <p className="mt-1 text-xl font-semibold text-green-600">+{formatEuros(monthIncome)}</p>
-      </DashboardCard>
+      <StatTile
+        label="Solde consolidé"
+        value={formatEuros(consolidatedBalance)}
+        valueClassName={consolidatedBalance < 0 ? "text-expense" : undefined}
+      />
+      <StatTile label="Dépenses ce mois" value={`−${formatEuros(monthExpense)}`} valueClassName="text-expense" />
+      <StatTile label="Revenus ce mois" value={`+${formatEuros(monthIncome)}`} valueClassName="text-income" />
     </div>
   );
 }

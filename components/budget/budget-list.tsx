@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { BudgetModal } from "@/components/budget/budget-modal";
-import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
+import { BudgetBar } from "@/components/dashboard/budget-bar";
+import { CategoryBadge } from "@/components/category-badge";
+import { formatEuros } from "@/lib/format";
 
 type BudgetCategory = { name: string; color: string | null; icon: string | null };
 
@@ -18,10 +20,6 @@ type Budget = {
 
 interface BudgetListProps {
   initialMonth: string; // YYYY-MM
-}
-
-function formatEuros(cents: number): string {
-  return (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
 function prevMonth(yyyyMM: string): string {
@@ -213,23 +211,15 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                     const consumed = consumption[budget.category_id] ?? 0;
                     const remaining = budget.amount_cents - consumed;
                     const ratio = budget.amount_cents > 0 ? consumed / budget.amount_cents : 0;
-                    const pct = Math.min(ratio * 100, 100);
-                    const barColor =
-                      ratio > 1 ? "bg-red-500" : ratio >= 0.8 ? "bg-orange-400" : "bg-green-500";
 
                     return (
                       <tr key={budget.id} className="border-b border-zinc-50 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
                         <td className="px-4 py-3">
-                          <span className="flex items-center gap-2">
-                            {budget.categories?.icon && (
-                              <span>{budget.categories.icon}</span>
-                            )}
-                            <span
-                              className="inline-block h-2 w-2 rounded-full"
-                              style={{ backgroundColor: budget.categories?.color ?? CATEGORY_COLOR_FALLBACK }}
-                            />
-                            {budget.categories?.name ?? "—"}
-                          </span>
+                          <CategoryBadge
+                            name={budget.categories?.name ?? "—"}
+                            icon={budget.categories?.icon}
+                            color={budget.categories?.color}
+                          />
                         </td>
                         <td className="px-4 py-3 text-right font-medium">
                           {formatEuros(budget.amount_cents)}
@@ -239,12 +229,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                           {formatEuros(remaining)}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-700">
-                            <div
-                              className={`h-2 rounded-full transition-all ${barColor}`}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
+                          <BudgetBar ratio={ratio} />
                           <p className="mt-0.5 text-right text-xs text-zinc-400">
                             {Math.round(ratio * 100)}%
                           </p>
