@@ -31,7 +31,7 @@ export function SavingsGoalsSummary({ goals }: SavingsGoalsSummaryProps) {
       <div className="space-y-3">
         {goals.map((goal) => {
           const pct = goal.targetCents > 0 ? Math.min(100, Math.round((goal.currentCents / goal.targetCents) * 100)) : 0;
-          const fillColor = goal.color ?? "var(--status-good)";
+          const fillColor = goal.color || "var(--status-good)";
           return (
             <div key={goal.id}>
               <div className="flex items-center justify-between text-sm">
@@ -41,11 +41,12 @@ export function SavingsGoalsSummary({ goals }: SavingsGoalsSummaryProps) {
                 </span>
                 <span className="text-zinc-500">
                   {formatEuros(goal.currentCents)} / {formatEuros(goal.targetCents)}
+                  <span className="ml-1.5 font-medium text-zinc-400 dark:text-zinc-500">({pct}%)</span>
                 </span>
               </div>
-              <div className="mt-1 h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-700">
+              <div className="mt-1.5 h-2.5 w-full rounded-full bg-zinc-100 dark:bg-zinc-700">
                 <div
-                  className="h-2 rounded-full transition-all"
+                  className="h-2.5 rounded-full transition-all"
                   style={{ width: `${pct}%`, backgroundColor: fillColor }}
                 />
               </div>

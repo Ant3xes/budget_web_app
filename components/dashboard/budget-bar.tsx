@@ -40,8 +40,8 @@ export function BudgetBar({ ratio, className }: BudgetBarProps) {
   const tier = tierFor(safeRatio);
 
   return (
-    <div className={cn("h-2 w-full rounded-full", TIERS[tier].track, className)}>
-      <div className={cn("h-2 rounded-full transition-all", TIERS[tier].fill)} style={{ width: `${pct}%` }} />
+    <div className={cn("h-2.5 w-full rounded-full", TIERS[tier].track, className)}>
+      <div className={cn("h-2.5 rounded-full transition-all", TIERS[tier].fill)} style={{ width: `${pct}%` }} />
     </div>
   );
 }

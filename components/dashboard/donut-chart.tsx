@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
@@ -57,6 +58,16 @@ export function DonutChart({
 }: DonutChartProps) {
   const router = useRouter();
 
+  // See ChartContainer's own comment (components/ui/chart.tsx): recharts'
+  // ResponsiveContainer can measure a stale/zero size on first mount here
+  // too (this chart doesn't go through ChartContainer). Nudge it once.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   if (data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
@@ -78,6 +89,7 @@ export function DonutChart({
           outerRadius={height < 240 ? 70 : 100}
           paddingAngle={2}
           stroke="transparent"
+          isAnimationActive={false}
         >
           {data.map((entry, index) => {
             const href =
@@ -95,7 +107,7 @@ export function DonutChart({
           })}
         </Pie>
         <Tooltip
-          formatter={(value) => [typeof value === "number" ? formatEuros(value) : String(value ?? ""), ""]}
+          formatter={(value, name) => [typeof value === "number" ? formatEuros(value) : String(value ?? ""), name]}
           contentStyle={{
             backgroundColor: "var(--popover)",
             border: "1px solid var(--border)",
@@ -103,12 +115,18 @@ export function DonutChart({
             fontSize: "12px",
             borderRadius: "var(--radius-md)",
           }}
+          itemStyle={{ color: "var(--popover-foreground)" }}
+          labelStyle={{ color: "var(--popover-foreground)" }}
         />
         <Legend
           formatter={(value) => (
             <span style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>{value}</span>
           )}
-          wrapperStyle={{ paddingTop: "8px" }}
+          // A caller can size the chart taller to make room for many
+          // categories (see account-detail.tsx), but this is the backstop
+          // for whatever height is passed: scroll rather than silently clip
+          // once the legend itself would exceed a third of the chart.
+          wrapperStyle={{ paddingTop: "8px", maxHeight: Math.round(height * 0.35), overflowY: "auto" }}
         />
       </PieChart>
     </ResponsiveContainer>

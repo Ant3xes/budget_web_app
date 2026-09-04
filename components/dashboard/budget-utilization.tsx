@@ -51,9 +51,12 @@ export function BudgetUtilization({ rows }: BudgetUtilizationProps) {
                 )}
                 <span className="text-zinc-500">
                   {formatEuros(b.consumed)} / {formatEuros(b.amount)}
+                  <span className="ml-1.5 font-medium text-zinc-400 dark:text-zinc-500">
+                    ({Math.round(ratio * 100)}%)
+                  </span>
                 </span>
               </div>
-              <BudgetBar ratio={ratio} className="mt-1" />
+              <BudgetBar ratio={ratio} className="mt-1.5" />
             </div>
           );
         })}
