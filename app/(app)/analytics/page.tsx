@@ -38,7 +38,11 @@ export default async function AnalyticsPage({
   const accountIds = (accountsRes.data ?? []).map((a) => a.id);
 
   const { period: periodParam } = await searchParams;
-  const period = parsePeriodParam(periodParam, now);
+  // Analytics' choices start at 6 months (no "1m"/"3m" here, see
+  // <PeriodSelector presets> below) — default the unset case to "6m" too,
+  // instead of parsePeriodParam's own implicit "current month" default,
+  // so the selector always has a matching preset highlighted.
+  const period = parsePeriodParam(periodParam ?? "6m", now);
   const earliestDate =
     period.type === "preset" && period.value === "tout"
       ? await resolveEarliestTransactionDate(supabase, accountIds)
@@ -80,7 +84,7 @@ export default async function AnalyticsPage({
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Analytics</h1>
-        <PeriodSelector current={period} basePath="/analytics" />
+        <PeriodSelector current={period} basePath="/analytics" presets={["6m", "1a", "tout"]} />
       </div>
 
       <DashboardCard>

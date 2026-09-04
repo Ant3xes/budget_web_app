@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { TransferModal } from "@/components/transfers/transfer-modal";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
 
 type Transfer = {
   transfer_id: string;
@@ -35,6 +39,9 @@ export function TransferList() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editingTransfer, setEditingTransfer] = useState<Transfer | null>(null);
+  const [deletingTransfer, setDeletingTransfer] = useState<Transfer | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const totalPages = Math.ceil(total / PER_PAGE);
 
@@ -58,14 +65,18 @@ export function TransferList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  const handleDelete = async (transferId: string) => {
-    if (!confirm("Supprimer ce virement (les deux transactions) ?")) return;
-    const res = await fetch(`/api/transfers/${transferId}`, { method: "DELETE" });
+  const handleDelete = async () => {
+    if (!deletingTransfer) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    const res = await fetch(`/api/transfers/${deletingTransfer.transfer_id}`, { method: "DELETE" });
+    setIsDeleting(false);
     if (res.ok) {
+      setDeletingTransfer(null);
       void load(page);
     } else {
-      const data = (await res.json()) as { error?: string };
-      alert(data.error ?? "Erreur lors de la suppression");
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      setDeleteError(data?.error ?? "Erreur lors de la suppression");
     }
   };
 
@@ -100,7 +111,7 @@ export function TransferList() {
             </thead>
             <tbody>
               {transfers.map((t) => (
-                <tr key={t.transfer_id} className="border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
+                <tr key={t.transfer_id} className="group border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
                   <td className="px-4 py-3 whitespace-nowrap text-zinc-500">{formatDate(t.date)}</td>
                   <td className="px-4 py-3">{t.from_account?.name ?? "—"}</td>
                   <td className="px-4 py-3">{t.to_account?.name ?? "—"}</td>
@@ -109,19 +120,25 @@ export function TransferList() {
                     {formatAmount(t.amount_cents, t.currency)}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <button
+                    <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => setEditingTransfer(t)}
-                        className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        aria-label="Modifier le virement"
+                        title="Modifier"
                       >
-                        Modifier
-                      </button>
-                      <button
-                        onClick={() => handleDelete(t.transfer_id)}
-                        className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-800/50 dark:text-red-400 dark:hover:bg-red-900/20"
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="icon-sm"
+                        onClick={() => setDeletingTransfer(t)}
+                        aria-label="Supprimer le virement"
+                        title="Supprimer"
                       >
-                        Supprimer
-                      </button>
+                        <Trash2 />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -131,29 +148,7 @@ export function TransferList() {
         )}
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
-          <span>
-            {total} virement{total > 1 ? "s" : ""} — page {page} / {totalPages}
-          </span>
-          <div className="flex gap-1">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="rounded-md border border-zinc-300 px-3 py-1 disabled:opacity-40"
-            >
-              ← Préc.
-            </button>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-md border border-zinc-300 px-3 py-1 disabled:opacity-40"
-            >
-              Suiv. →
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} itemLabel="virement" />
 
       {showCreate && (
         <TransferModal
@@ -181,6 +176,26 @@ export function TransferList() {
           onClose={() => setEditingTransfer(null)}
         />
       )}
+
+      <AlertDialog
+        open={deletingTransfer !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingTransfer(null);
+            setDeleteError(null);
+          }
+        }}
+        title="Supprimer ce virement ?"
+        description={
+          deleteError
+            ? deleteError
+            : deletingTransfer
+              ? `Le virement du ${formatDate(deletingTransfer.date)} (${formatAmount(deletingTransfer.amount_cents, deletingTransfer.currency)}) et ses deux transactions seront supprimés.`
+              : undefined
+        }
+        onConfirm={handleDelete}
+        isConfirming={isDeleting}
+      />
     </div>
   );
 }

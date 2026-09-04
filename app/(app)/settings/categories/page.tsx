@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 
-import { CategoryForm } from "@/components/settings/category-form";
+import { CategoryModal } from "@/components/settings/category-modal";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
@@ -61,6 +61,8 @@ export default function CategoriesPage() {
     return acc;
   }, {});
 
+  const editingCategory = editingId ? (categories.find((c) => c.id === editingId) ?? null) : null;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -76,19 +78,6 @@ export default function CategoriesPage() {
         </button>
       </div>
 
-      {showCreate && (
-        <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-          <h2 className="mb-3 text-base font-medium">Nouvelle catégorie</h2>
-          <CategoryForm
-            onSuccess={() => {
-              setShowCreate(false);
-              void load();
-            }}
-            onCancel={() => setShowCreate(false)}
-          />
-        </article>
-      )}
-
       {isLoading ? (
         <p className="text-sm text-zinc-500">Chargement…</p>
       ) : (
@@ -103,57 +92,38 @@ export default function CategoriesPage() {
                 <ul className="space-y-2">
                   {items.map((cat) => (
                     <li key={cat.id}>
-                      {editingId === cat.id ? (
-                        <div className="rounded-md border border-zinc-200 p-3 dark:border-zinc-700">
-                          <CategoryForm
-                            categoryId={cat.id}
-                            defaultValues={{
-                              name: cat.name,
-                              kind: cat.kind,
-                              color: cat.color ?? undefined,
-                              icon: cat.icon ?? undefined,
-                            }}
-                            onSuccess={() => {
-                              setEditingId(null);
-                              void load();
-                            }}
-                            onCancel={() => setEditingId(null)}
+                      <div className="group flex items-center justify-between rounded-md px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="h-4 w-4 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: cat.color ?? CATEGORY_COLOR_FALLBACK }}
                           />
+                          <span className="text-sm">
+                            {cat.icon ? `${cat.icon} ` : ""}
+                            {cat.name}
+                          </span>
                         </div>
-                      ) : (
-                        <div className="group flex items-center justify-between rounded-md px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                          <div className="flex items-center gap-3">
-                            <span
-                              className="h-4 w-4 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: cat.color ?? CATEGORY_COLOR_FALLBACK }}
-                            />
-                            <span className="text-sm">
-                              {cat.icon ? `${cat.icon} ` : ""}
-                              {cat.name}
-                            </span>
-                          </div>
-                          <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => setEditingId(cat.id)}
-                              aria-label="Modifier la catégorie"
-                              title="Modifier"
-                            >
-                              <Pencil />
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="icon-sm"
-                              onClick={() => setDeletingCategory(cat)}
-                              aria-label="Supprimer la catégorie"
-                              title="Supprimer"
-                            >
-                              <Trash2 />
-                            </Button>
-                          </div>
+                        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setEditingId(cat.id)}
+                            aria-label="Modifier la catégorie"
+                            title="Modifier"
+                          >
+                            <Pencil />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon-sm"
+                            onClick={() => setDeletingCategory(cat)}
+                            aria-label="Supprimer la catégorie"
+                            title="Supprimer"
+                          >
+                            <Trash2 />
+                          </Button>
                         </div>
-                      )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -171,6 +141,33 @@ export default function CategoriesPage() {
         onConfirm={handleDelete}
         isConfirming={isDeleting}
       />
+
+      {showCreate && (
+        <CategoryModal
+          onClose={() => setShowCreate(false)}
+          onSuccess={() => {
+            setShowCreate(false);
+            void load();
+          }}
+        />
+      )}
+
+      {editingCategory && (
+        <CategoryModal
+          categoryId={editingCategory.id}
+          defaultValues={{
+            name: editingCategory.name,
+            kind: editingCategory.kind,
+            color: editingCategory.color ?? undefined,
+            icon: editingCategory.icon ?? undefined,
+          }}
+          onClose={() => setEditingId(null)}
+          onSuccess={() => {
+            setEditingId(null);
+            void load();
+          }}
+        />
+      )}
     </div>
   );
 }

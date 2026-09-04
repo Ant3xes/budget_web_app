@@ -99,7 +99,7 @@ export default async function DashboardPage({
       () =>
         supabase
           .from("transactions")
-          .select("kind, amount_cents, category_id, categories(name, color)")
+          .select("kind, amount_cents, category_id, categories(name, color, icon)")
           .in("account_id", accountIds)
           .in("kind", ["expense", "income"])
           .gte("date", periodFrom)
@@ -228,11 +228,12 @@ export default async function DashboardPage({
     periodTx
       .filter((t) => t.kind === "expense")
       .map((tx) => {
-        const catObj = tx.categories as unknown as { name: string; color: string | null } | null;
+        const catObj = tx.categories as unknown as { name: string; color: string | null; icon: string | null } | null;
         return {
           amount_cents: tx.amount_cents,
           categoryName: catObj?.name ?? null,
           categoryColor: catObj?.color ?? null,
+          categoryIcon: catObj?.icon ?? null,
           categoryId: tx.category_id,
         };
       }),

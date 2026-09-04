@@ -46,10 +46,7 @@ export default async function AccountsPage() {
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-end">
-        <AccountsImportButton />
-      </div>
-      <AccountsList accounts={accountCards} />
+      <AccountsList accounts={accountCards} importButton={<AccountsImportButton />} />
     </section>
   );
 }

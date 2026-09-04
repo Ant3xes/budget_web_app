@@ -6,6 +6,7 @@ export type ExpenseByCategoryTx = {
   amount_cents: number;
   categoryName: string | null;
   categoryColor: string | null;
+  categoryIcon?: string | null;
   /** Optional: unused by account-detail.tsx, carried through for the dashboard's category drill-down (plan §Étape 3). */
   categoryId?: string | null;
 };
@@ -14,6 +15,8 @@ export type ExpenseByCategoryPoint = {
   name: string;
   value: number; // cents (positive)
   color: string;
+  /** Always set (falls back to `null`), even when the input tx didn't carry one. */
+  icon: string | null;
   /** Always set (falls back to `null`), even when the input tx didn't carry one. */
   categoryId: string | null;
 };
@@ -36,7 +39,8 @@ export function computeExpenseByCategory(
 
     const name = tx.categoryName ?? "Sans catégorie";
     const color = tx.categoryColor ?? CATEGORY_COLOR_FALLBACK;
-    if (!byCat[name]) byCat[name] = { name, value: 0, color, categoryId: tx.categoryId ?? null };
+    if (!byCat[name])
+      byCat[name] = { name, value: 0, color, icon: tx.categoryIcon ?? null, categoryId: tx.categoryId ?? null };
     byCat[name]!.value += Math.abs(tx.amount_cents);
   }
 

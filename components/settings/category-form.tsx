@@ -14,7 +14,7 @@ const categorySchema = z.object({
   icon: z.string().trim().max(10).optional(),
 });
 
-type CategoryFormValues = z.infer<typeof categorySchema>;
+export type CategoryFormValues = z.infer<typeof categorySchema>;
 
 interface CategoryFormProps {
   categoryId?: string;

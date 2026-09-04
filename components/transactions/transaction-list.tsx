@@ -2,10 +2,13 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
 import { ImportModal } from "@/components/import/import-modal";
 import { TransactionModal } from "@/components/transactions/transaction-modal";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
@@ -74,6 +77,9 @@ export function TransactionList({ kind }: TransactionListProps) {
   const [showImport, setShowImport] = useState(false);
   const [showApplyRules, setShowApplyRules] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const totalPages = Math.ceil(total / PER_PAGE);
 
@@ -128,14 +134,18 @@ export function TransactionList({ kind }: TransactionListProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Supprimer cette transaction ?")) return;
-    const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+  const handleDelete = async () => {
+    if (!deletingTransaction) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    const res = await fetch(`/api/transactions/${deletingTransaction.id}`, { method: "DELETE" });
+    setIsDeleting(false);
     if (res.ok) {
+      setDeletingTransaction(null);
       void load(page);
     } else {
-      const data = (await res.json()) as { error?: string };
-      alert(data.error ?? "Erreur lors de la suppression");
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      setDeleteError(data?.error ?? "Erreur lors de la suppression");
     }
   };
 
@@ -173,31 +183,37 @@ export function TransactionList({ kind }: TransactionListProps) {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
-        <select
-          value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-        >
-          <option value="">Tous les comptes</option>
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative inline-block">
+          <select
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+            className="appearance-none rounded-md border border-zinc-300 px-3 py-1.5 pr-8 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
+          >
+            <option value="">Tous les comptes</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />
+        </div>
 
-        <select
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-        >
-          <option value="">Toutes les catégories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative inline-block">
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="appearance-none rounded-md border border-zinc-300 px-3 py-1.5 pr-8 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
+          >
+            <option value="">Toutes les catégories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />
+        </div>
 
         <input
           type="date"
@@ -267,7 +283,7 @@ export function TransactionList({ kind }: TransactionListProps) {
             </thead>
             <tbody>
               {transactions.map((t) => (
-                <tr key={t.id} className="border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
+                <tr key={t.id} className="group border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
                   <td className="px-4 py-3 whitespace-nowrap text-zinc-500 dark:text-zinc-400">{formatDate(t.date)}</td>
                   <td className="px-4 py-3 max-w-xs truncate">
                     {t.description}
@@ -299,26 +315,30 @@ export function TransactionList({ kind }: TransactionListProps) {
                     {formatAmount(t.amount_cents, t.currency)}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      {!t.transfer_id ? (
-                        <>
-                          <button
-                            onClick={() => setEditingTransaction(t)}
-                            className="rounded-md border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                          >
-                            Modifier
-                          </button>
-                          <button
-                            onClick={() => handleDelete(t.id)}
-                            className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-800/50 dark:text-red-400 dark:hover:bg-red-900/20"
-                          >
-                            Supprimer
-                          </button>
-                        </>
-                      ) : (
-                        <span className="text-xs text-zinc-400">Virement</span>
-                      )}
-                    </div>
+                    {!t.transfer_id ? (
+                      <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setEditingTransaction(t)}
+                          aria-label={`Modifier la ${kindLabel}`}
+                          title="Modifier"
+                        >
+                          <Pencil />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="icon-sm"
+                          onClick={() => setDeletingTransaction(t)}
+                          aria-label={`Supprimer la ${kindLabel}`}
+                          title="Supprimer"
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-zinc-400">Virement</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -385,6 +405,26 @@ export function TransactionList({ kind }: TransactionListProps) {
           onClose={() => setShowImport(false)}
         />
       )}
+
+      <AlertDialog
+        open={deletingTransaction !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingTransaction(null);
+            setDeleteError(null);
+          }
+        }}
+        title={`Supprimer cette ${kindLabel} ?`}
+        description={
+          deleteError
+            ? deleteError
+            : deletingTransaction
+              ? `"${deletingTransaction.description}" sera définitivement supprimée.`
+              : undefined
+        }
+        onConfirm={handleDelete}
+        isConfirming={isDeleting}
+      />
     </div>
   );
 }

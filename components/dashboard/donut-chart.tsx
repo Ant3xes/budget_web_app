@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import type { TooltipContentProps } from "recharts";
+import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 import { formatEuros } from "@/lib/format";
 
@@ -10,6 +12,7 @@ interface DonutDatum {
   name: string;
   value: number;
   color: string;
+  icon?: string | null;
   categoryId?: string | null;
 }
 
@@ -50,6 +53,45 @@ interface DonutChartProps {
  * (user-customizable in Settings), not a fixed series palette — that's for
  * fixed, non-customizable series (see bar-chart.tsx's income/expense).
  */
+
+/**
+ * Custom tooltip content, replacing recharts' built-in `<Tooltip
+ * formatter={...}>` (which has no way to guarantee the swatch matches the
+ * slice's own color, and drops the category icon entirely). Mirrors the
+ * icon + color-dot + name visual from components/category-badge.tsx so the
+ * tooltip reads consistently with the rest of the app.
+ */
+function DonutTooltipContent({ active, payload }: TooltipContentProps<ValueType, NameType>) {
+  if (!active || !payload || payload.length === 0) return null;
+  const entry = payload[0];
+  const datum = entry.payload as DonutDatum;
+
+  return (
+    <div
+      style={{
+        backgroundColor: "var(--popover)",
+        border: "1px solid var(--border)",
+        color: "var(--popover-foreground)",
+        fontSize: "12px",
+        borderRadius: "var(--radius-md)",
+        padding: "6px 10px",
+      }}
+    >
+      <span className="flex items-center gap-2">
+        {datum.icon && <span>{datum.icon}</span>}
+        <span
+          className="inline-block h-2 w-2 flex-shrink-0 rounded-full"
+          style={{ backgroundColor: datum.color }}
+        />
+        <span>{datum.name}</span>
+        <span className="font-medium">
+          {typeof entry.value === "number" ? formatEuros(entry.value) : String(entry.value ?? "")}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 export function DonutChart({
   data,
   height = 280,
@@ -106,18 +148,7 @@ export function DonutChart({
             );
           })}
         </Pie>
-        <Tooltip
-          formatter={(value, name) => [typeof value === "number" ? formatEuros(value) : String(value ?? ""), name]}
-          contentStyle={{
-            backgroundColor: "var(--popover)",
-            border: "1px solid var(--border)",
-            color: "var(--popover-foreground)",
-            fontSize: "12px",
-            borderRadius: "var(--radius-md)",
-          }}
-          itemStyle={{ color: "var(--popover-foreground)" }}
-          labelStyle={{ color: "var(--popover-foreground)" }}
-        />
+        <Tooltip content={(props) => <DonutTooltipContent {...props} />} />
         <Legend
           formatter={(value) => (
             <span style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>{value}</span>

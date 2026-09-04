@@ -2,7 +2,7 @@ import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { DonutChart } from "@/components/dashboard/donut-chart";
 
 interface ExpenseByCategoryWidgetProps {
-  data: { name: string; value: number; color: string; categoryId: string | null }[];
+  data: { name: string; value: number; color: string; icon?: string | null; categoryId: string | null }[];
   periodLabel: string;
 }
 
