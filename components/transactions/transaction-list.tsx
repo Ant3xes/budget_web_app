@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
 import { ImportModal } from "@/components/import/import-modal";
 import { TransactionModal } from "@/components/transactions/transaction-modal";
+import { Pagination } from "@/components/ui/pagination";
 import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
 type Transaction = {
@@ -326,30 +327,7 @@ export function TransactionList({ kind }: TransactionListProps) {
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
-          <span>
-            {total} résultat{total > 1 ? "s" : ""} — page {page} / {totalPages}
-          </span>
-          <div className="flex gap-1">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="rounded-md border border-zinc-300 px-3 py-1 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              ← Préc.
-            </button>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-md border border-zinc-300 px-3 py-1 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              Suiv. →
-            </button>
-          </div>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
       {/* Modals */}
       {showCreate && (

@@ -16,8 +16,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useState } from "react";
+import { GripVertical, Pencil, Trash2 } from "lucide-react";
 
 import { ImportRulesModal } from "@/components/settings/import-rules-modal";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 type ImportRule = {
   id: string;
@@ -62,10 +65,10 @@ function SortableRow({
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab touch-none text-zinc-400 hover:text-zinc-600 active:cursor-grabbing"
+        className="cursor-grab touch-none text-zinc-400 hover:text-zinc-600 active:cursor-grabbing dark:hover:text-zinc-300"
         aria-label="Déplacer"
       >
-        ⠿
+        <GripVertical className="size-4" />
       </button>
 
       {/* Keyword */}
@@ -90,18 +93,12 @@ function SortableRow({
 
       {/* Actions */}
       <div className="flex shrink-0 gap-1">
-        <button
-          onClick={onEdit}
-          className="rounded px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-        >
-          Modifier
-        </button>
-        <button
-          onClick={onDelete}
-          className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-        >
-          Supprimer
-        </button>
+        <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label="Modifier la règle" title="Modifier">
+          <Pencil />
+        </Button>
+        <Button variant="destructive" size="icon-sm" onClick={onDelete} aria-label="Supprimer la règle" title="Supprimer">
+          <Trash2 />
+        </Button>
       </div>
     </div>
   );
@@ -112,6 +109,8 @@ export function ImportRulesList() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editingRule, setEditingRule] = useState<ImportRule | null>(null);
+  const [deletingRule, setDeletingRule] = useState<ImportRule | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -147,10 +146,15 @@ export function ImportRulesList() {
     });
   };
 
-  const handleDelete = async (id: string, keyword: string) => {
-    if (!confirm(`Supprimer la règle « ${keyword} » ?`)) return;
-    const res = await fetch(`/api/import-rules/${id}`, { method: "DELETE" });
-    if (res.ok) await loadRules();
+  const handleDelete = async () => {
+    if (!deletingRule) return;
+    setIsDeleting(true);
+    const res = await fetch(`/api/import-rules/${deletingRule.id}`, { method: "DELETE" });
+    setIsDeleting(false);
+    if (res.ok) {
+      setDeletingRule(null);
+      await loadRules();
+    }
   };
 
   if (isLoading) {
@@ -189,7 +193,7 @@ export function ImportRulesList() {
                   key={rule.id}
                   rule={rule}
                   onEdit={() => setEditingRule(rule)}
-                  onDelete={() => void handleDelete(rule.id, rule.keyword)}
+                  onDelete={() => setDeletingRule(rule)}
                 />
               ))}
             </div>
@@ -218,6 +222,15 @@ export function ImportRulesList() {
           onClose={() => setEditingRule(null)}
         />
       )}
+
+      <AlertDialog
+        open={deletingRule !== null}
+        onOpenChange={(open) => !open && setDeletingRule(null)}
+        title="Supprimer cette règle ?"
+        description={deletingRule ? `La règle « ${deletingRule.keyword} » sera supprimée.` : undefined}
+        onConfirm={handleDelete}
+        isConfirming={isDeleting}
+      />
     </div>
   );
 }

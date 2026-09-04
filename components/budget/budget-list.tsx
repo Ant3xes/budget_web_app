@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { BudgetModal } from "@/components/budget/budget-modal";
 import { BudgetBar } from "@/components/dashboard/budget-bar";
 import { CategoryBadge } from "@/components/category-badge";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { formatEuros } from "@/lib/format";
 
 type BudgetCategory = { name: string; color: string | null; icon: string | null };
@@ -44,6 +47,8 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [deletingBudget, setDeletingBudget] = useState<Budget | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
 
@@ -103,10 +108,15 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
     setIsCopying(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Supprimer cette enveloppe ?")) return;
-    const res = await fetch(`/api/budgets/${id}`, { method: "DELETE" });
-    if (res.ok) await loadData(month);
+  const handleDelete = async () => {
+    if (!deletingBudget) return;
+    setIsDeleting(true);
+    const res = await fetch(`/api/budgets/${deletingBudget.id}`, { method: "DELETE" });
+    setIsDeleting(false);
+    if (res.ok) {
+      setDeletingBudget(null);
+      await loadData(month);
+    }
   };
 
   const goToPrevMonth = () => setMonth(prevMonth(month));
@@ -213,13 +223,20 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                     const ratio = budget.amount_cents > 0 ? consumed / budget.amount_cents : 0;
 
                     return (
-                      <tr key={budget.id} className="border-b border-zinc-50 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
+                      <tr key={budget.id} className="group border-b border-zinc-50 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
                         <td className="px-4 py-3">
-                          <CategoryBadge
-                            name={budget.categories?.name ?? "—"}
-                            icon={budget.categories?.icon}
-                            color={budget.categories?.color}
-                          />
+                          <div className="flex items-center gap-2">
+                            <CategoryBadge
+                              name={budget.categories?.name ?? "—"}
+                              icon={budget.categories?.icon}
+                              color={budget.categories?.color}
+                            />
+                            {ratio > 1 && (
+                              <span className="inline-block shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                                Dépassé
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-right font-medium">
                           {formatEuros(budget.amount_cents)}
@@ -235,18 +252,26 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                           </p>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => setEditingBudget(budget)}
-                            className="mr-2 text-xs text-blue-600 hover:underline"
-                          >
-                            Modifier
-                          </button>
-                          <button
-                            onClick={() => handleDelete(budget.id)}
-                            className="text-xs text-red-500 hover:underline dark:text-red-400"
-                          >
-                            Supprimer
-                          </button>
+                          <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => setEditingBudget(budget)}
+                              aria-label="Modifier l'enveloppe"
+                              title="Modifier"
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="icon-sm"
+                              onClick={() => setDeletingBudget(budget)}
+                              aria-label="Supprimer l'enveloppe"
+                              title="Supprimer"
+                            >
+                              <Trash2 />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -283,6 +308,19 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
           onClose={() => setEditingBudget(null)}
         />
       )}
+
+      <AlertDialog
+        open={deletingBudget !== null}
+        onOpenChange={(open) => !open && setDeletingBudget(null)}
+        title="Supprimer cette enveloppe ?"
+        description={
+          deletingBudget
+            ? `L'enveloppe "${deletingBudget.categories?.name ?? "—"}" sera supprimée pour ${monthLabel(month)}.`
+            : undefined
+        }
+        onConfirm={handleDelete}
+        isConfirming={isDeleting}
+      />
     </div>
   );
 }
