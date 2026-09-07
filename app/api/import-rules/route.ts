@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { nextRulePriority } from "@/lib/import/rules";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const ruleSchema = z.object({
@@ -43,16 +44,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }
 
-  // Assign priority = max existing priority + 1
-  const { data: maxData } = await auth.supabase
-    .from("csv_import_rules")
-    .select("priority")
-    .eq("user_id", auth.user.id)
-    .order("priority", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const priority = maxData ? (maxData.priority as number) + 1 : 0;
+  const priority = await nextRulePriority(auth.supabase, auth.user.id);
 
   const { data, error } = await auth.supabase
     .from("csv_import_rules")

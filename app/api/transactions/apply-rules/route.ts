@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { buildHistoryMatcher, buildRuleMatcher } from "@/lib/import/apply-rules";
+import { insertImportRules } from "@/lib/import/rules";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const withUser = async () => {
@@ -68,12 +69,20 @@ export async function GET() {
     category_icon: string | null;
   }> = [];
 
+  // Transactions with neither a rule nor a history match — exposed so the UI
+  // can offer manual categorization (and optionally save a new rule from it),
+  // instead of leaving the user with nothing actionable.
+  const unmatched: Array<{ id: string; description: string; kind: "expense" | "income" }> = [];
+
   for (const tx of transactions) {
     const kind = tx.kind as "expense" | "income";
     const ruleMatch = ruleMatcher(tx.description, kind);
     const historyMatch = ruleMatch === null ? historyMatcher(tx.description, kind) : null;
     const suggestedId = ruleMatch ?? historyMatch;
-    if (!suggestedId) continue;
+    if (!suggestedId) {
+      if (unmatched.length < 500) unmatched.push({ id: tx.id, description: tx.description, kind });
+      continue;
+    }
 
     const cat = categoriesById.get(suggestedId);
     if (!cat) continue;
@@ -91,7 +100,7 @@ export async function GET() {
 
   const unmatchedCount = transactions.length - previews.length;
 
-  return NextResponse.json({ previews, unmatched_count: unmatchedCount });
+  return NextResponse.json({ previews, unmatched, unmatched_count: unmatchedCount });
 }
 
 const applyRulesSchema = z.object({
@@ -104,12 +113,26 @@ const applyRulesSchema = z.object({
     )
     .min(1)
     .max(500),
+  // Rules to create from transactions the user just categorized manually —
+  // "Catégoriser" then remembers the choice for the next import (see
+  // ApplyRulesModal's "unmatched" section).
+  new_rules: z
+    .array(
+      z.object({
+        keyword: z.string().trim().min(1).max(200),
+        category_id: z.string().uuid(),
+        kind: z.enum(["expense", "income"]),
+      }),
+    )
+    .max(500)
+    .optional(),
 });
 
 /**
  * POST /api/transactions/apply-rules
- * Applies category assignments to uncategorized transactions.
- * Body: { updates: Array<{ id: string, category_id: string }> }
+ * Applies category assignments to uncategorized transactions, and optionally
+ * creates new csv_import_rules from the ones chosen manually.
+ * Body: { updates: Array<{ id, category_id }>, new_rules?: Array<{ keyword, category_id, kind }> }
  */
 export async function POST(request: Request) {
   const auth = await withUser();
@@ -125,7 +148,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { updates } = payload.data;
+  const { updates, new_rules } = payload.data;
   let applied = 0;
 
   // Apply each update individually to ensure RLS (user_id check) is respected
@@ -145,5 +168,11 @@ export async function POST(request: Request) {
     if (!result.error) applied++;
   }
 
-  return NextResponse.json({ applied });
+  let rulesCreated = 0;
+  if (new_rules && new_rules.length > 0) {
+    const result = await insertImportRules(supabase, user.id, new_rules);
+    rulesCreated = result.inserted;
+  }
+
+  return NextResponse.json({ applied, rules_created: rulesCreated });
 }

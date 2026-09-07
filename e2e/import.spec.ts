@@ -18,7 +18,7 @@ test.describe("Import CSV", () => {
   });
 
   test("import modal opens from accounts page", async ({ page }) => {
-    await page.goto("/expenses");
+    await page.goto("/transactions");
     const importBtn = page.getByRole("button", { name: /importer|import/i }).first();
     await expect(importBtn).toBeVisible();
     await importBtn.click();
@@ -26,7 +26,7 @@ test.describe("Import CSV", () => {
   });
 
   test("N26 CSV file is detected and previewed", async ({ page }) => {
-    await page.goto("/expenses");
+    await page.goto("/transactions");
 
     // Open the first account's import
     const importBtn = page.getByRole("button", { name: /importer|import/i }).first();
@@ -57,7 +57,7 @@ test.describe("Import CSV", () => {
   });
 
   test("import confirmation inserts transactions", async ({ page }) => {
-    await page.goto("/expenses");
+    await page.goto("/transactions");
 
     const importBtn = page.getByRole("button", { name: /importer|import/i }).first();
     await importBtn.click();
@@ -82,6 +82,10 @@ test.describe("Import CSV", () => {
     await dialog.getByRole("button", { name: /analyser/i }).click();
 
     await expect(page.getByText(/1 transaction trouvée/i)).toBeVisible({ timeout: 10000 });
+    // Import is segmented Dépenses → Revenus → Virements → Confirmation;
+    // this fixture only has an expense row, so the next two steps are empty.
+    await dialog.getByRole("button", { name: /suivant/i }).click();
+    await dialog.getByRole("button", { name: /suivant/i }).click();
     await dialog.getByRole("button", { name: /^importer/i }).click();
     await expect(page.getByText(/importée.* avec succès/i)).toBeVisible({ timeout: 10000 });
   });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { fetchTransferCounterparts } from "@/lib/transactions/transfer-counterparts";
 
 const transferSchema = z.object({
   from_account_id: z.string().uuid(),
@@ -54,20 +55,7 @@ export async function GET(request: Request) {
   // Fetch corresponding credit transactions to get destination account
   const transferIds = (data ?? []).map((t) => t.transfer_id).filter(Boolean) as string[];
 
-  let credits: Record<string, { account_id: string; accounts: { name: string } | null }> = {};
-  if (transferIds.length > 0) {
-    const { data: creditData } = await auth.supabase
-      .from("transactions")
-      .select("transfer_id, account_id, accounts(name)")
-      .eq("user_id", auth.user.id)
-      .eq("kind", "transfer_credit")
-      .is("deleted_at", null)
-      .in("transfer_id", transferIds);
-
-    credits = Object.fromEntries(
-      (creditData ?? []).map((c) => [c.transfer_id, c]),
-    );
-  }
+  const toAccountByTransferId = await fetchTransferCounterparts(auth.supabase, auth.user.id, transferIds);
 
   const transfers = (data ?? []).map((t) => ({
     transfer_id: t.transfer_id,
@@ -77,7 +65,7 @@ export async function GET(request: Request) {
     date: t.date,
     description: t.description,
     from_account: t.accounts,
-    to_account: credits[t.transfer_id ?? ""]?.accounts ?? null,
+    to_account: toAccountByTransferId[t.transfer_id ?? ""] ?? null,
   }));
 
   return NextResponse.json({ transfers, total: count ?? 0 });

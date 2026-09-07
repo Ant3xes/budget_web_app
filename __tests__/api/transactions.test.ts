@@ -66,15 +66,14 @@ describe("GET /api/transactions", () => {
     expect(res.status).toBe(401);
   });
 
-  it("defaults to all four kinds when kind is omitted", async () => {
+  it("defaults to expense/income/transfer_debit when kind is omitted (transfer_credit is the mirror row, never listed)", async () => {
     const txs = [
       { id: "1", kind: "expense" },
       { id: "2", kind: "income" },
       { id: "3", kind: "transfer_debit" },
-      { id: "4", kind: "transfer_credit" },
     ];
     const supabase = buildSupabaseMock({
-      result: { data: txs, error: null, count: 4 },
+      result: { data: txs, error: null, count: 3 },
     });
     vi.mocked(createServerSupabaseClient).mockResolvedValue(
       supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
@@ -86,12 +85,62 @@ describe("GET /api/transactions", () => {
       "expense",
       "income",
       "transfer_debit",
-      "transfer_credit",
     ]);
 
     const body = (await res.json()) as { transactions: typeof txs; total: number };
-    expect(body.transactions).toHaveLength(4);
-    expect(body.total).toBe(4);
+    expect(body.transactions).toHaveLength(3);
+    expect(body.total).toBe(3);
+  });
+
+  it("maps the UI-level kind=transfer to the transfer_debit representative row", async () => {
+    const supabase = buildSupabaseMock({
+      result: { data: [], error: null, count: 0 },
+    });
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
+    );
+
+    const url = new URL("http://localhost/api/transactions");
+    url.searchParams.set("kind", "transfer");
+
+    const res = await GET(new Request(url));
+    expect(res.status).toBe(200);
+    expect(supabase._queryChain.in).toHaveBeenCalledWith("kind", ["transfer_debit"]);
+  });
+
+  it("uncategorized=true narrows to expense/income and filters category_id null", async () => {
+    const supabase = buildSupabaseMock({
+      result: { data: [], error: null, count: 0 },
+    });
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
+    );
+
+    const url = new URL("http://localhost/api/transactions");
+    url.searchParams.set("uncategorized", "true");
+
+    const res = await GET(new Request(url));
+    expect(res.status).toBe(200);
+    expect(supabase._queryChain.in).toHaveBeenCalledWith("kind", ["expense", "income"]);
+    expect(supabase._queryChain.is).toHaveBeenCalledWith("category_id", null);
+  });
+
+  it("treats uncategorized=false as no filter, not as true", async () => {
+    const supabase = buildSupabaseMock({
+      result: { data: [], error: null, count: 0 },
+    });
+    vi.mocked(createServerSupabaseClient).mockResolvedValue(
+      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
+    );
+
+    const url = new URL("http://localhost/api/transactions");
+    url.searchParams.set("uncategorized", "false");
+
+    const res = await GET(new Request(url));
+    expect(res.status).toBe(200);
+    // Should behave like the default (all 3 kinds), not narrow to expense/income.
+    expect(supabase._queryChain.in).toHaveBeenCalledWith("kind", ["expense", "income", "transfer_debit"]);
+    expect(supabase._queryChain.is).not.toHaveBeenCalledWith("category_id", null);
   });
 
   it("filters by account_id and date range", async () => {

@@ -30,13 +30,16 @@ type Category = {
 type Account = { id: string; name: string };
 
 interface ImportModalProps {
-  kind?: "expense" | "income";
   defaultAccountId?: string;
   onSuccess: () => void;
   onClose: () => void;
 }
 
-type Step = "upload" | "preview_expense" | "preview_income" | "done";
+// Import is segmented in 3 parts to validate one type of data at a time,
+// mirroring how Comptes already validates data step by step — Dépenses,
+// Revenus, then Virements (rows flagged as a transfer, by the parser or
+// manually, move here instead of appearing inline in the other two steps).
+type Step = "upload" | "preview_expense" | "preview_income" | "preview_transfer" | "done";
 
 const formatAmount = (cents: number) => {
   const sign = cents < 0 ? "−" : "+";
@@ -50,7 +53,7 @@ const formatDate = (iso: string) =>
     year: "numeric",
   });
 
-export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: ImportModalProps) {
+export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModalProps) {
   const { t } = useLocale();
   const [step, setStep] = useState<Step>("upload");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -60,7 +63,6 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
   const [incomePreview, setIncomePreview] = useState<PreviewRow[]>([]);
   const [isTransfer, setIsTransfer] = useState<Record<string, boolean>>({}); // hash -> treat as transfer
   const [transferAccountMap, setTransferAccountMap] = useState<Record<string, string>>({}); // hash -> counterpart account_id
-  const [transferFilter, setTransferFilter] = useState<"all" | "transfer" | "non_transfer">("all");
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({}); // hash -> category_id
   const [checked, setChecked] = useState<Record<string, boolean>>({}); // hash -> selected
   const [isLoading, setIsLoading] = useState(false);
@@ -117,56 +119,33 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
     }
 
     const data = (await res.json()) as { preview: PreviewRowRaw[] };
+    if (data.preview.length === 0) {
+      setError(t("transactions.importModal.noTransactions"));
+      return;
+    }
+
+    const expenses = data.preview
+      .filter((r) => r.kind === "expense")
+      .map((r, i): PreviewRow => ({ ...r, rowId: `e_${i}` }));
+    const incomes = data.preview
+      .filter((r) => r.kind === "income")
+      .map((r, i): PreviewRow => ({ ...r, rowId: `i_${i}` }));
+    setExpensePreview(expenses);
+    setIncomePreview(incomes);
+
     const initCats: Record<string, string> = {};
     const initChecked: Record<string, boolean> = {};
     const initTransfer: Record<string, boolean> = {};
-
-    if (kind) {
-      // Single-kind mode (backward compatible)
-      const rows = data.preview
-        .filter((r) => r.kind === kind)
-        .map((r, i): PreviewRow => ({ ...r, rowId: `${kind}_${i}` }));
-      if (rows.length === 0) {
-        setError(
-          t("transactions.importModal.noTransactionsOfKindError", {
-            kind: t(kind === "expense" ? "transactions.importModal.kindExpenseWord" : "transactions.importModal.kindIncomeWord"),
-          }),
-        );
-        return;
-      }
-      if (kind === "expense") setExpensePreview(rows);
-      else setIncomePreview(rows);
-      for (const row of rows) {
-        initCats[row.rowId] = row.suggested_category_id ?? "";
-        initChecked[row.rowId] = !row.is_duplicate;
-        initTransfer[row.rowId] = row.is_transfer_candidate;
-      }
-    } else {
-      // Two-step mode (all kinds)
-      if (data.preview.length === 0) {
-        setError(t("transactions.importModal.noTransactions"));
-        return;
-      }
-      const expenses = data.preview
-        .filter((r) => r.kind === "expense")
-        .map((r, i): PreviewRow => ({ ...r, rowId: `e_${i}` }));
-      const incomes = data.preview
-        .filter((r) => r.kind === "income")
-        .map((r, i): PreviewRow => ({ ...r, rowId: `i_${i}` }));
-      setExpensePreview(expenses);
-      setIncomePreview(incomes);
-      for (const row of [...expenses, ...incomes]) {
-        initCats[row.rowId] = row.suggested_category_id ?? "";
-        initChecked[row.rowId] = !row.is_duplicate;
-        initTransfer[row.rowId] = row.is_transfer_candidate;
-      }
+    for (const row of [...expenses, ...incomes]) {
+      initCats[row.rowId] = row.suggested_category_id ?? "";
+      initChecked[row.rowId] = !row.is_duplicate;
+      initTransfer[row.rowId] = row.is_transfer_candidate;
     }
     setCategoryMap(initCats);
     setChecked(initChecked);
     setIsTransfer(initTransfer);
     setTransferAccountMap({});
-    setTransferFilter("all");
-    setStep(kind === "income" ? "preview_income" : "preview_expense");
+    setStep("preview_expense");
   };
 
   const handleConfirm = async () => {
@@ -211,52 +190,46 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
 
   const expenseCategories = categories.filter((c) => c.kind === "expense");
   const incomeCategories = categories.filter((c) => c.kind === "income");
+  const isPreviewKindStep = step === "preview_expense" || step === "preview_income";
   const currentPreview = step === "preview_expense" ? expensePreview : incomePreview;
   const currentCategories = step === "preview_expense" ? expenseCategories : incomeCategories;
-  const displayedPreview = currentPreview.filter((r) => {
-    if (transferFilter === "transfer") return !!isTransfer[r.rowId];
-    if (transferFilter === "non_transfer") return !isTransfer[r.rowId];
-    return true;
-  });
+  // Rows marked as a transfer move out of their expense/income step into the
+  // dedicated Virements step below, instead of being toggled inline.
+  const transferRows = [...expensePreview, ...incomePreview].filter((r) => !!isTransfer[r.rowId]);
+  const displayedPreview = isPreviewKindStep
+    ? currentPreview.filter((r) => !isTransfer[r.rowId])
+    : step === "preview_transfer"
+      ? transferRows
+      : [];
   const checkedInView = displayedPreview.filter((r) => !!checked[r.rowId]);
-  const expenseSelectedCount = expensePreview.filter((r) => checked[r.rowId]).length;
-  const incomeSelectedCount = incomePreview.filter((r) => checked[r.rowId]).length;
-  const totalSelectedCount = expenseSelectedCount + incomeSelectedCount;
+  const otherAccounts = accounts.filter((a) => a.id !== selectedAccountId);
+  // Every row is either an expense/income or (once marked) a transfer, so
+  // this total matches exactly what handleConfirm submits — no need to sum
+  // three separately-filtered per-type counts that are never shown on their own.
+  const totalSelectedCount = [...expensePreview, ...incomePreview].filter((r) => checked[r.rowId]).length;
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-3xl rounded-lg bg-white shadow-xl flex flex-col max-h-[90vh] dark:bg-zinc-900">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
-          <h2 className="text-lg font-semibold">
-            {kind
-              ? t(kind === "expense" ? "transactions.importModal.titleExpense" : "transactions.importModal.titleIncome")
-              : t("transactions.importModal.titleAll")}
-          </h2>
+          <h2 className="text-lg font-semibold">{t("transactions.importModal.titleAll")}</h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 text-xl leading-none dark:text-zinc-500 dark:hover:text-zinc-200">
             ×
           </button>
         </div>
 
         {/* Steps indicator */}
-        <div className="flex gap-4 px-6 py-3 border-b border-zinc-100 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+        <div className="flex flex-wrap gap-2 px-6 py-3 border-b border-zinc-100 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
           <span className={step === "upload" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepFile")}</span>
           <span>→</span>
-          {kind ? (
-            <>
-              <span className={step === "preview_expense" || step === "preview_income" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepPreview")}</span>
-              <span>→</span>
-              <span className={step === "done" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepConfirm")}</span>
-            </>
-          ) : (
-            <>
-              <span className={step === "preview_expense" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepExpenses")}</span>
-              <span>→</span>
-              <span className={step === "preview_income" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepIncomes")}</span>
-              <span>→</span>
-              <span className={step === "done" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepConfirmAll")}</span>
-            </>
-          )}
+          <span className={step === "preview_expense" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepExpenses")}</span>
+          <span>→</span>
+          <span className={step === "preview_income" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepIncomes")}</span>
+          <span>→</span>
+          <span className={step === "preview_transfer" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepTransfers")}</span>
+          <span>→</span>
+          <span className={step === "done" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepConfirmAll")}</span>
         </div>
 
         {/* Content */}
@@ -315,14 +288,12 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
             </div>
           )}
 
-          {(step === "preview_expense" || step === "preview_income") && (
+          {isPreviewKindStep && (
             <div className="space-y-3">
-              {!kind && (
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                  {step === "preview_expense" ? t("transactions.importModal.stepExpensesLabel") : t("transactions.importModal.stepIncomesLabel")}
-                </p>
-              )}
-              {currentPreview.length === 0 ? (
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                {step === "preview_expense" ? t("transactions.importModal.stepExpensesLabel") : t("transactions.importModal.stepIncomesLabel")}
+              </p>
+              {displayedPreview.length === 0 ? (
                 <p className="text-sm text-zinc-500">
                   {t("transactions.importModal.noTransactionsOfKindPreview", {
                     kind: t(step === "preview_expense" ? "transactions.importModal.kindExpenseWord" : "transactions.importModal.kindIncomeWord"),
@@ -333,131 +304,70 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-zinc-600">
                       {t("transactions.importModal.transactionsFound", {
-                        count: currentPreview.length,
-                        plural: currentPreview.length > 1 ? "s" : "",
-                        dupCount: currentPreview.filter((r) => r.is_duplicate).length,
-                        dupPlural: currentPreview.filter((r) => r.is_duplicate).length > 1 ? "s" : "",
+                        count: displayedPreview.length,
+                        plural: displayedPreview.length > 1 ? "s" : "",
+                        dupCount: displayedPreview.filter((r) => r.is_duplicate).length,
+                        dupPlural: displayedPreview.filter((r) => r.is_duplicate).length > 1 ? "s" : "",
                       })}
                     </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* Filter buttons */}
-                      <div className="flex rounded border border-zinc-200 text-xs dark:border-zinc-700 overflow-hidden">
-                        {(["all", "transfer", "non_transfer"] as const).map((f) => (
-                          <button
-                            key={f}
-                            onClick={() => setTransferFilter(f)}
-                            className={`px-2 py-1 transition-colors ${
-                              transferFilter === f
-                                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                                : "hover:bg-zinc-50 text-zinc-500 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                            }`}
-                          >
-                            {f === "all"
-                              ? t("transactions.importModal.filterAll")
-                              : f === "transfer"
-                                ? t("transactions.importModal.filterTransfer")
-                                : t("transactions.importModal.filterOther")}
-                          </button>
-                        ))}
-                      </div>
-                      {/* Select all / none on displayed rows */}
-                      <div className="flex gap-1 text-xs">
-                        <button
-                          onClick={() => {
-                            const all: Record<string, boolean> = {};
-                            displayedPreview.filter((r) => !r.is_duplicate).forEach((r) => (all[r.rowId] = true));
-                            setChecked((prev) => ({ ...prev, ...all }));
-                          }}
-                          className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                        >
-                          {t("transactions.importModal.selectAll")}
-                        </button>
-                        <button
-                          onClick={() => {
-                            const none: Record<string, boolean> = {};
-                            displayedPreview.forEach((r) => (none[r.rowId] = false));
-                            setChecked((prev) => ({ ...prev, ...none }));
-                          }}
-                          className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                        >
-                          {t("transactions.importModal.selectNone")}
-                        </button>
-                      </div>
+                    <div className="flex gap-1 text-xs">
+                      <button
+                        onClick={() => {
+                          const all: Record<string, boolean> = {};
+                          displayedPreview.filter((r) => !r.is_duplicate).forEach((r) => (all[r.rowId] = true));
+                          setChecked((prev) => ({ ...prev, ...all }));
+                        }}
+                        className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      >
+                        {t("transactions.importModal.selectAll")}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const none: Record<string, boolean> = {};
+                          displayedPreview.forEach((r) => (none[r.rowId] = false));
+                          setChecked((prev) => ({ ...prev, ...none }));
+                        }}
+                        className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      >
+                        {t("transactions.importModal.selectNone")}
+                      </button>
                     </div>
                   </div>
 
-                  {/* Bulk action bar */}
-                  {checkedInView.length > 0 && (() => {
-                    const nonTransferChecked = checkedInView.filter((r) => !isTransfer[r.rowId]);
-                    const transferChecked = checkedInView.filter((r) => !!isTransfer[r.rowId]);
-                    const otherAccounts = accounts.filter((a) => a.id !== selectedAccountId);
-                    return (
-                      <div className="flex flex-wrap items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs dark:border-zinc-700 dark:bg-zinc-800">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-200">
-                          {t("transactions.importModal.rowsSelected", {
-                            count: checkedInView.length,
-                            plural: checkedInView.length > 1 ? "s" : "",
-                          })}
-                        </span>
-                        {nonTransferChecked.length > 0 && (
-                          <>
-                            <span className="text-zinc-300 dark:text-zinc-600">|</span>
-                            <span className="text-zinc-500 dark:text-zinc-400">
-                              {t("transactions.importModal.categoryLabel")} <span className="text-zinc-400">({nonTransferChecked.length})</span> :
-                            </span>
-                            <select
-                              defaultValue=""
-                              onChange={(e) => {
-                                if (!e.target.value) return;
-                                const val = e.target.value;
-                                setCategoryMap((prev) => {
-                                  const next = { ...prev };
-                                  nonTransferChecked.forEach((r) => { next[r.rowId] = val; });
-                                  return next;
-                                });
-                                e.target.value = "";
-                              }}
-                              className="rounded border border-zinc-300 px-2 py-0.5 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
-                            >
-                              <option value="">{t("transactions.importModal.chooseOption")}</option>
-                              {currentCategories.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.icon ? `${c.icon} ` : ""}{resolveCategoryName(c, t)}
-                                </option>
-                              ))}
-                            </select>
-                          </>
-                        )}
-                        {transferChecked.length > 0 && otherAccounts.length > 0 && (
-                          <>
-                            <span className="text-zinc-300 dark:text-zinc-600">|</span>
-                            <span className="text-zinc-500 dark:text-zinc-400">
-                              {t("transactions.importModal.counterpartyLabel")} <span className="text-zinc-400">({transferChecked.length})</span> :
-                            </span>
-                            <select
-                              defaultValue=""
-                              onChange={(e) => {
-                                if (!e.target.value) return;
-                                const val = e.target.value;
-                                setTransferAccountMap((prev) => {
-                                  const next = { ...prev };
-                                  transferChecked.forEach((r) => { next[r.rowId] = val; });
-                                  return next;
-                                });
-                                e.target.value = "";
-                              }}
-                              className="rounded border border-blue-300 bg-blue-50 px-2 py-0.5 dark:border-blue-700 dark:bg-blue-900/30 dark:text-zinc-100"
-                            >
-                              <option value="">{t("transactions.importModal.chooseOption")}</option>
-                              {otherAccounts.map((a) => (
-                                <option key={a.id} value={a.id}>{a.name}</option>
-                              ))}
-                            </select>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  {/* Bulk category assignment */}
+                  {checkedInView.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs dark:border-zinc-700 dark:bg-zinc-800">
+                      <span className="font-medium text-zinc-700 dark:text-zinc-200">
+                        {t("transactions.importModal.rowsSelected", {
+                          count: checkedInView.length,
+                          plural: checkedInView.length > 1 ? "s" : "",
+                        })}
+                      </span>
+                      <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                      <span className="text-zinc-500 dark:text-zinc-400">{t("transactions.importModal.categoryLabel")} :</span>
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          const val = e.target.value;
+                          setCategoryMap((prev) => {
+                            const next = { ...prev };
+                            checkedInView.forEach((r) => { next[r.rowId] = val; });
+                            return next;
+                          });
+                          e.target.value = "";
+                        }}
+                        className="rounded border border-zinc-300 px-2 py-0.5 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+                      >
+                        <option value="">{t("transactions.importModal.chooseOption")}</option>
+                        {currentCategories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.icon ? `${c.icon} ` : ""}{resolveCategoryName(c, t)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
                     <table className="min-w-full text-xs">
@@ -470,13 +380,11 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                           <th className="px-3 py-2">{t("transactions.importModal.colDescription")}</th>
                           <th className="px-3 py-2 text-right">{t("transactions.importModal.colAmount")}</th>
                           <th className="px-3 py-2">{t("transactions.importModal.colTransfer")}</th>
-                          <th className="px-3 py-2 min-w-[160px]">{t("transactions.importModal.colCategoryOrCounterparty")}</th>
+                          <th className="px-3 py-2 min-w-[160px]">{t("transactions.importModal.categoryLabel")}</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {displayedPreview.map((row, idx) => {
-                          const rowIsTransfer = !!isTransfer[row.rowId];
-                          return (
+                        {displayedPreview.map((row, idx) => (
                           <tr
                             key={`${row.hash}_${idx}`}
                             className={`border-b border-zinc-100 dark:border-zinc-800 ${
@@ -484,8 +392,6 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                                 ? "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500"
                                 : row.is_duplicate && checked[row.rowId]
                                   ? "bg-amber-50 dark:bg-amber-900/10"
-                                  : rowIsTransfer
-                                  ? "bg-blue-50 dark:bg-blue-900/10"
                                   : !categoryMap[row.rowId]
                                     ? "bg-orange-50 dark:bg-zinc-800/60"
                                     : "hover:bg-zinc-50 dark:hover:bg-zinc-800"
@@ -515,19 +421,15 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                             <td className="px-3 py-2">
                               {(!row.is_duplicate || checked[row.rowId]) && (
                                 <button
-                                  onClick={() => setIsTransfer((prev) => ({ ...prev, [row.rowId]: !rowIsTransfer }))}
-                                  className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
-                                    rowIsTransfer
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                                      : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-600"
-                                  }`}
+                                  onClick={() => setIsTransfer((prev) => ({ ...prev, [row.rowId]: true }))}
+                                  className="rounded px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500 hover:bg-blue-100 hover:text-blue-700 dark:bg-zinc-700 dark:text-zinc-400 dark:hover:bg-blue-900/40 dark:hover:text-blue-300"
                                 >
-                                  {rowIsTransfer ? t("transactions.importModal.transferYes") : t("transactions.importModal.transferNo")}
+                                  {t("transactions.importModal.transferNo")}
                                 </button>
                               )}
                             </td>
                             <td className="px-3 py-2">
-                              {(!row.is_duplicate || checked[row.rowId]) && !rowIsTransfer && (
+                              {(!row.is_duplicate || checked[row.rowId]) && (
                                 <select
                                   value={categoryMap[row.rowId] ?? ""}
                                   onChange={(e) =>
@@ -548,26 +450,116 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                                   ))}
                                 </select>
                               )}
-                              {(!row.is_duplicate || checked[row.rowId]) && rowIsTransfer && (
-                                <select
-                                  value={transferAccountMap[row.rowId] ?? ""}
-                                  onChange={(e) =>
-                                    setTransferAccountMap((prev) => ({ ...prev, [row.rowId]: e.target.value }))
-                                  }
-                                  className="w-full rounded border px-2 py-1 text-xs border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/20 dark:text-zinc-100"
-                                >
-                                  <option value="">{t("transactions.importModal.unknownAccountOption")}</option>
-                                  {accounts
-                                    .filter((a) => a.id !== selectedAccountId)
-                                    .map((a) => (
-                                      <option key={a.id} value={a.id}>{a.name}</option>
-                                    ))}
-                                </select>
-                              )}
                             </td>
                           </tr>
-                          );
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+              {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            </div>
+          )}
+
+          {step === "preview_transfer" && (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{t("transactions.importModal.stepTransfersLabel")}</p>
+              {displayedPreview.length === 0 ? (
+                <p className="text-sm text-zinc-500">{t("transactions.importModal.noTransferRowsPreview")}</p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-zinc-600">
+                      {t("transactions.importModal.rowsSelected", {
+                        count: displayedPreview.length,
+                        plural: displayedPreview.length > 1 ? "s" : "",
+                      })}
+                    </p>
+                  </div>
+
+                  {checkedInView.length > 0 && otherAccounts.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs dark:border-blue-800 dark:bg-blue-900/20">
+                      <span className="font-medium text-zinc-700 dark:text-zinc-200">
+                        {t("transactions.importModal.rowsSelected", {
+                          count: checkedInView.length,
+                          plural: checkedInView.length > 1 ? "s" : "",
                         })}
+                      </span>
+                      <span className="text-zinc-500 dark:text-zinc-400">{t("transactions.importModal.counterpartyLabel")} :</span>
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          const val = e.target.value;
+                          setTransferAccountMap((prev) => {
+                            const next = { ...prev };
+                            checkedInView.forEach((r) => { next[r.rowId] = val; });
+                            return next;
+                          });
+                          e.target.value = "";
+                        }}
+                        className="rounded border border-blue-300 bg-blue-50 px-2 py-0.5 dark:border-blue-700 dark:bg-blue-900/30 dark:text-zinc-100"
+                      >
+                        <option value="">{t("transactions.importModal.chooseOption")}</option>
+                        {otherAccounts.map((a) => (
+                          <option key={a.id} value={a.id}>{a.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <table className="min-w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-zinc-200 bg-zinc-50 text-left text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                          <th className="px-3 py-2">
+                            <Check className="h-3.5 w-3.5" />
+                          </th>
+                          <th className="px-3 py-2">{t("transactions.importModal.colDate")}</th>
+                          <th className="px-3 py-2">{t("transactions.importModal.colDescription")}</th>
+                          <th className="px-3 py-2 text-right">{t("transactions.importModal.colAmount")}</th>
+                          <th className="px-3 py-2 min-w-[160px]">{t("transactions.importModal.counterpartyLabel")}</th>
+                          <th className="px-3 py-2" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {displayedPreview.map((row, idx) => (
+                          <tr key={`${row.hash}_${idx}`} className="border-b border-zinc-100 bg-blue-50/50 dark:border-zinc-800 dark:bg-blue-900/10">
+                            <td className="px-3 py-2">
+                              <input
+                                type="checkbox"
+                                checked={!!checked[row.rowId]}
+                                onChange={(e) => setChecked((prev) => ({ ...prev, [row.rowId]: e.target.checked }))}
+                              />
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
+                            <td className="px-3 py-2 max-w-[200px] truncate cursor-help" title={row.description}>{row.description}</td>
+                            <td className={`px-3 py-2 text-right font-medium whitespace-nowrap ${row.amount_cents < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
+                              {formatAmount(row.amount_cents)}
+                            </td>
+                            <td className="px-3 py-2">
+                              <select
+                                value={transferAccountMap[row.rowId] ?? ""}
+                                onChange={(e) => setTransferAccountMap((prev) => ({ ...prev, [row.rowId]: e.target.value }))}
+                                className="w-full rounded border px-2 py-1 text-xs border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/20 dark:text-zinc-100"
+                              >
+                                <option value="">{t("transactions.importModal.unknownAccountOption")}</option>
+                                {otherAccounts.map((a) => (
+                                  <option key={a.id} value={a.id}>{a.name}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className="px-3 py-2">
+                              <button
+                                onClick={() => setIsTransfer((prev) => ({ ...prev, [row.rowId]: false }))}
+                                className="whitespace-nowrap rounded px-2 py-0.5 text-xs font-medium bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-600"
+                              >
+                                {t("transactions.importModal.unmarkTransfer")}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -606,33 +598,34 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
               >
                 {t("transactions.importModal.back")}
               </button>
-              {kind ? (
-                <button
-                  onClick={() => void handleConfirm()}
-                  disabled={isLoading || expenseSelectedCount === 0}
-                  className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
-                >
-                  {isLoading
-                    ? t("transactions.importModal.importing")
-                    : t("transactions.importModal.importButton", {
-                        count: expenseSelectedCount,
-                        plural: expenseSelectedCount > 1 ? "s" : "",
-                      })}
-                </button>
-              ) : (
-                <button
-                  onClick={() => setStep("preview_income")}
-                  className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white"
-                >
-                  {t("transactions.importModal.next")}
-                </button>
-              )}
+              <button
+                onClick={() => setStep("preview_income")}
+                className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white"
+              >
+                {t("transactions.importModal.next")}
+              </button>
             </>
           )}
           {step === "preview_income" && (
             <>
               <button
-                onClick={() => setStep(kind ? "upload" : "preview_expense")}
+                onClick={() => setStep("preview_expense")}
+                className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600 dark:text-zinc-300"
+              >
+                {t("transactions.importModal.back")}
+              </button>
+              <button
+                onClick={() => setStep("preview_transfer")}
+                className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white"
+              >
+                {t("transactions.importModal.next")}
+              </button>
+            </>
+          )}
+          {step === "preview_transfer" && (
+            <>
+              <button
+                onClick={() => setStep("preview_income")}
                 className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600 dark:text-zinc-300"
               >
                 {t("transactions.importModal.back")}
