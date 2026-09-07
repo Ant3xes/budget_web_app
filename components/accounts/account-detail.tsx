@@ -17,6 +17,7 @@ import {
 import { computeExpenseByCategory } from "@/lib/accounts/compute-expense-by-category";
 import type { ExpenseByCategoryTx } from "@/lib/accounts/compute-expense-by-category";
 import { ACCOUNT_TYPES } from "@/lib/constants";
+import { formatEuros } from "@/lib/format";
 import {
   PERIOD_PRESET_LABELS,
   addMonths,
@@ -67,12 +68,6 @@ interface AccountDetailProps {
 }
 
 const PRESET_ORDER: PeriodPreset[] = ["1m", "3m", "6m", "1a", "2a", "tout"];
-
-const formatEuros = (cents: number, currency: string) =>
-  `${(Math.abs(cents) / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${currency}`;
-
-const formatBalance = (cents: number, currency: string) =>
-  `${(cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", {
@@ -164,7 +159,7 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
                   )}
                   <td className={`px-3 py-2 text-right text-xs font-medium ${amountColor(tx)}`}>
                     {tx.amount_cents >= 0 ? "+" : "−"}
-                    {formatEuros(tx.amount_cents, tx.currency)}
+                    {formatEuros(Math.abs(tx.amount_cents), tx.currency)}
                   </td>
                 </tr>
               ))}
@@ -316,7 +311,7 @@ export function AccountDetail({
               balanceCents >= 0 ? "text-zinc-900 dark:text-zinc-100" : "text-red-600"
             }`}
           >
-            {formatBalance(balanceCents, account.currency)}
+            {formatEuros(balanceCents, account.currency)}
           </p>
         </div>
 

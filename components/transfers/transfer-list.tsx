@@ -7,6 +7,7 @@ import { TransferModal } from "@/components/transfers/transfer-modal";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
+import { formatDate, formatEuros } from "@/lib/format";
 
 type Transfer = {
   transfer_id: string;
@@ -20,17 +21,6 @@ type Transfer = {
 };
 
 const PER_PAGE = 25;
-
-const formatAmount = (cents: number, currency: string) =>
-  `${currency} ${(Math.abs(cents) / 100).toFixed(2)}`;
-
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "Europe/Paris",
-  });
 
 export function TransferList() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -117,7 +107,7 @@ export function TransferList() {
                   <td className="px-4 py-3">{t.to_account?.name ?? "—"}</td>
                   <td className="px-4 py-3 text-zinc-500 truncate max-w-xs">{t.description ?? "—"}</td>
                   <td className="px-4 py-3 text-left font-medium whitespace-nowrap text-blue-600">
-                    {formatAmount(t.amount_cents, t.currency)}
+                    {formatEuros(Math.abs(t.amount_cents), t.currency)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
@@ -190,7 +180,7 @@ export function TransferList() {
           deleteError
             ? deleteError
             : deletingTransfer
-              ? `Le virement du ${formatDate(deletingTransfer.date)} (${formatAmount(deletingTransfer.amount_cents, deletingTransfer.currency)}) et ses deux transactions seront supprimés.`
+              ? `Le virement du ${formatDate(deletingTransfer.date)} (${formatEuros(Math.abs(deletingTransfer.amount_cents), deletingTransfer.currency)}) et ses deux transactions seront supprimés.`
               : undefined
         }
         onConfirm={handleDelete}

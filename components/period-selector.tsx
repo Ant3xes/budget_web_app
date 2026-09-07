@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { PERIOD_PRESET_LABELS, currentMonth, type Period, type PeriodPreset } from "@/lib/dates/period";
 import { PeriodSelectorCustom } from "@/components/period-selector-custom";
+import { buildDashboardHref } from "@/lib/dashboard/build-dashboard-href";
+import { pillButtonClass } from "@/lib/dashboard/pill-class";
 
 interface PeriodSelectorProps {
   current: Period;
@@ -9,6 +11,12 @@ interface PeriodSelectorProps {
   basePath: string;
   /** Which preset options to render — defaults to the full list. */
   presets?: PeriodPreset[];
+  /**
+   * Current `?accounts=` value (raw, comma-separated ids), preserved on every
+   * preset link and forwarded to `PeriodSelectorCustom` — only set on
+   * /dashboard, which has an account selector; /analytics doesn't pass this.
+   */
+  accountsParam?: string;
 }
 
 const DEFAULT_PRESETS: PeriodPreset[] = ["1m", "3m", "6m", "1a", "tout"];
@@ -35,7 +43,7 @@ const DEFAULT_PRESETS: PeriodPreset[] = ["1m", "3m", "6m", "1a", "tout"];
  * are scoped by it (each still floors to its own minimum window, same
  * pattern as the dashboard trend chart — see analytics/page.tsx).
  */
-export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS }: PeriodSelectorProps) {
+export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS, accountsParam }: PeriodSelectorProps) {
   return (
     <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
       {presets.map((preset) => {
@@ -43,23 +51,23 @@ export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS }:
           preset === "1m"
             ? current.type === "month" && current.month === currentMonth()
             : current.type === "preset" && current.value === preset;
-        const href = preset === "1m" ? basePath : `${basePath}?period=${preset}`;
+        const href = buildDashboardHref(basePath, {
+          period: preset === "1m" ? undefined : preset,
+          accounts: accountsParam,
+        });
 
         return (
-          <Link
-            key={preset}
-            href={href}
-            className={`rounded-md px-3 py-1 text-sm transition-colors ${
-              isActive
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-            }`}
-          >
+          <Link key={preset} href={href} className={pillButtonClass(isActive)}>
             {PERIOD_PRESET_LABELS[preset]}
           </Link>
         );
       })}
-      <PeriodSelectorCustom current={current} basePath={basePath} />
+      {/* Real separator (plan §1.4) — the "Personnalisé" block only picks up
+          its own active/inverted color after "Appliquer" is clicked, so it
+          can't be the only thing marking it as a distinct control group
+          while the user is still editing the two month inputs. */}
+      <div aria-hidden className="mx-1 w-px self-stretch bg-zinc-200 dark:bg-zinc-700" />
+      <PeriodSelectorCustom current={current} basePath={basePath} accountsParam={accountsParam} />
     </div>
   );
 }

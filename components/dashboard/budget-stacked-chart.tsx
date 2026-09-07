@@ -26,9 +26,17 @@ interface BudgetStackedChartProps {
   rows: BudgetRow[];
 }
 
+// `--muted` sits almost exactly at the card's own background lightness (see
+// app/globals.css), making "remaining" nearly invisible — `--border` is the
+// same neutral-gray family but with actual contrast against the card in both
+// themes. One constant, referenced everywhere "remaining"'s color is needed
+// (chartConfig, the tooltip swatch, and the Bar's own fill) instead of the
+// string repeated 3 times.
+const REMAINING_COLOR = "var(--border)";
+
 const chartConfig = {
   consumed: { label: "Consommé", color: "var(--status-warning)" },
-  remaining: { label: "Restant", color: "var(--muted)" },
+  remaining: { label: "Restant", color: REMAINING_COLOR },
 } satisfies ChartConfig;
 
 /**
@@ -49,7 +57,8 @@ function tierColorFor(ratio: number): string {
  * "Budgets du mois en cours" — replaces the plain list of `BudgetBar` rows
  * (former `budget-utilization.tsx`) with a horizontal stacked bar chart:
  * one bar per budget category, "consumed" (colored by spending-rhythm tier)
- * stacked against "remaining" (neutral `--muted`). Over budget (`consumed
+ * stacked against "remaining" (neutral `--border` — `--muted` used to sit
+ * here but is nearly invisible against the card background). Over budget (`consumed
  * >= amount`) clamps "remaining" to 0 rather than going negative, mirroring
  * `budget-bar.tsx`'s own over-budget handling.
  *
@@ -107,7 +116,7 @@ export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
                 formatter={(value, name, item) => {
                   const row = item.payload as (typeof data)[number];
                   const isConsumed = name === "consumed";
-                  const swatch = isConsumed ? row.color : "var(--muted)";
+                  const swatch = isConsumed ? row.color : REMAINING_COLOR;
                   const label = isConsumed ? "Consommé" : "Restant";
                   return (
                     <div className="flex w-full items-center justify-between gap-4">
@@ -139,7 +148,7 @@ export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
           <Bar
             dataKey="remaining"
             stackId="budget"
-            fill="var(--muted)"
+            fill={REMAINING_COLOR}
             radius={[0, 3, 3, 0]}
             isAnimationActive={false}
             onClick={handleBarClick}

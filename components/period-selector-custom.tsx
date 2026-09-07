@@ -4,10 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { currentMonth, periodToParam, type Period } from "@/lib/dates/period";
+import { buildDashboardHref } from "@/lib/dashboard/build-dashboard-href";
 
 interface PeriodSelectorCustomProps {
   current: Period;
   basePath: string;
+  /** Current `?accounts=` value, preserved when applying the custom range. */
+  accountsParam?: string;
 }
 
 /**
@@ -18,7 +21,7 @@ interface PeriodSelectorCustomProps {
  * chosen range as `?period=YYYY-MM:YYYY-MM` (see `parsePeriodParam`), so it
  * still fits the existing single `?period=` query key.
  */
-export function PeriodSelectorCustom({ current, basePath }: PeriodSelectorCustomProps) {
+export function PeriodSelectorCustom({ current, basePath, accountsParam }: PeriodSelectorCustomProps) {
   const router = useRouter();
   const isActive = current.type === "range";
   const defaultMonth = currentMonth();
@@ -67,7 +70,7 @@ export function PeriodSelectorCustom({ current, basePath }: PeriodSelectorCustom
       />
       <button
         type="button"
-        onClick={() => router.push(`${basePath}?period=${from}:${to}`)}
+        onClick={() => router.push(buildDashboardHref(basePath, { period: `${from}:${to}`, accounts: accountsParam }))}
         className="rounded px-1.5 py-0.5 text-xs font-medium underline-offset-2 hover:underline"
       >
         Appliquer

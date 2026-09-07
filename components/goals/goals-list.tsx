@@ -5,6 +5,7 @@ import { CheckCircle2 } from "lucide-react";
 
 import { AddFundsModal } from "@/components/goals/add-funds-modal";
 import { GoalsModal } from "@/components/goals/goals-modal";
+import { formatEuros } from "@/lib/format";
 
 type Goal = {
   id: string;
@@ -16,10 +17,6 @@ type Goal = {
   icon: string | null;
   linked_category_id: string | null;
 };
-
-function formatEuros(cents: number): string {
-  return (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-}
 
 function progressPercent(current: number, target: number): number {
   if (target <= 0) return 0;
