@@ -1,20 +1,19 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { useLocale } from "@/components/locale-provider";
 import { CATEGORY_COLOR_SWATCHES } from "@/lib/constants";
 
-const categorySchema = z.object({
-  name: z.string().trim().min(1, "Nom requis").max(80),
-  kind: z.enum(["expense", "income", "transfer"]),
-  color: z.string().optional(),
-  icon: z.string().trim().max(10).optional(),
-});
-
-export type CategoryFormValues = z.infer<typeof categorySchema>;
+export type CategoryFormValues = {
+  name: string;
+  kind: "expense" | "income" | "transfer";
+  color?: string;
+  icon?: string;
+};
 
 interface CategoryFormProps {
   categoryId?: string;
@@ -23,15 +22,23 @@ interface CategoryFormProps {
   onCancel: () => void;
 }
 
-const KIND_LABELS: Record<string, string> = {
-  expense: "Dépense",
-  income: "Revenu",
-  transfer: "Virement",
-};
-
 export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }: CategoryFormProps) {
+  const { t } = useLocale();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Validation messages need the current `t`, so the schema is built inside
+  // the component (memoized on the locale) rather than at module scope.
+  const categorySchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().trim().min(1, t("settings.categories.form.nameRequired")).max(80),
+        kind: z.enum(["expense", "income", "transfer"]),
+        color: z.string().optional(),
+        icon: z.string().trim().max(10).optional(),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -68,7 +75,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? "Impossible de sauvegarder");
+      setError(result.error ?? t("settings.categories.form.saveError"));
       return;
     }
 
@@ -78,7 +85,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <label className="block text-sm font-medium">
-        Nom
+        {t("settings.categories.form.name")}
         <input
           className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
           {...register("name")}
@@ -87,30 +94,30 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
       </label>
 
       <label className="block text-sm font-medium">
-        Type
+        {t("settings.categories.form.type")}
         <select
           className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
           {...register("kind")}
         >
-          {Object.entries(KIND_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
+          {(["expense", "income", "transfer"] as const).map((kind) => (
+            <option key={kind} value={kind}>
+              {t(`categories.kind.${kind}`)}
             </option>
           ))}
         </select>
       </label>
 
       <div className="block text-sm font-medium">
-        Icône (emoji)
+        {t("settings.categories.form.icon")}
         <input
           className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-          placeholder="ex: 🛒"
+          placeholder={t("settings.categories.form.iconPlaceholder")}
           {...register("icon")}
         />
       </div>
 
       <div className="block text-sm font-medium">
-        Couleur
+        {t("settings.categories.form.color")}
         <div className="mt-2 flex flex-wrap gap-2">
           {CATEGORY_COLOR_SWATCHES.map((color) => (
             <button
@@ -135,14 +142,14 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
           disabled={isSubmitting}
           className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
         >
-          {isSubmitting ? "Sauvegarde…" : categoryId ? "Mettre à jour" : "Créer"}
+          {isSubmitting ? t("common.state.saving") : categoryId ? t("common.actions.update") : t("common.actions.create")}
         </button>
         <button
           type="button"
           onClick={onCancel}
           className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600 dark:text-zinc-300"
         >
-          Annuler
+          {t("common.actions.cancel")}
         </button>
       </div>
     </form>

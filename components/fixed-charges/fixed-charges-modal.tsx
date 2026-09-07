@@ -1,22 +1,22 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { X } from "lucide-react";
 import { z } from "zod";
 
-const fixedChargeFormSchema = z.object({
-  name: z.string().trim().min(1, "Nom requis").max(100),
-  amount: z.string().regex(/^\d+([.,]\d{1,2})?$/, "Montant invalide (ex: 850 ou 850,50)"),
-  frequency: z.enum(["monthly", "quarterly", "yearly"]),
-  next_due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide"),
-  account_id: z.string().optional(),
-  category_id: z.string().optional(),
-  notes: z.string().trim().max(1000).optional(),
-});
+import { useLocale } from "@/components/locale-provider";
 
-type FixedChargeFormValues = z.infer<typeof fixedChargeFormSchema>;
+type FixedChargeFormValues = {
+  name: string;
+  amount: string;
+  frequency: "monthly" | "quarterly" | "yearly";
+  next_due_date: string;
+  account_id?: string;
+  category_id?: string;
+  notes?: string;
+};
 
 type Account = { id: string; name: string };
 type Category = { id: string; name: string; icon: string | null };
@@ -24,14 +24,13 @@ type Category = { id: string; name: string; icon: string | null };
 /**
  * Backend errors can be raw/technical (zod issue messages, Postgres error
  * text, "Invalid UUID" — see app/api/fixed-charges/route.ts) rather than
- * something a user should see verbatim. Only known French, user-facing
- * messages are passed through as-is; anything else falls back to a generic
+ * something a user should see verbatim. Only the known French, user-facing
+ * message is passed through as-is; anything else falls back to a generic
  * message instead of leaking the raw string.
  */
 const FRIENDLY_BACKEND_ERRORS = new Set(["Date invalide"]);
 
-function resolveErrorMessage(raw: string | undefined): string {
-  const fallback = "Impossible d'enregistrer la charge fixe, réessayez.";
+function resolveErrorMessage(raw: string | undefined, fallback: string): string {
   if (!raw) return fallback;
   return FRIENDLY_BACKEND_ERRORS.has(raw) ? raw : fallback;
 }
@@ -53,17 +52,37 @@ interface FixedChargeModalProps {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-const FREQUENCY_LABELS = {
-  monthly: "Mensuelle",
-  quarterly: "Trimestrielle",
-  yearly: "Annuelle",
-} as const;
-
 export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }: FixedChargeModalProps) {
+  const { t } = useLocale();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const FREQUENCY_LABELS = useMemo(
+    () => ({
+      monthly: t("fixedCharges.frequency.monthly"),
+      quarterly: t("fixedCharges.frequency.quarterly"),
+      yearly: t("fixedCharges.frequency.yearly"),
+    }),
+    [t],
+  );
+
+  // Validation messages need the current `t`, so the schema is built inside
+  // the component (memoized on the locale) rather than at module scope.
+  const fixedChargeFormSchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().trim().min(1, t("fixedCharges.modal.nameRequired")).max(100),
+        amount: z.string().regex(/^\d+([.,]\d{1,2})?$/, t("fixedCharges.modal.amountInvalid")),
+        frequency: z.enum(["monthly", "quarterly", "yearly"]),
+        next_due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t("fixedCharges.modal.dateInvalid")),
+        account_id: z.string().optional(),
+        category_id: z.string().optional(),
+        notes: z.string().trim().max(1000).optional(),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -125,7 +144,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(resolveErrorMessage(result.error));
+      setError(resolveErrorMessage(result.error, t("fixedCharges.modal.saveError")));
       return;
     }
 
@@ -137,20 +156,20 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
       <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {chargeId ? "Modifier la charge fixe" : "Nouvelle charge fixe"}
+            {chargeId ? t("fixedCharges.modal.editTitle") : t("fixedCharges.modal.newTitle")}
           </h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200" aria-label="Fermer">
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200" aria-label={t("common.actions.close")}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Nom</label>
+            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.name")}</label>
             <input
               {...register("name")}
               type="text"
-              placeholder="Loyer, Netflix, Orange Box…"
+              placeholder={t("fixedCharges.modal.namePlaceholder")}
               className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
             />
             {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
@@ -158,7 +177,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Montant (€)</label>
+              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.amount")}</label>
               <input
                 {...register("amount")}
                 type="text"
@@ -170,7 +189,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Fréquence</label>
+              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.frequency")}</label>
               <select
                 {...register("frequency")}
                 className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
@@ -185,7 +204,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Prochaine échéance</label>
+            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.nextDueDate")}</label>
             <input
               {...register("next_due_date")}
               type="date"
@@ -198,12 +217,12 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Compte (optionnel)</label>
+              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.account")}</label>
               <select
                 {...register("account_id")}
                 className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
               >
-                <option value="">Aucun</option>
+                <option value="">{t("fixedCharges.modal.noAccount")}</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
                     {acc.name}
@@ -213,12 +232,12 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Catégorie (optionnel)</label>
+              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.category")}</label>
               <select
                 {...register("category_id")}
                 className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
               >
-                <option value="">Aucune</option>
+                <option value="">{t("fixedCharges.modal.noCategory")}</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.icon ? `${cat.icon} ` : ""}{cat.name}
@@ -229,7 +248,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Notes (optionnel)</label>
+            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.notes")}</label>
             <textarea
               {...register("notes")}
               rows={2}
@@ -245,14 +264,14 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
               onClick={onClose}
               className="rounded-md border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
-              Annuler
+              {t("common.actions.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {isSubmitting ? "Enregistrement…" : chargeId ? "Modifier" : "Créer"}
+              {isSubmitting ? t("common.state.saving") : chargeId ? t("common.actions.edit") : t("common.actions.create")}
             </button>
           </div>
         </form>

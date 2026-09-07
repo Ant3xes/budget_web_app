@@ -21,6 +21,7 @@ import { GripVertical, Pencil, Trash2 } from "lucide-react";
 import { ImportRulesModal } from "@/components/settings/import-rules-modal";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/components/locale-provider";
 
 type ImportRule = {
   id: string;
@@ -29,11 +30,6 @@ type ImportRule = {
   kind: "expense" | "income";
   priority: number;
   categories: { name: string; icon: string | null } | null;
-};
-
-const KIND_LABELS: Record<string, string> = {
-  expense: "Dépense",
-  income: "Revenu",
 };
 
 function SortableRow({
@@ -45,6 +41,7 @@ function SortableRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useLocale();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: rule.id,
   });
@@ -66,7 +63,7 @@ function SortableRow({
         {...attributes}
         {...listeners}
         className="cursor-grab touch-none text-zinc-400 hover:text-zinc-600 active:cursor-grabbing dark:hover:text-zinc-300"
-        aria-label="Déplacer"
+        aria-label={t("importRules.dragHandle")}
       >
         <GripVertical className="size-4" />
       </button>
@@ -82,7 +79,7 @@ function SortableRow({
             : "bg-green-100 text-green-700"
         }`}
       >
-        {KIND_LABELS[rule.kind]}
+        {t(`categories.kind.${rule.kind}`)}
       </span>
 
       {/* Category */}
@@ -93,10 +90,10 @@ function SortableRow({
 
       {/* Actions */}
       <div className="flex shrink-0 gap-1">
-        <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label="Modifier la règle" title="Modifier">
+        <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label={t("importRules.editRule")} title={t("common.actions.edit")}>
           <Pencil />
         </Button>
-        <Button variant="destructive" size="icon-sm" onClick={onDelete} aria-label="Supprimer la règle" title="Supprimer">
+        <Button variant="destructive" size="icon-sm" onClick={onDelete} aria-label={t("importRules.deleteRule")} title={t("common.actions.delete")}>
           <Trash2 />
         </Button>
       </div>
@@ -105,6 +102,7 @@ function SortableRow({
 }
 
 export function ImportRulesList() {
+  const { t } = useLocale();
   const [rules, setRules] = useState<ImportRule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -158,7 +156,7 @@ export function ImportRulesList() {
   };
 
   if (isLoading) {
-    return <p className="py-8 text-center text-sm text-zinc-500">Chargement…</p>;
+    return <p className="py-8 text-center text-sm text-zinc-500">{t("common.state.loading")}</p>;
   }
 
   return (
@@ -166,23 +164,23 @@ export function ImportRulesList() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-zinc-500">
-            {rules.length} règle{rules.length !== 1 ? "s" : ""}
+            {rules.length} {rules.length !== 1 ? t("importRules.countPlural") : t("importRules.countSingular")}
           </p>
           {rules.length > 1 && (
-            <p className="text-xs text-zinc-400">Glisser-déposer pour réordonner (priorité du haut vers le bas)</p>
+            <p className="text-xs text-zinc-400">{t("importRules.reorderHint")}</p>
           )}
         </div>
         <button
           onClick={() => setShowCreate(true)}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          + Nouvelle règle
+          + {t("importRules.newRule")}
         </button>
       </div>
 
       {rules.length === 0 ? (
         <div className="rounded-lg border border-dashed border-zinc-300 py-12 text-center text-sm text-zinc-500 dark:border-zinc-700">
-          Aucune règle de catégorisation. Les règles s&apos;appliquent automatiquement lors de l&apos;import CSV.
+          {t("importRules.empty")}
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => void handleDragEnd(e)}>
@@ -226,10 +224,12 @@ export function ImportRulesList() {
       <AlertDialog
         open={deletingRule !== null}
         onOpenChange={(open) => !open && setDeletingRule(null)}
-        title="Supprimer cette règle ?"
-        description={deletingRule ? `La règle « ${deletingRule.keyword} » sera supprimée.` : undefined}
+        title={t("importRules.deleteConfirmTitle")}
+        description={deletingRule ? t("importRules.deleteConfirmDescription", { keyword: deletingRule.keyword }) : undefined}
         onConfirm={handleDelete}
         isConfirming={isDeleting}
+        confirmLabel={t("common.actions.delete")}
+        cancelLabel={t("common.actions.cancel")}
       />
     </div>
   );

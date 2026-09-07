@@ -1,5 +1,6 @@
 import { ProfileForm } from "@/components/settings/profile-form";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { T } from "@/components/i18n/t";
 
 export default async function ProfileSettingsPage() {
   const supabase = await createServerSupabaseClient();
@@ -13,9 +14,11 @@ export default async function ProfileSettingsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Profil</h1>
+      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+        <T k="profile.title" />
+      </h1>
       <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-        Modifiez votre nom d&apos;affichage et votre mot de passe.
+        <T k="profile.description" />
       </p>
       <div className="mt-6">
         <ProfileForm initialFullName={profile?.full_name ?? ""} />

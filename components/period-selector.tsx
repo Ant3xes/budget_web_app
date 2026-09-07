@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { PERIOD_PRESET_LABELS, currentMonth, type Period, type PeriodPreset } from "@/lib/dates/period";
+import { currentMonth, type Period, type PeriodPreset } from "@/lib/dates/period";
+import { T } from "@/components/i18n/t";
 import { PeriodSelectorCustom } from "@/components/period-selector-custom";
 import { buildDashboardHref } from "@/lib/dashboard/build-dashboard-href";
 import { pillButtonClass } from "@/lib/dashboard/pill-class";
@@ -58,7 +59,7 @@ export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS, a
 
         return (
           <Link key={preset} href={href} className={pillButtonClass(isActive)}>
-            {PERIOD_PRESET_LABELS[preset]}
+            <T k={`periodSelector.presets.${preset}`} />
           </Link>
         );
       })}

@@ -1,30 +1,23 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { X } from "lucide-react";
 import { z } from "zod";
 
+import { useLocale } from "@/components/locale-provider";
 import { CATEGORY_COLOR_FALLBACK, CATEGORY_COLOR_SWATCHES } from "@/lib/constants";
 
-const goalFormSchema = z.object({
-  name: z.string().trim().min(1, "Nom requis").max(120),
-  target_amount: z
-    .string()
-    .regex(/^\d+([.,]\d{1,2})?$/, "Montant invalide (ex: 1000 ou 1000,50)"),
-  current_amount: z
-    .string()
-    .regex(/^\d+([.,]\d{1,2})?$/, "Montant invalide")
-    .optional()
-    .or(z.literal("")),
-  deadline: z.string().optional().or(z.literal("")),
-  color: z.string().optional(),
-  icon: z.string().trim().max(10).optional(),
-  linked_category_id: z.string().uuid().optional().or(z.literal("")),
-});
-
-type GoalFormValues = z.infer<typeof goalFormSchema>;
+type GoalFormValues = {
+  name: string;
+  target_amount: string;
+  current_amount?: string;
+  deadline?: string;
+  color?: string;
+  icon?: string;
+  linked_category_id?: string;
+};
 
 type Category = { id: string; name: string; icon: string | null };
 
@@ -51,9 +44,32 @@ interface GoalsModalProps {
 const DEFAULT_COLORS = CATEGORY_COLOR_SWATCHES.filter((color) => color !== CATEGORY_COLOR_FALLBACK);
 
 export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsModalProps) {
+  const { t } = useLocale();
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Validation messages need the current `t`, so the schema is built inside
+  // the component (memoized on the locale) rather than at module scope.
+  const goalFormSchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().trim().min(1, t("goals.modal.nameRequired")).max(120),
+        target_amount: z
+          .string()
+          .regex(/^\d+([.,]\d{1,2})?$/, t("goals.modal.targetAmountInvalid")),
+        current_amount: z
+          .string()
+          .regex(/^\d+([.,]\d{1,2})?$/, t("goals.modal.currentAmountInvalid"))
+          .optional()
+          .or(z.literal("")),
+        deadline: z.string().optional().or(z.literal("")),
+        color: z.string().optional(),
+        icon: z.string().trim().max(10).optional(),
+        linked_category_id: z.string().uuid().optional().or(z.literal("")),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -122,7 +138,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? "Impossible de sauvegarder");
+      setError(result.error ?? t("goals.modal.saveError"));
       return;
     }
 
@@ -134,12 +150,12 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {goalId ? "Modifier l'objectif" : "Nouvel objectif"}
+            {goalId ? t("goals.modal.editTitle") : t("goals.modal.newTitle")}
           </h2>
           <button
             onClick={onClose}
             className="text-zinc-400 hover:text-zinc-700"
-            aria-label="Fermer"
+            aria-label={t("common.actions.close")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -147,12 +163,12 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <label htmlFor="goal-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Nom</label>
+            <label htmlFor="goal-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.modal.name")}</label>
             <input
               id="goal-name"
               {...register("name")}
               type="text"
-              placeholder="Vacances, Voiture…"
+              placeholder={t("goals.modal.namePlaceholder")}
               className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
             />
             {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
@@ -160,7 +176,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Icône (emoji)</label>
+              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.modal.icon")}</label>
               <input
                 {...register("icon")}
                 type="text"
@@ -169,7 +185,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
               />
             </div>
             <div className="flex-1">
-              <label htmlFor="goal-target" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Montant cible (€)</label>
+              <label htmlFor="goal-target" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.modal.targetAmount")}</label>
               <input
                 id="goal-target"
                 {...register("target_amount")}
@@ -187,7 +203,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
           {!isLinked && (
             <div>
               <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Montant actuel (€)
+                {t("goals.modal.currentAmount")}
               </label>
               <input
                 {...register("current_amount")}
@@ -203,7 +219,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Date limite (optionnel)</label>
+            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.modal.deadline")}</label>
             <input
               {...register("deadline")}
               type="date"
@@ -213,13 +229,13 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
 
           <div>
             <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Catégorie liée (optionnel — suivi automatique)
+              {t("goals.modal.linkedCategory")}
             </label>
             <select
               {...register("linked_category_id")}
               className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
             >
-              <option value="">Aucune (mode manuel)</option>
+              <option value="">{t("goals.modal.noCategoryManual")}</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
                   {cat.icon ? `${cat.icon} ` : ""}
@@ -229,13 +245,13 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
             </select>
             {isLinked && (
               <p className="mt-1 text-xs text-zinc-500">
-                Le montant sera calculé automatiquement depuis les transactions de cette catégorie.
+                {t("goals.modal.linkedCategoryHint")}
               </p>
             )}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Couleur</label>
+            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.modal.color")}</label>
             <div className="mt-1 flex flex-wrap gap-2">
               {DEFAULT_COLORS.map((color) => (
                 <button
@@ -260,14 +276,14 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
               onClick={onClose}
               className="rounded-md border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
-              Annuler
+              {t("common.actions.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {isSubmitting ? "Enregistrement…" : goalId ? "Modifier" : "Créer"}
+              {isSubmitting ? t("common.state.saving") : goalId ? t("common.actions.edit") : t("common.actions.create")}
             </button>
           </div>
         </form>

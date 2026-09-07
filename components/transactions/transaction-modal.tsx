@@ -1,23 +1,31 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-const transactionSchema = z.object({
-  account_id: z.string().uuid({ message: "Compte requis" }),
-  amount: z.string().regex(/^-?\d+([.,]\d{1,2})?$/, "Montant invalide"),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide"),
-  description: z.string().trim().min(1, "Description requise").max(255),
-  category_id: z.string().optional(),
-  notes: z.string().trim().max(1000).optional(),
-});
+import { useLocale } from "@/components/locale-provider";
+import { resolveCategoryName } from "@/lib/i18n/category-name";
 
-type TransactionFormValues = z.infer<typeof transactionSchema>;
+type TransactionFormValues = {
+  account_id: string;
+  amount: string;
+  date: string;
+  description: string;
+  category_id?: string;
+  notes?: string;
+};
 
 type Account = { id: string; name: string };
-type Category = { id: string; name: string; kind: string; icon: string | null };
+type Category = {
+  id: string;
+  name: string;
+  kind: string;
+  icon: string | null;
+  is_default?: boolean;
+  translation_key?: string | null;
+};
 
 interface TransactionModalProps {
   kind: "expense" | "income";
@@ -30,10 +38,26 @@ interface TransactionModalProps {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function TransactionModal({ kind, transactionId, defaultValues, onSuccess, onClose }: TransactionModalProps) {
+  const { t } = useLocale();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Validation messages need the current `t`, so the schema is built inside
+  // the component (memoized on the locale) rather than at module scope.
+  const transactionSchema = useMemo(
+    () =>
+      z.object({
+        account_id: z.string().uuid({ message: t("transactions.form.accountRequired") }),
+        amount: z.string().regex(/^-?\d+([.,]\d{1,2})?$/, t("transactions.form.amountInvalid")),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t("transactions.form.dateInvalid")),
+        description: z.string().trim().min(1, t("transactions.form.descriptionRequired")).max(255),
+        category_id: z.string().optional(),
+        notes: z.string().trim().max(1000).optional(),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -101,22 +125,26 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? "Impossible de sauvegarder");
+      setError(result.error ?? t("transactions.form.saveError"));
       return;
     }
 
     onSuccess();
   });
 
-  const kindLabel = kind === "expense" ? "Dépense" : "Revenu";
+  const titleKey = transactionId
+    ? kind === "expense"
+      ? "transactions.form.titleEditExpense"
+      : "transactions.form.titleEditIncome"
+    : kind === "expense"
+      ? "transactions.form.titleNewExpense"
+      : "transactions.form.titleNewIncome";
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {transactionId ? `Modifier la ${kindLabel.toLowerCase()}` : `Nouvelle ${kindLabel.toLowerCase()}`}
-          </h2>
+          <h2 className="text-lg font-semibold">{t(titleKey)}</h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 text-xl leading-none dark:text-zinc-500 dark:hover:text-zinc-200">
             ×
           </button>
@@ -124,12 +152,12 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
 
         <form onSubmit={onSubmit} className="space-y-4">
           <label className="block text-sm font-medium">
-            Compte
+            {t("transactions.form.account")}
             <select
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               {...register("account_id")}
             >
-              <option value="">— Sélectionner —</option>
+              <option value="">{t("transactions.form.selectPlaceholder")}</option>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
@@ -140,10 +168,10 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
           </label>
 
           <label className="block text-sm font-medium">
-            Montant (€)
+            {t("transactions.form.amount")}
             <input
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              placeholder="ex: 45.30"
+              placeholder={t("transactions.form.amountPlaceholder")}
               type="text"
               inputMode="decimal"
               {...register("amount")}
@@ -152,7 +180,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
           </label>
 
           <label className="block text-sm font-medium">
-            Date
+            {t("transactions.form.date")}
             <input
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               type="date"
@@ -162,7 +190,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
           </label>
 
           <label className="block text-sm font-medium">
-            Description
+            {t("transactions.form.description")}
             <input
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               {...register("description")}
@@ -171,23 +199,23 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
           </label>
 
           <label className="block text-sm font-medium">
-            Catégorie
+            {t("transactions.form.category")}
             <select
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               {...register("category_id")}
             >
-              <option value="">— Sans catégorie —</option>
+              <option value="">{t("transactions.form.noCategoryOption")}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.icon ? `${c.icon} ` : ""}
-                  {c.name}
+                  {resolveCategoryName(c, t)}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="block text-sm font-medium">
-            Notes
+            {t("transactions.form.notes")}
             <textarea
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               rows={2}
@@ -203,14 +231,14 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
               disabled={isSubmitting}
               className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
             >
-              {isSubmitting ? "Sauvegarde…" : transactionId ? "Mettre à jour" : "Créer"}
+              {isSubmitting ? t("common.state.saving") : transactionId ? t("common.actions.update") : t("common.actions.create")}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
-              Annuler
+              {t("common.actions.cancel")}
             </button>
           </div>
         </form>

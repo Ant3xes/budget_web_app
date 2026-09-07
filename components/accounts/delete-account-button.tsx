@@ -3,8 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useLocale } from "@/components/locale-provider";
+
 export function DeleteAccountButton({ accountId }: { accountId: string }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [isDeleting, setIsDeleting] = useState(false);
 
   return (
@@ -23,7 +26,7 @@ export function DeleteAccountButton({ accountId }: { accountId: string }) {
         router.refresh();
       }}
     >
-      Delete
+      {t("common.actions.delete")}
     </button>
   );
 }

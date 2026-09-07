@@ -1,17 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { X } from "lucide-react";
 import { z } from "zod";
 
-const budgetFormSchema = z.object({
-  category_id: z.string().uuid({ message: "Catégorie requise" }),
-  amount: z.string().regex(/^\d+([.,]\d{1,2})?$/, "Montant invalide (ex: 400 ou 400,50)"),
-});
+import { useLocale } from "@/components/locale-provider";
 
-type BudgetFormValues = z.infer<typeof budgetFormSchema>;
+type BudgetFormValues = {
+  category_id: string;
+  amount: string;
+};
 
 type Category = { id: string; name: string; icon: string | null };
 
@@ -24,11 +24,23 @@ interface BudgetModalProps {
 }
 
 export function BudgetModal({ month, budgetId, defaultValues, onSuccess, onClose }: BudgetModalProps) {
+  const { t } = useLocale();
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const defaultAmount = defaultValues ? (defaultValues.amount_cents / 100).toFixed(2) : "";
+
+  // Validation messages need the current `t`, so the schema is built inside
+  // the component (memoized on the locale) rather than at module scope.
+  const budgetFormSchema = useMemo(
+    () =>
+      z.object({
+        category_id: z.string().uuid({ message: t("budget.modal.categoryRequired") }),
+        amount: z.string().regex(/^\d+([.,]\d{1,2})?$/, t("budget.modal.amountInvalid")),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -75,7 +87,7 @@ export function BudgetModal({ month, budgetId, defaultValues, onSuccess, onClose
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? "Impossible de sauvegarder");
+      setError(result.error ?? t("budget.modal.saveError"));
       return;
     }
 
@@ -94,24 +106,24 @@ export function BudgetModal({ month, budgetId, defaultValues, onSuccess, onClose
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {budgetId ? "Modifier l'enveloppe" : "Nouvelle enveloppe"}
+            {budgetId ? t("budget.modal.editTitle") : t("budget.modal.newTitle")}
           </h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200" aria-label="Fermer">
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200" aria-label={t("common.actions.close")}>
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Mois : {monthLabel}</p>
+        <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">{t("budget.modal.monthLabel", { month: monthLabel })}</p>
 
         <form onSubmit={onSubmit} className="space-y-4">
           {!budgetId && (
             <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Catégorie</label>
+              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("budget.modal.category")}</label>
               <select
                 {...register("category_id")}
                 className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
               >
-                <option value="">Sélectionner une catégorie…</option>
+                <option value="">{t("budget.modal.selectCategory")}</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.icon ? `${cat.icon} ` : ""}{cat.name}
@@ -125,7 +137,7 @@ export function BudgetModal({ month, budgetId, defaultValues, onSuccess, onClose
           )}
 
           <div>
-            <label htmlFor="budget-amount" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Montant (€)</label>
+            <label htmlFor="budget-amount" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("budget.modal.amount")}</label>
             <input
               id="budget-amount"
               {...register("amount")}
@@ -147,7 +159,7 @@ export function BudgetModal({ month, budgetId, defaultValues, onSuccess, onClose
               disabled={isSubmitting}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {isSubmitting ? "Enregistrement…" : budgetId ? "Modifier" : "Créer"}
+              {isSubmitting ? t("common.state.saving") : budgetId ? t("common.actions.edit") : t("common.actions.create")}
             </button>
           </div>
         </form>

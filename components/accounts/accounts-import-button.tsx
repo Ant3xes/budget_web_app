@@ -3,8 +3,10 @@
 import { useState } from "react";
 
 import { ImportModal } from "@/components/import/import-modal";
+import { useLocale } from "@/components/locale-provider";
 
 export function AccountsImportButton() {
+  const { t } = useLocale();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -13,7 +15,7 @@ export function AccountsImportButton() {
         onClick={() => setIsOpen(true)}
         className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
       >
-        Importer
+        {t("accounts.list.importButton")}
       </button>
       {isOpen && (
         <ImportModal

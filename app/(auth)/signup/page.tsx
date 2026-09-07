@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { AuthMessage } from "@/components/auth-message";
+import { T } from "@/components/i18n/t";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 
 import { signup } from "../actions";
@@ -14,15 +16,17 @@ export default async function SignupPage({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-4">
       <section className="w-full rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900 dark:shadow-none dark:ring-1 dark:ring-zinc-800">
-        <h1 className="text-2xl font-semibold dark:text-zinc-100">Create account</h1>
+        <h1 className="text-2xl font-semibold dark:text-zinc-100">
+          <T k="auth.signup.title" />
+        </h1>
         {!hasSupabaseConfig ? (
           <p className="mt-4 text-sm text-amber-700 dark:text-amber-400">
-            Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable auth.
+            <T k="auth.configWarning" />
           </p>
         ) : (
           <form action={signup} className="mt-6 space-y-4">
             <label className="block text-sm font-medium dark:text-zinc-300">
-              Email
+              <T k="auth.emailLabel" />
               <input
                 className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 name="email"
@@ -31,7 +35,7 @@ export default async function SignupPage({
               />
             </label>
             <label className="block text-sm font-medium dark:text-zinc-300">
-              Password
+              <T k="auth.passwordLabel" />
               <input
                 className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 name="password"
@@ -44,13 +48,16 @@ export default async function SignupPage({
               className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
               type="submit"
             >
-              Create account
+              <T k="auth.signup.submit" />
             </button>
           </form>
         )}
-        {params.message ? <p className="mt-4 text-sm text-zinc-700 dark:text-zinc-400">{params.message}</p> : null}
+        <AuthMessage message={params.message} />
         <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
-          Already registered? <Link href="/login" className="underline dark:text-zinc-300">Sign in</Link>
+          <T k="auth.signup.alreadyRegistered" />{" "}
+          <Link href="/login" className="underline dark:text-zinc-300">
+            <T k="auth.signup.signIn" />
+          </Link>
         </p>
       </section>
     </main>

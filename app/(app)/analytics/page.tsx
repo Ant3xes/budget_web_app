@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { PeriodSelector } from "@/components/period-selector";
+import { T } from "@/components/i18n/t";
 import { NetWorthChart } from "@/components/analytics/net-worth-chart";
 import { CashflowChart } from "@/components/analytics/cashflow-chart";
 import { ExpenseTrendChart } from "@/components/analytics/expense-trend-chart";
@@ -91,27 +92,29 @@ export default async function AnalyticsPage({
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Analytics</h1>
+        <h1 className="text-2xl font-semibold">
+          <T k="nav.items.analytics" />
+        </h1>
         <PeriodSelector current={period} basePath="/analytics" presets={["6m", "1a", "tout"]} />
       </div>
 
       <DashboardCard>
         <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Patrimoine net ({windowLabel})
+          <T k="analytics.netWorth.heading" vars={{ period: windowLabel }} />
         </h2>
         <NetWorthChart data={netWorthSeries} />
       </DashboardCard>
 
       <DashboardCard>
         <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Cash-flow mensuel ({windowLabel})
+          <T k="analytics.cashflow.heading" vars={{ period: windowLabel }} />
         </h2>
         <CashflowChart data={windowSeries} />
       </DashboardCard>
 
       <DashboardCard>
         <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Tendance des dépenses ({windowLabel})
+          <T k="analytics.expenseTrend.heading" vars={{ period: windowLabel }} />
         </h2>
         <ExpenseTrendChart data={windowSeries} />
       </DashboardCard>

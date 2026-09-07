@@ -8,9 +8,11 @@ import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
 import { ImportModal } from "@/components/import/import-modal";
 import { TransactionModal } from "@/components/transactions/transaction-modal";
 import { CategoryBadge } from "@/components/category-badge";
+import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
+import { resolveCategoryName } from "@/lib/i18n/category-name";
 import { formatDate, formatEuros } from "@/lib/format";
 
 type Transaction = {
@@ -30,7 +32,7 @@ type Transaction = {
 };
 
 type Account = { id: string; name: string };
-type Category = { id: string; name: string; kind: string };
+type Category = { id: string; name: string; kind: string; is_default?: boolean; translation_key?: string | null };
 
 interface TransactionListProps {
   kind: "expense" | "income";
@@ -39,6 +41,7 @@ interface TransactionListProps {
 const PER_PAGE = 25;
 
 export function TransactionList({ kind }: TransactionListProps) {
+  const { t } = useLocale();
   // Pre-filter from a drill-down link (e.g. the dashboard's category donut
   // or budget rows — plan §Étape 3), read once on mount. Read via
   // useSearchParams rather than a page-level prop so /expenses and /incomes
@@ -134,38 +137,36 @@ export function TransactionList({ kind }: TransactionListProps) {
       void load(page);
     } else {
       const data = (await res.json().catch(() => null)) as { error?: string } | null;
-      setDeleteError(data?.error ?? "Erreur lors de la suppression");
+      setDeleteError(data?.error ?? t("transactions.errors.deleteGeneric"));
     }
   };
-
-  const kindLabel = kind === "expense" ? "dépense" : "revenu";
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold capitalize">
-          {kind === "expense" ? "Dépenses" : "Revenus"}
+          {kind === "expense" ? t("transactions.list.titleExpense") : t("transactions.list.titleIncome")}
         </h1>
         <div className="flex gap-2">
           <button
             onClick={() => setShowApplyRules(true)}
             className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            title="Appliquer les règles d'import aux transactions sans catégorie"
+            title={t("transactions.list.categorizeTitle")}
           >
-            Catégoriser
+            {t("transactions.list.categorize")}
           </button>
           <button
             onClick={() => setShowImport(true)}
             className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            Importer
+            {t("transactions.list.import")}
           </button>
           <button
             onClick={() => setShowCreate(true)}
             className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white"
           >
-            + Ajouter
+            {t("transactions.list.add")}
           </button>
         </div>
       </div>
@@ -178,7 +179,7 @@ export function TransactionList({ kind }: TransactionListProps) {
             onChange={(e) => setAccountId(e.target.value)}
             className="appearance-none rounded-md border border-zinc-300 px-3 py-1.5 pr-8 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
           >
-            <option value="">Tous les comptes</option>
+            <option value="">{t("transactions.list.allAccounts")}</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -194,10 +195,10 @@ export function TransactionList({ kind }: TransactionListProps) {
             onChange={(e) => setCategoryId(e.target.value)}
             className="appearance-none rounded-md border border-zinc-300 px-3 py-1.5 pr-8 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
           >
-            <option value="">Toutes les catégories</option>
+            <option value="">{t("transactions.list.allCategories")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {resolveCategoryName(c, t)}
               </option>
             ))}
           </select>
@@ -209,14 +210,14 @@ export function TransactionList({ kind }: TransactionListProps) {
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
           className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
-          title="Du"
+          title={t("transactions.list.dateFrom")}
         />
         <input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
           className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
-          title="Au"
+          title={t("transactions.list.dateTo")}
         />
 
         <div className="flex gap-1">
@@ -227,13 +228,13 @@ export function TransactionList({ kind }: TransactionListProps) {
             onKeyDown={(e) => {
               if (e.key === "Enter") setQ(qInput);
             }}
-            placeholder="Rechercher…"
+            placeholder={t("transactions.list.searchPlaceholder")}
             className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
           />
           <button
             onClick={() => setQ(qInput)}
             className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            aria-label="Rechercher"
+            aria-label={t("transactions.list.search")}
           >
             <Search className="h-4 w-4" />
           </button>
@@ -244,7 +245,7 @@ export function TransactionList({ kind }: TransactionListProps) {
                 setQInput("");
               }}
               className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              aria-label="Effacer la recherche"
+              aria-label={t("transactions.list.clearSearch")}
             >
               <X className="h-4 w-4" />
             </button>
@@ -255,77 +256,77 @@ export function TransactionList({ kind }: TransactionListProps) {
       {/* Table */}
       <div className="rounded-lg bg-white shadow-sm overflow-x-auto dark:bg-zinc-900">
         {isLoading ? (
-          <p className="p-6 text-sm text-zinc-500">Chargement…</p>
+          <p className="p-6 text-sm text-zinc-500">{t("common.state.loading")}</p>
         ) : transactions.length === 0 ? (
           <p className="p-6 text-sm text-zinc-400">
-            Aucune {kindLabel} trouvée.
+            {kind === "expense" ? t("transactions.list.emptyExpense") : t("transactions.list.emptyIncome")}
           </p>
         ) : (
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-200 text-left text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Description</th>
-                <th className="px-4 py-3">Catégorie</th>
-                <th className="px-4 py-3">Compte</th>
-                <th className="px-4 py-3 text-left">Montant</th>
-                <th className="px-4 py-3">Actions</th>
+                <th className="px-4 py-3">{t("transactions.list.date")}</th>
+                <th className="px-4 py-3">{t("transactions.list.description")}</th>
+                <th className="px-4 py-3">{t("transactions.list.category")}</th>
+                <th className="px-4 py-3">{t("transactions.list.account")}</th>
+                <th className="px-4 py-3 text-left">{t("transactions.list.amount")}</th>
+                <th className="px-4 py-3">{t("transactions.list.actions")}</th>
               </tr>
             </thead>
             <tbody>
-              {transactions.map((t) => (
-                <tr key={t.id} className="border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
-                  <td className="px-4 py-3 whitespace-nowrap text-zinc-500 dark:text-zinc-400">{formatDate(t.date)}</td>
+              {transactions.map((tx) => (
+                <tr key={tx.id} className="border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
+                  <td className="px-4 py-3 whitespace-nowrap text-zinc-500 dark:text-zinc-400">{formatDate(tx.date)}</td>
                   <td className="px-4 py-3 max-w-xs truncate">
-                    {t.description}
-                    {t.is_imported && (
-                      <span className="ml-1 rounded bg-zinc-100 px-1 py-0.5 text-xs text-zinc-400">import</span>
+                    {tx.description}
+                    {tx.is_imported && (
+                      <span className="ml-1 rounded bg-zinc-100 px-1 py-0.5 text-xs text-zinc-400">{t("transactions.list.imported")}</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {t.categories ? (
+                    {tx.categories ? (
                       <CategoryBadge
-                        name={t.categories.name}
-                        color={t.categories.color}
-                        icon={t.categories.icon}
+                        name={tx.categories.name}
+                        color={tx.categories.color}
+                        icon={tx.categories.icon}
                       />
                     ) : (
                       <span className="text-zinc-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">{t.accounts?.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">{tx.accounts?.name ?? "—"}</td>
                   <td
                     className={`px-4 py-3 text-left font-medium whitespace-nowrap ${
-                      t.kind === "expense" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"
+                      tx.kind === "expense" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"
                     }`}
                   >
-                    {t.kind === "expense" ? "−" : "+"}
-                    {formatEuros(Math.abs(t.amount_cents), t.currency)}
+                    {tx.kind === "expense" ? "−" : "+"}
+                    {formatEuros(Math.abs(tx.amount_cents), tx.currency)}
                   </td>
                   <td className="px-4 py-3">
-                    {!t.transfer_id ? (
+                    {!tx.transfer_id ? (
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          onClick={() => setEditingTransaction(t)}
-                          aria-label={`Modifier la ${kindLabel}`}
-                          title="Modifier"
+                          onClick={() => setEditingTransaction(tx)}
+                          aria-label={tx.kind === "expense" ? t("transactions.list.editExpense") : t("transactions.list.editIncome")}
+                          title={t("common.actions.edit")}
                         >
                           <Pencil />
                         </Button>
                         <Button
                           variant="destructive"
                           size="icon-sm"
-                          onClick={() => setDeletingTransaction(t)}
-                          aria-label={`Supprimer la ${kindLabel}`}
-                          title="Supprimer"
+                          onClick={() => setDeletingTransaction(tx)}
+                          aria-label={tx.kind === "expense" ? t("transactions.list.deleteExpense") : t("transactions.list.deleteIncome")}
+                          title={t("common.actions.delete")}
                         >
                           <Trash2 />
                         </Button>
                       </div>
                     ) : (
-                      <span className="text-xs text-zinc-400">Virement</span>
+                      <span className="text-xs text-zinc-400">{t("transactions.list.transferBadge")}</span>
                     )}
                   </td>
                 </tr>
@@ -402,16 +403,27 @@ export function TransactionList({ kind }: TransactionListProps) {
             setDeleteError(null);
           }
         }}
-        title={`Supprimer cette ${kindLabel} ?`}
+        title={
+          kind === "expense"
+            ? t("transactions.list.deleteConfirmTitleExpense")
+            : t("transactions.list.deleteConfirmTitleIncome")
+        }
         description={
           deleteError
             ? deleteError
             : deletingTransaction
-              ? `"${deletingTransaction.description}" sera définitivement supprimée.`
+              ? t(
+                  kind === "expense"
+                    ? "transactions.list.deleteConfirmDescriptionExpense"
+                    : "transactions.list.deleteConfirmDescriptionIncome",
+                  { description: deletingTransaction.description },
+                )
               : undefined
         }
         onConfirm={handleDelete}
         isConfirming={isDeleting}
+        confirmLabel={t("common.actions.delete")}
+        cancelLabel={t("common.actions.cancel")}
       />
     </div>
   );

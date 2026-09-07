@@ -5,8 +5,10 @@ import { Pencil, Trash2 } from "lucide-react";
 
 import { CategoryBadge } from "@/components/category-badge";
 import { CategoryModal } from "@/components/settings/category-modal";
+import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { resolveCategoryName } from "@/lib/i18n/category-name";
 
 type Category = {
   id: string;
@@ -14,15 +16,12 @@ type Category = {
   kind: "expense" | "income" | "transfer";
   color: string | null;
   icon: string | null;
-};
-
-const KIND_LABELS: Record<string, string> = {
-  expense: "Dépense",
-  income: "Revenu",
-  transfer: "Virement",
+  is_default: boolean;
+  translation_key: string | null;
 };
 
 export default function CategoriesPage() {
+  const { t } = useLocale();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -63,10 +62,58 @@ export default function CategoriesPage() {
 
   const editingCategory = editingId ? (categories.find((c) => c.id === editingId) ?? null) : null;
 
+  // Dépense/Revenu side by side (the request: "afficher dépense et revenu en
+  // même temps" — previously a vertical stack of 3 sections requiring
+  // scrolling to see income after expense); virement spans full width below
+  // since a 3rd column would cramp the two lists that matter most day to day.
+  const kindSection = (kind: "expense" | "income" | "transfer") => {
+    const items = grouped[kind] ?? [];
+    return (
+      <article key={kind} className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
+        <h2 className="mb-3 text-base font-medium">{t(`categories.kind.${kind}`)}</h2>
+        {items.length === 0 ? (
+          <p className="text-sm text-zinc-400">{t("settings.categories.emptyForKind")}</p>
+        ) : (
+          <ul className="space-y-2">
+            {items.map((cat) => (
+              <li key={cat.id}>
+                <div className="group flex items-center justify-between rounded-md px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                  <div className="flex items-center gap-3">
+                    <CategoryBadge name={resolveCategoryName(cat, t)} color={cat.color} icon={cat.icon} className="text-sm" />
+                  </div>
+                  <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setEditingId(cat.id)}
+                      aria-label={t("common.actions.edit")}
+                      title={t("common.actions.edit")}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon-sm"
+                      onClick={() => setDeletingCategory(cat)}
+                      aria-label={t("common.actions.delete")}
+                      title={t("common.actions.delete")}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Catégories</h1>
+        <h1 className="text-2xl font-semibold">{t("settings.categories.title")}</h1>
         <button
           onClick={() => {
             setShowCreate(true);
@@ -74,65 +121,35 @@ export default function CategoriesPage() {
           }}
           className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white"
         >
-          + Nouvelle catégorie
+          {t("settings.categories.newButton")}
         </button>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-zinc-500">Chargement…</p>
+        <p className="text-sm text-zinc-500">{t("common.state.loading")}</p>
       ) : (
-        (["expense", "income", "transfer"] as const).map((kind) => {
-          const items = grouped[kind] ?? [];
-          return (
-            <article key={kind} className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-              <h2 className="mb-3 text-base font-medium">{KIND_LABELS[kind]}</h2>
-              {items.length === 0 ? (
-                <p className="text-sm text-zinc-400">Aucune catégorie</p>
-              ) : (
-                <ul className="space-y-2">
-                  {items.map((cat) => (
-                    <li key={cat.id}>
-                      <div className="group flex items-center justify-between rounded-md px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                        <div className="flex items-center gap-3">
-                          <CategoryBadge name={cat.name} color={cat.color} icon={cat.icon} className="text-sm" />
-                        </div>
-                        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => setEditingId(cat.id)}
-                            aria-label="Modifier la catégorie"
-                            title="Modifier"
-                          >
-                            <Pencil />
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="icon-sm"
-                            onClick={() => setDeletingCategory(cat)}
-                            aria-label="Supprimer la catégorie"
-                            title="Supprimer"
-                          >
-                            <Trash2 />
-                          </Button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
-          );
-        })
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            {kindSection("expense")}
+            {kindSection("income")}
+          </div>
+          {kindSection("transfer")}
+        </div>
       )}
 
       <AlertDialog
         open={deletingCategory !== null}
         onOpenChange={(open) => !open && setDeletingCategory(null)}
-        title="Supprimer cette catégorie ?"
-        description={deletingCategory ? `La catégorie "${deletingCategory.name}" sera supprimée.` : undefined}
+        title={t("settings.categories.deleteConfirmTitle")}
+        description={
+          deletingCategory
+            ? t("settings.categories.deleteConfirmDescription", { name: resolveCategoryName(deletingCategory, t) })
+            : undefined
+        }
         onConfirm={handleDelete}
         isConfirming={isDeleting}
+        confirmLabel={t("common.actions.delete")}
+        cancelLabel={t("common.actions.cancel")}
       />
 
       {showCreate && (

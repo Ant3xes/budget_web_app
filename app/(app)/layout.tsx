@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 
 import { logout } from "@/app/(auth)/actions";
 import { Sidebar } from "@/components/layout/sidebar";
+import { LocaleToggle } from "@/components/locale-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LogoutButtonLabel } from "@/components/layout/logout-button-label";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -39,10 +41,11 @@ export default async function AppLayout({
         <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900">
           <p className="text-sm text-zinc-600 dark:text-zinc-400">{user.email}</p>
           <div className="flex items-center gap-2">
+            <LocaleToggle />
             <ThemeToggle />
             <form action={logout}>
               <button className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-600 dark:text-zinc-300" type="submit">
-                Logout
+                <LogoutButtonLabel />
               </button>
             </form>
           </div>

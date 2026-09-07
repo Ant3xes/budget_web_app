@@ -7,6 +7,7 @@ import { BudgetModal } from "@/components/budget/budget-modal";
 import { BudgetBar } from "@/components/dashboard/budget-bar";
 import { DonutChart } from "@/components/dashboard/donut-chart";
 import { CategoryBadge } from "@/components/category-badge";
+import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
@@ -43,6 +44,7 @@ function monthLabel(yyyyMM: string): string {
 }
 
 export function BudgetList({ initialMonth }: BudgetListProps) {
+  const { t } = useLocale();
   const [month, setMonth] = useState(initialMonth);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [consumption, setConsumption] = useState<Record<string, number>>({});
@@ -83,7 +85,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
     const prev = prevMonth(month);
     const prevRes = await fetch(`/api/budgets?month=${prev}`);
     if (!prevRes.ok) {
-      setCopyError("Impossible de récupérer le mois précédent");
+      setCopyError(t("budget.copyFetchError"));
       setIsCopying(false);
       return;
     }
@@ -91,7 +93,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
     const prevBudgets = prevData.budgets ?? [];
 
     if (prevBudgets.length === 0) {
-      setCopyError(`Aucune enveloppe trouvée pour ${monthLabel(prev)}`);
+      setCopyError(t("budget.noEnvelopesForMonth", { month: monthLabel(prev) }));
       setIsCopying(false);
       return;
     }
@@ -168,26 +170,26 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
           onClick={() => setShowCreate(true)}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          + Ajouter une enveloppe
+          {t("budget.addEnvelope")}
         </button>
       </div>
 
       {isLoading ? (
-        <p className="py-8 text-center text-sm text-zinc-500">Chargement…</p>
+        <p className="py-8 text-center text-sm text-zinc-500">{t("common.state.loading")}</p>
       ) : budgets.length === 0 ? (
         <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-600">
-          <p className="text-zinc-500 dark:text-zinc-400">Aucune enveloppe pour {monthLabel(month)}.</p>
+          <p className="text-zinc-500 dark:text-zinc-400">{t("budget.emptyForMonth", { month: monthLabel(month) })}</p>
           <div className="mt-4">
             {copyError && <p className="mb-2 text-sm text-red-500">{copyError}</p>}
             <p className="mb-3 text-sm text-zinc-500">
-              Recopier les enveloppes de {monthLabel(prevMonth(month))} ?
+              {t("budget.copyFromPrevQuestion", { month: monthLabel(prevMonth(month)) })}
             </p>
             <button
               onClick={handleCopyFromPrev}
               disabled={isCopying}
               className="rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
             >
-              {isCopying ? "Copie en cours…" : `Recopier depuis ${monthLabel(prevMonth(month))}`}
+              {isCopying ? t("budget.copying") : t("budget.copyFromPrevButton", { month: monthLabel(prevMonth(month)) })}
             </button>
           </div>
         </div>
@@ -196,23 +198,23 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
           {/* Spending by category */}
           <div className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
             <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Répartition des dépenses
+              {t("budget.spendingByCategory")}
             </h2>
-            <DonutChart data={donutData} emptyLabel="Aucune dépense" />
+            <DonutChart data={donutData} emptyLabel={t("budget.noExpense")} />
           </div>
 
           {/* Summary */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Budget total</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("budget.totalBudget")}</p>
               <p className="mt-1 text-lg font-semibold">{formatEuros(totalBudget)}</p>
             </article>
             <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Consommé</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("budget.consumed")}</p>
               <p className="mt-1 text-lg font-semibold">{formatEuros(totalConsumed)}</p>
             </article>
             <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Restant</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("budget.remaining")}</p>
               <p
                 className={`mt-1 text-lg font-semibold ${totalBudget - totalConsumed < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}
               >
@@ -226,12 +228,12 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 text-left text-xs font-medium text-zinc-500 uppercase dark:border-zinc-700 dark:text-zinc-400">
-                  <th className="px-4 py-3">Catégorie</th>
-                  <th className="px-4 py-3 text-right">Enveloppe</th>
-                  <th className="px-4 py-3 text-right">Consommé</th>
-                  <th className="px-4 py-3 text-right">Reste</th>
-                  <th className="px-4 py-3 w-40">Progression</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3">{t("budget.table.category")}</th>
+                  <th className="px-4 py-3 text-right">{t("budget.table.envelope")}</th>
+                  <th className="px-4 py-3 text-right">{t("budget.consumed")}</th>
+                  <th className="px-4 py-3 text-right">{t("budget.table.remaining")}</th>
+                  <th className="px-4 py-3 w-40">{t("budget.table.progress")}</th>
+                  <th className="px-4 py-3 text-right">{t("budget.table.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -257,7 +259,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                             />
                             {ratio > 1 && (
                               <span className="inline-block shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">
-                                Dépassé
+                                {t("budget.overBudget")}
                               </span>
                             )}
                           </div>
@@ -281,8 +283,8 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                               variant="ghost"
                               size="icon-sm"
                               onClick={() => setEditingBudget(budget)}
-                              aria-label="Modifier l'enveloppe"
-                              title="Modifier"
+                              aria-label={t("budget.editEnvelope")}
+                              title={t("common.actions.edit")}
                             >
                               <Pencil />
                             </Button>
@@ -290,8 +292,8 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                               variant="destructive"
                               size="icon-sm"
                               onClick={() => setDeletingBudget(budget)}
-                              aria-label="Supprimer l'enveloppe"
-                              title="Supprimer"
+                              aria-label={t("budget.deleteEnvelope")}
+                              title={t("common.actions.delete")}
                             >
                               <Trash2 />
                             </Button>
@@ -336,14 +338,19 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
       <AlertDialog
         open={deletingBudget !== null}
         onOpenChange={(open) => !open && setDeletingBudget(null)}
-        title="Supprimer cette enveloppe ?"
+        title={t("budget.deleteConfirmTitle")}
         description={
           deletingBudget
-            ? `L'enveloppe "${deletingBudget.categories?.name ?? "—"}" sera supprimée pour ${monthLabel(month)}.`
+            ? t("budget.deleteConfirmDescription", {
+                name: deletingBudget.categories?.name ?? "—",
+                month: monthLabel(month),
+              })
             : undefined
         }
         onConfirm={handleDelete}
         isConfirming={isDeleting}
+        confirmLabel={t("common.actions.delete")}
+        cancelLabel={t("common.actions.cancel")}
       />
     </div>
   );

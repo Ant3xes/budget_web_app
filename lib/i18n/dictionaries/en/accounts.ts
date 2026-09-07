@@ -1,0 +1,71 @@
+/**
+ * /accounts (list + detail) and its modals/forms/charts — components/accounts/*.tsx.
+ */
+export const accounts = {
+  list: {
+    title: "Accounts",
+    subtitle: "Balance = initial balance + sum of non-deleted transactions.",
+    newAccount: "New account",
+    noBank: "No bank",
+    emptyTitle: "No accounts yet.",
+    createAccount: "Create an account",
+    currentBalance: "Current balance",
+    monthExpenses: "This month's expenses",
+    importButton: "Import",
+  },
+  types: {
+    courant: "Checking",
+    "épargne": "Savings",
+    livret: "Passbook savings",
+    PEL: "PEL",
+    autre: "Other",
+  },
+  detail: {
+    optionsLabel: "Options",
+    deleteConfirm: "Delete account \"{name}\"? This action is irreversible.",
+    month: "Month",
+    prevMonth: "Previous month",
+    nextMonth: "Next month",
+    pickMonth: "Pick a month",
+    // "2a" has no key in periodSelector.presets (only "1m","3m","6m","1a","tout"
+    // are defined there) — added here instead of touching period-selector.ts.
+    twoYearsPreset: "2 years",
+    balanceEvolution: "Balance evolution",
+    incomeVsExpense: "Income vs Expenses",
+    expenseByCategory: "Expenses by category",
+    expenses: "Expenses",
+    incomes: "Income",
+    transfers: "Transfers",
+    noExpenses: "No expenses for this period",
+    noIncomes: "No income for this period",
+    noTransfers: "No transfers for this period",
+    operationLabel: "transaction",
+    incoming: "Incoming",
+    outgoing: "Outgoing",
+  },
+  table: {
+    date: "Date",
+    description: "Description",
+    category: "Category",
+    sens: "Direction",
+    amount: "Amount",
+  },
+  form: {
+    newTitle: "New account",
+    editTitle: "Edit account",
+    name: "Name",
+    nameRequired: "Name is required",
+    type: "Type",
+    bank: "Bank",
+    optional: "(optional)",
+    bankPlaceholder: "BNP, N26…",
+    initialBalance: "Initial balance (cents)",
+    currency: "Currency",
+    saveError: "Unable to save the account",
+    createButton: "Create account",
+  },
+  chart: {
+    noData: "No data yet",
+    balance: "Balance",
+  },
+} as const;

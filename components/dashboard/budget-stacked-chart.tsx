@@ -1,18 +1,24 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 
+import { CategoryTransactionsOverlay, type OverlayTransaction } from "@/components/dashboard/category-transactions-overlay";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { useLocale } from "@/components/locale-provider";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { resolveCategoryName } from "@/lib/i18n/category-name";
 import { formatEuros, formatEurosAxisTick } from "@/lib/format";
 
 export interface BudgetRow {
   id: string;
   categoryId: string | null;
-  categoryName: string;
+  /** `null` when the budget has no category — the chart supplies the translated "Sans catégorie" fallback. */
+  categoryName: string | null;
   categoryIcon: string | null;
   categoryColor: string | null;
+  isDefault?: boolean;
+  translationKey?: string | null;
   amount: number;
   consumed: number;
 }
@@ -24,6 +30,8 @@ interface BarClickEvent {
 
 interface BudgetStackedChartProps {
   rows: BudgetRow[];
+  /** This month's expense transactions per budget category — feeds the click-to-open overlay, resolved server-side (see app/(app)/dashboard/page.tsx). */
+  transactionsByCategory: Record<string, OverlayTransaction[]>;
 }
 
 // `--muted` sits almost exactly at the card's own background lightness (see
@@ -33,11 +41,6 @@ interface BudgetStackedChartProps {
 // (chartConfig, the tooltip swatch, and the Bar's own fill) instead of the
 // string repeated 3 times.
 const REMAINING_COLOR = "var(--border)";
-
-const chartConfig = {
-  consumed: { label: "Consommé", color: "var(--status-warning)" },
-  remaining: { label: "Restant", color: REMAINING_COLOR },
-} satisfies ChartConfig;
 
 /**
  * Same 4-tier spending-rhythm thresholds as `components/dashboard/budget-bar.tsx`
@@ -70,21 +73,30 @@ function tierColorFor(ratio: number): string {
  * instead of a Y-axis, so once there are more than a handful they're angled
  * (same "dense" idiom as bar-chart.tsx's month labels) to avoid overlapping.
  *
- * The former list's per-row drill-down into `/expenses?category_id=...`
- * (only when the budget had a real category) is preserved here as a bar
- * click, since a recharts X-axis category tick isn't naturally a link.
+ * The former list's per-row drill-down (`router.push("/expenses?
+ * category_id=...")`) now opens `CategoryTransactionsOverlay` in place
+ * instead (plan Étape 2) — same bar-click mechanism, different result.
  */
-export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
-  const router = useRouter();
+export function BudgetStackedChart({ rows, transactionsByCategory }: BudgetStackedChartProps) {
+  const { t } = useLocale();
+  const [overlayCategoryId, setOverlayCategoryId] = useState<string | null>(null);
   if (rows.length === 0) return null;
+
+  const chartConfig = {
+    consumed: { label: t("dashboard.budgets.consumed"), color: "var(--status-warning)" },
+    remaining: { label: t("dashboard.budgets.remaining"), color: REMAINING_COLOR },
+  } satisfies ChartConfig;
 
   const data = rows.map((b) => {
     const ratio = b.amount > 0 ? b.consumed / b.amount : 0;
     const remaining = b.consumed >= b.amount ? 0 : b.amount - b.consumed;
+    const categoryName = b.categoryName
+      ? resolveCategoryName({ name: b.categoryName, is_default: b.isDefault, translation_key: b.translationKey }, t)
+      : t("dashboard.budgets.noCategory");
     return {
       id: b.id,
       categoryId: b.categoryId,
-      label: `${b.categoryIcon ? `${b.categoryIcon} ` : ""}${b.categoryName}`,
+      label: `${b.categoryIcon ? `${b.categoryIcon} ` : ""}${categoryName}`,
       consumed: b.consumed,
       remaining,
       ratio,
@@ -98,12 +110,14 @@ export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
 
   const handleBarClick = (event: BarClickEvent) => {
     const categoryId = event.payload?.categoryId;
-    if (categoryId) router.push(`/expenses?category_id=${categoryId}`);
+    if (categoryId) setOverlayCategoryId(categoryId);
   };
+
+  const overlayRow = data.find((d) => d.categoryId === overlayCategoryId);
 
   return (
     <DashboardCard>
-      <h2 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Budgets du mois en cours</h2>
+      <h2 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("dashboard.budgets.heading")}</h2>
       <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height: 280 }}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: bottomMargin }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -132,7 +146,7 @@ export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
                   const row = item.payload as (typeof data)[number];
                   const isConsumed = name === "consumed";
                   const swatch = isConsumed ? row.color : REMAINING_COLOR;
-                  const label = isConsumed ? "Consommé" : "Restant";
+                  const label = isConsumed ? t("dashboard.budgets.consumed") : t("dashboard.budgets.remaining");
                   return (
                     <div className="flex w-full items-center justify-between gap-4">
                       <div className="flex items-center gap-1.5">
@@ -171,6 +185,12 @@ export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
           />
         </BarChart>
       </ChartContainer>
+      <CategoryTransactionsOverlay
+        open={overlayCategoryId !== null}
+        onClose={() => setOverlayCategoryId(null)}
+        title={t("dashboard.overlay.budgetTitle", { category: overlayRow?.label ?? "" })}
+        transactions={overlayCategoryId ? (transactionsByCategory[overlayCategoryId] ?? []) : []}
+      />
     </DashboardCard>
   );
 }

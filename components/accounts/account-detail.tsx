@@ -9,6 +9,7 @@ import { BalanceChart } from "@/components/accounts/balance-chart";
 import { DonutChart } from "@/components/dashboard/donut-chart";
 import { IncomeExpenseBarChart } from "@/components/dashboard/bar-chart";
 import { ImportModal } from "@/components/import/import-modal";
+import { useLocale } from "@/components/locale-provider";
 import { Pagination } from "@/components/ui/pagination";
 import {
   computeDailyBalanceSeries,
@@ -19,7 +20,6 @@ import type { ExpenseByCategoryTx } from "@/lib/accounts/compute-expense-by-cate
 import { ACCOUNT_TYPES } from "@/lib/constants";
 import { formatEuros } from "@/lib/format";
 import {
-  PERIOD_PRESET_LABELS,
   addMonths,
   currentMonth,
   parsePeriodParam,
@@ -77,14 +77,6 @@ const formatDate = (iso: string) =>
     timeZone: "UTC",
   });
 
-const TYPE_LABELS: Record<(typeof ACCOUNT_TYPES)[number], string> = {
-  courant: "Courant",
-  épargne: "Épargne",
-  livret: "Livret",
-  PEL: "PEL",
-  autre: "Autre",
-};
-
 // ─── Mini transaction table ────────────────────────────────────────────────
 
 interface TxTableProps {
@@ -98,10 +90,12 @@ interface TxTableProps {
 const TX_PER_PAGE = 10;
 
 function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxTableProps) {
+  const { t } = useLocale();
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(transactions.length / TX_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
   const pageItems = transactions.slice((currentPage - 1) * TX_PER_PAGE, currentPage * TX_PER_PAGE);
+  const operationLabel = t("accounts.detail.operationLabel");
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
@@ -109,7 +103,8 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
         <h3 className="text-sm font-semibold">{title}</h3>
         {transactions.length > 0 && (
           <p className="mt-0.5 text-xs text-zinc-400">
-            {transactions.length} opération{transactions.length > 1 ? "s" : ""}
+            {transactions.length} {operationLabel}
+            {transactions.length > 1 ? "s" : ""}
           </p>
         )}
       </div>
@@ -120,11 +115,11 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100 text-left text-xs text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
-                <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Description</th>
-                <th className="px-3 py-2">Catégorie</th>
-                {showSens && <th className="px-3 py-2">Sens</th>}
-                <th className="px-3 py-2 text-right">Montant</th>
+                <th className="px-3 py-2">{t("accounts.table.date")}</th>
+                <th className="px-3 py-2">{t("accounts.table.description")}</th>
+                <th className="px-3 py-2">{t("accounts.table.category")}</th>
+                {showSens && <th className="px-3 py-2">{t("accounts.table.sens")}</th>}
+                <th className="px-3 py-2 text-right">{t("accounts.table.amount")}</th>
               </tr>
             </thead>
             <tbody>
@@ -153,7 +148,7 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
                             : "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400"
                         }`}
                       >
-                        {tx.kind === "transfer_credit" ? "Entrant" : "Sortant"}
+                        {tx.kind === "transfer_credit" ? t("accounts.detail.incoming") : t("accounts.detail.outgoing")}
                       </span>
                     </td>
                   )}
@@ -170,7 +165,7 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
             totalPages={totalPages}
             total={transactions.length}
             onPageChange={setPage}
-            itemLabel="opération"
+            itemLabel={operationLabel}
             className="border-t border-zinc-100 px-4 py-2 dark:border-zinc-800"
           />
         </div>
@@ -191,6 +186,7 @@ export function AccountDetail({
   expenseHistory,
 }: AccountDetailProps) {
   const router = useRouter();
+  const { t } = useLocale();
   const [period, setPeriod] = useState<Period>(() => parsePeriodParam(initialPeriod));
   const [menuOpen, setMenuOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -275,8 +271,14 @@ export function AccountDetail({
     return period.type === "preset" && period.value === preset;
   };
 
+  // "2a" has no key in periodSelector.presets (only "1m","3m","6m","1a","tout"
+  // are defined there — see AGENTS.md scope for this task), so it falls back
+  // to a dedicated key in the accounts dictionary instead.
+  const presetLabel = (preset: PeriodPreset) =>
+    preset === "2a" ? t("accounts.detail.twoYearsPreset") : t(`periodSelector.presets.${preset}`);
+
   const handleDelete = async () => {
-    if (!window.confirm(`Supprimer le compte « ${account.name} » ? Cette action est irréversible.`)) return;
+    if (!window.confirm(t("accounts.detail.deleteConfirm", { name: account.name }))) return;
     setIsDeleting(true);
     await fetch("/api/accounts", {
       method: "DELETE",
@@ -304,7 +306,9 @@ export function AccountDetail({
         <div>
           <h1 className="text-2xl font-semibold">{account.name}</h1>
           <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-            {TYPE_LABELS[account.type as (typeof ACCOUNT_TYPES)[number]] ?? account.type}
+            {(ACCOUNT_TYPES as readonly string[]).includes(account.type)
+              ? t(`accounts.types.${account.type}`)
+              : account.type}
           </span>
           <p
             className={`mt-3 text-3xl font-semibold tracking-tight ${
@@ -320,13 +324,13 @@ export function AccountDetail({
             onClick={() => setImportModalOpen(true)}
             className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            Importer
+            {t("accounts.list.importButton")}
           </button>
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((o) => !o)}
               className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              aria-label="Options"
+              aria-label={t("accounts.detail.optionsLabel")}
             >
               <span className="text-lg leading-none text-zinc-500">⋮</span>
             </button>
@@ -336,14 +340,14 @@ export function AccountDetail({
                   onClick={() => { setMenuOpen(false); setEditModalOpen(true); }}
                   className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800"
                 >
-                  Éditer
+                  {t("common.actions.edit")}
                 </button>
                 <button
                   onClick={() => { setMenuOpen(false); void handleDelete(); }}
                   disabled={isDeleting}
                   className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-zinc-50 disabled:opacity-50 dark:hover:bg-zinc-800"
                 >
-                  Supprimer
+                  {t("common.actions.delete")}
                 </button>
               </div>
             )}
@@ -364,17 +368,17 @@ export function AccountDetail({
                   : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
               }`}
             >
-              {PERIOD_PRESET_LABELS[preset]}
+              {presetLabel(preset)}
             </button>
           ))}
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-400">Mois</span>
+          <span className="text-xs text-zinc-400">{t("accounts.detail.month")}</span>
           <button
             onClick={() => shiftMonth(-1)}
             className="rounded p-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            aria-label="Mois précédent"
+            aria-label={t("accounts.detail.prevMonth")}
           >
             ←
           </button>
@@ -392,7 +396,7 @@ export function AccountDetail({
           <button
             onClick={() => shiftMonth(1)}
             className="rounded p-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            aria-label="Mois suivant"
+            aria-label={t("accounts.detail.nextMonth")}
           >
             →
           </button>
@@ -408,7 +412,7 @@ export function AccountDetail({
                 }
               }}
               className="flex items-center rounded p-1 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              aria-label="Choisir un mois"
+              aria-label={t("accounts.detail.pickMonth")}
             >
               <Calendar className="h-4 w-4" />
             </button>
@@ -431,7 +435,7 @@ export function AccountDetail({
       <div className="space-y-4">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
           <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            Évolution du solde
+            {t("accounts.detail.balanceEvolution")}
           </h2>
           <BalanceChart data={visibleBalanceData} currency={account.currency} />
         </div>
@@ -439,14 +443,14 @@ export function AccountDetail({
         <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
           <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
             <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Revenus vs Dépenses
+              {t("accounts.detail.incomeVsExpense")}
             </h2>
             <IncomeExpenseBarChart data={visibleIncomeExpenseData} height={200} />
           </div>
 
           <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
             <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Dépenses par catégorie
+              {t("accounts.detail.expenseByCategory")}
             </h2>
             {/* Taller than the bar chart next to it: the legend needs room
                 to wrap onto several rows without being clipped when the
@@ -460,23 +464,23 @@ export function AccountDetail({
       {/* Transaction lists for the same period */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <TxTable
-          title="Dépenses"
+          title={t("accounts.detail.expenses")}
           transactions={expenses}
-          emptyLabel="Aucune dépense sur cette période"
+          emptyLabel={t("accounts.detail.noExpenses")}
           amountColor={() => "text-red-500"}
         />
         <TxTable
-          title="Revenus"
+          title={t("accounts.detail.incomes")}
           transactions={incomes}
-          emptyLabel="Aucun revenu sur cette période"
+          emptyLabel={t("accounts.detail.noIncomes")}
           amountColor={() => "text-green-600"}
         />
       </div>
 
       <TxTable
-        title="Virements"
+        title={t("accounts.detail.transfers")}
         transactions={transfers}
-        emptyLabel="Aucun virement sur cette période"
+        emptyLabel={t("accounts.detail.noTransfers")}
         showSens
         amountColor={(tx) =>
           tx.kind === "transfer_credit" ? "text-green-600" : "text-orange-500"

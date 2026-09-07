@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 
 import { TransferModal } from "@/components/transfers/transfer-modal";
+import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
@@ -23,6 +24,7 @@ type Transfer = {
 const PER_PAGE = 25;
 
 export function TransferList() {
+  const { t } = useLocale();
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -66,66 +68,66 @@ export function TransferList() {
       void load(page);
     } else {
       const data = (await res.json().catch(() => null)) as { error?: string } | null;
-      setDeleteError(data?.error ?? "Erreur lors de la suppression");
+      setDeleteError(data?.error ?? t("transactions.errors.deleteGeneric"));
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Virements</h1>
+        <h1 className="text-2xl font-semibold">{t("transactions.transfers.title")}</h1>
         <button
           onClick={() => setShowCreate(true)}
           className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white"
         >
-          + Nouveau virement
+          {t("transactions.transfers.newButton")}
         </button>
       </div>
 
       <div className="rounded-lg bg-white shadow-sm overflow-x-auto dark:bg-zinc-900">
         {isLoading ? (
-          <p className="p-6 text-sm text-zinc-500">Chargement…</p>
+          <p className="p-6 text-sm text-zinc-500">{t("common.state.loading")}</p>
         ) : transfers.length === 0 ? (
-          <p className="p-6 text-sm text-zinc-400">Aucun virement trouvé.</p>
+          <p className="p-6 text-sm text-zinc-400">{t("transactions.transfers.empty")}</p>
         ) : (
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-200 text-left text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">De</th>
-                <th className="px-4 py-3">Vers</th>
-                <th className="px-4 py-3">Description</th>
-                <th className="px-4 py-3 text-left">Montant</th>
-                <th className="px-4 py-3">Actions</th>
+                <th className="px-4 py-3">{t("transactions.transfers.date")}</th>
+                <th className="px-4 py-3">{t("transactions.transfers.from")}</th>
+                <th className="px-4 py-3">{t("transactions.transfers.to")}</th>
+                <th className="px-4 py-3">{t("transactions.transfers.description")}</th>
+                <th className="px-4 py-3 text-left">{t("transactions.transfers.amount")}</th>
+                <th className="px-4 py-3">{t("transactions.transfers.actions")}</th>
               </tr>
             </thead>
             <tbody>
-              {transfers.map((t) => (
-                <tr key={t.transfer_id} className="border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
-                  <td className="px-4 py-3 whitespace-nowrap text-zinc-500">{formatDate(t.date)}</td>
-                  <td className="px-4 py-3">{t.from_account?.name ?? "—"}</td>
-                  <td className="px-4 py-3">{t.to_account?.name ?? "—"}</td>
-                  <td className="px-4 py-3 text-zinc-500 truncate max-w-xs">{t.description ?? "—"}</td>
+              {transfers.map((tr) => (
+                <tr key={tr.transfer_id} className="border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
+                  <td className="px-4 py-3 whitespace-nowrap text-zinc-500">{formatDate(tr.date)}</td>
+                  <td className="px-4 py-3">{tr.from_account?.name ?? "—"}</td>
+                  <td className="px-4 py-3">{tr.to_account?.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-zinc-500 truncate max-w-xs">{tr.description ?? "—"}</td>
                   <td className="px-4 py-3 text-left font-medium whitespace-nowrap text-blue-600">
-                    {formatEuros(Math.abs(t.amount_cents), t.currency)}
+                    {formatEuros(Math.abs(tr.amount_cents), tr.currency)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => setEditingTransfer(t)}
-                        aria-label="Modifier le virement"
-                        title="Modifier"
+                        onClick={() => setEditingTransfer(tr)}
+                        aria-label={t("transactions.transfers.edit")}
+                        title={t("common.actions.edit")}
                       >
                         <Pencil />
                       </Button>
                       <Button
                         variant="destructive"
                         size="icon-sm"
-                        onClick={() => setDeletingTransfer(t)}
-                        aria-label="Supprimer le virement"
-                        title="Supprimer"
+                        onClick={() => setDeletingTransfer(tr)}
+                        aria-label={t("transactions.transfers.delete")}
+                        title={t("common.actions.delete")}
                       >
                         <Trash2 />
                       </Button>
@@ -138,7 +140,7 @@ export function TransferList() {
         )}
       </div>
 
-      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} itemLabel="virement" />
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} itemLabel={t("transactions.transfers.itemLabel")} />
 
       {showCreate && (
         <TransferModal
@@ -175,16 +177,21 @@ export function TransferList() {
             setDeleteError(null);
           }
         }}
-        title="Supprimer ce virement ?"
+        title={t("transactions.transfers.deleteConfirmTitle")}
         description={
           deleteError
             ? deleteError
             : deletingTransfer
-              ? `Le virement du ${formatDate(deletingTransfer.date)} (${formatEuros(Math.abs(deletingTransfer.amount_cents), deletingTransfer.currency)}) et ses deux transactions seront supprimés.`
+              ? t("transactions.transfers.deleteConfirmDescription", {
+                  date: formatDate(deletingTransfer.date),
+                  amount: formatEuros(Math.abs(deletingTransfer.amount_cents), deletingTransfer.currency),
+                })
               : undefined
         }
         onConfirm={handleDelete}
         isConfirming={isDeleting}
+        confirmLabel={t("common.actions.delete")}
+        cancelLabel={t("common.actions.cancel")}
       />
     </div>
   );

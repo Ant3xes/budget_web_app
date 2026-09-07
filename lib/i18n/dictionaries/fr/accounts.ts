@@ -1,0 +1,71 @@
+/**
+ * /accounts (list + detail) and its modals/forms/charts — components/accounts/*.tsx.
+ */
+export const accounts = {
+  list: {
+    title: "Comptes",
+    subtitle: "Solde = solde initial + somme des transactions non supprimées.",
+    newAccount: "Nouveau compte",
+    noBank: "Sans banque",
+    emptyTitle: "Aucun compte pour l'instant.",
+    createAccount: "Créer un compte",
+    currentBalance: "Solde actuel",
+    monthExpenses: "Dépenses ce mois",
+    importButton: "Importer",
+  },
+  types: {
+    courant: "Courant",
+    "épargne": "Épargne",
+    livret: "Livret",
+    PEL: "PEL",
+    autre: "Autre",
+  },
+  detail: {
+    optionsLabel: "Options",
+    deleteConfirm: "Supprimer le compte « {name} » ? Cette action est irréversible.",
+    month: "Mois",
+    prevMonth: "Mois précédent",
+    nextMonth: "Mois suivant",
+    pickMonth: "Choisir un mois",
+    // "2a" n'a pas de clé dans periodSelector.presets (seuls "1m","3m","6m","1a","tout"
+    // y figurent) — ajoutée ici pour ne pas toucher au fichier period-selector.ts.
+    twoYearsPreset: "2 ans",
+    balanceEvolution: "Évolution du solde",
+    incomeVsExpense: "Revenus vs Dépenses",
+    expenseByCategory: "Dépenses par catégorie",
+    expenses: "Dépenses",
+    incomes: "Revenus",
+    transfers: "Virements",
+    noExpenses: "Aucune dépense sur cette période",
+    noIncomes: "Aucun revenu sur cette période",
+    noTransfers: "Aucun virement sur cette période",
+    operationLabel: "opération",
+    incoming: "Entrant",
+    outgoing: "Sortant",
+  },
+  table: {
+    date: "Date",
+    description: "Description",
+    category: "Catégorie",
+    sens: "Sens",
+    amount: "Montant",
+  },
+  form: {
+    newTitle: "Nouveau compte",
+    editTitle: "Modifier le compte",
+    name: "Nom",
+    nameRequired: "Le nom est requis",
+    type: "Type",
+    bank: "Banque",
+    optional: "(optionnel)",
+    bankPlaceholder: "BNP, N26…",
+    initialBalance: "Solde initial (centimes)",
+    currency: "Devise",
+    saveError: "Impossible d'enregistrer le compte",
+    createButton: "Créer le compte",
+  },
+  chart: {
+    noData: "Pas encore de données",
+    balance: "Solde",
+  },
+} as const;

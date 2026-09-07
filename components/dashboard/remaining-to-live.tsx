@@ -1,3 +1,6 @@
+"use client";
+
+import { useLocale } from "@/components/locale-provider";
 import { StatTile } from "@/components/ui/stat-tile";
 import { formatEuros } from "@/lib/format";
 
@@ -10,14 +13,15 @@ interface RemainingToLiveProps {
 
 /** "Reste à vivre" (hors charges) KPI bubble — a `StatTile` with an extra parenthetical line via its `footer` slot. */
 export function RemainingToLive({ amountCents, afterChargesCents }: RemainingToLiveProps) {
+  const { t } = useLocale();
   return (
     <StatTile
-      label="Reste à vivre (hors charges)"
+      label={t("dashboard.remainingToLive.label")}
       value={formatEuros(amountCents)}
       valueClassName={amountCents < 0 ? "text-expense" : undefined}
       footer={
         <p className="mt-1 text-xs text-muted-foreground">
-          ({formatEuros(afterChargesCents)} en tenant compte des charges à venir)
+          {t("dashboard.remainingToLive.footer", { amount: formatEuros(afterChargesCents) })}
         </p>
       }
     />

@@ -27,7 +27,7 @@ export async function GET() {
 
   const { data, error } = await auth.supabase
     .from("categories")
-    .select("id, name, kind, color, icon")
+    .select("id, name, kind, color, icon, is_default, translation_key")
     .eq("user_id", auth.user.id)
     .is("deleted_at", null)
     .order("kind")

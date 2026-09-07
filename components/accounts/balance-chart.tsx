@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useLocale } from "@/components/locale-provider";
 import { useTheme } from "@/components/theme-provider";
 
 export interface BalanceChartData {
@@ -49,6 +50,7 @@ function formatTooltipDate(isoDate: string): string {
 
 export function BalanceChart({ data, currency = "EUR" }: BalanceChartProps) {
   const { resolvedTheme } = useTheme();
+  const { t } = useLocale();
   const isDark = resolvedTheme === "dark";
 
   const gridColor = isDark ? "#3f3f46" : "#f0f0f0";
@@ -64,7 +66,7 @@ export function BalanceChart({ data, currency = "EUR" }: BalanceChartProps) {
   if (data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-zinc-400">
-        Pas encore de données
+        {t("accounts.chart.noData")}
       </div>
     );
   }
@@ -96,7 +98,7 @@ export function BalanceChart({ data, currency = "EUR" }: BalanceChartProps) {
           }}
           formatter={(value) => [
             typeof value === "number" ? formatMoney(value, currency) : String(value ?? ""),
-            "Solde",
+            t("accounts.chart.balance"),
           ]}
           contentStyle={tooltipStyle}
         />

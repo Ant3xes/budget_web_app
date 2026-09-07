@@ -5,6 +5,7 @@ import { CheckCircle2 } from "lucide-react";
 
 import { AddFundsModal } from "@/components/goals/add-funds-modal";
 import { GoalsModal } from "@/components/goals/goals-modal";
+import { useLocale } from "@/components/locale-provider";
 import { formatEuros } from "@/lib/format";
 
 type Goal = {
@@ -33,6 +34,7 @@ function formatDeadline(date: string): string {
 }
 
 export function GoalsList() {
+  const { t } = useLocale();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -55,30 +57,32 @@ export function GoalsList() {
   }, [loadGoals]);
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Supprimer l'objectif « ${name} » ?`)) return;
+    if (!confirm(t("goals.deleteConfirm", { name }))) return;
     const res = await fetch(`/api/savings-goals/${id}`, { method: "DELETE" });
     if (res.ok) await loadGoals();
   };
 
   if (isLoading) {
-    return <p className="py-8 text-center text-sm text-zinc-500">Chargement…</p>;
+    return <p className="py-8 text-center text-sm text-zinc-500">{t("common.state.loading")}</p>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">{goals.length} objectif{goals.length !== 1 ? "s" : ""}</p>
+        <p className="text-sm text-zinc-500">
+          {t(goals.length === 1 ? "goals.countSingular" : "goals.countPlural", { count: goals.length })}
+        </p>
         <button
           onClick={() => setShowCreate(true)}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          + Nouvel objectif
+          {t("goals.newGoal")}
         </button>
       </div>
 
       {goals.length === 0 ? (
         <div className="rounded-lg border border-dashed border-zinc-300 py-12 text-center text-sm text-zinc-500 dark:border-zinc-600">
-          Aucun objectif d&apos;épargne. Créez-en un pour commencer.
+          {t("goals.empty")}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -97,13 +101,13 @@ export function GoalsList() {
                     <div>
                       <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{goal.name}</h3>
                       {goal.deadline && (
-                        <p className="text-xs text-zinc-500">Échéance : {formatDeadline(goal.deadline)}</p>
+                        <p className="text-xs text-zinc-500">{t("goals.deadlineLabel", { date: formatDeadline(goal.deadline) })}</p>
                       )}
                     </div>
                   </div>
                   {goal.linked_category_id && (
                     <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                      Auto
+                      {t("goals.auto")}
                     </span>
                   )}
                 </div>
@@ -136,25 +140,25 @@ export function GoalsList() {
                       onClick={() => setAddFundsGoal(goal)}
                       className="flex-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
                     >
-                      + Ajouter des fonds
+                      {t("goals.addFunds")}
                     </button>
                   )}
                   {isComplete && (
                     <span className="flex flex-1 items-center justify-center gap-1 rounded-md bg-emerald-50 px-3 py-1.5 text-center text-xs font-medium text-emerald-700">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Objectif atteint
+                      <CheckCircle2 className="h-3.5 w-3.5" /> {t("goals.goalReached")}
                     </span>
                   )}
                   <button
                     onClick={() => setEditingGoal(goal)}
                     className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
                   >
-                    Modifier
+                    {t("common.actions.edit")}
                   </button>
                   <button
                     onClick={() => void handleDelete(goal.id, goal.name)}
                     className="rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:border-red-800/50 dark:text-red-400 dark:hover:bg-red-900/20"
                   >
-                    Supprimer
+                    {t("common.actions.delete")}
                   </button>
                 </div>
               </div>

@@ -19,18 +19,24 @@ export const ACCOUNT_TYPE_LABELS: Record<(typeof ACCOUNT_TYPES)[number], string>
   autre: "Autre",
 };
 
+/**
+ * `key` maps to `nav.items.<key>` in the i18n dictionaries
+ * (lib/i18n/dictionaries/{fr,en}/nav.ts) — `label` stays as the French
+ * fallback for any non-translated consumer, `Sidebar` itself renders
+ * `t(`nav.items.${item.key}`)` instead.
+ */
 export const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/analytics", label: "Analytics" },
-  { href: "/accounts", label: "Accounts" },
-  { href: "/expenses", label: "Expenses" },
-  { href: "/incomes", label: "Incomes" },
-  { href: "/transfers", label: "Transfers" },
-  { href: "/budget", label: "Budget" },
-  { href: "/fixed-charges", label: "Fixed Charges" },
-  { href: "/goals", label: "Goals" },
-  { href: "/invitations", label: "Invitations" },
-  { href: "/settings", label: "Settings" },
+  { href: "/dashboard", key: "dashboard", label: "Tableau de bord" },
+  { href: "/analytics", key: "analytics", label: "Analyses" },
+  { href: "/accounts", key: "accounts", label: "Comptes" },
+  { href: "/expenses", key: "expenses", label: "Dépenses" },
+  { href: "/incomes", key: "incomes", label: "Revenus" },
+  { href: "/transfers", key: "transfers", label: "Virements" },
+  { href: "/budget", key: "budget", label: "Budget" },
+  { href: "/fixed-charges", key: "fixedCharges", label: "Charges fixes" },
+  { href: "/goals", key: "goals", label: "Objectifs" },
+  { href: "/invitations", key: "invitations", label: "Invitations" },
+  { href: "/settings", key: "settings", label: "Paramètres" },
 ] as const;
 
 export const PROTECTED_PATHS = NAV_ITEMS.map((item) => item.href);

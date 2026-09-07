@@ -35,9 +35,29 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }
 
+  // Renaming a default (seeded) category must stop it from following the
+  // locale — otherwise resolveCategoryName() (lib/i18n/category-name.ts)
+  // keeps returning the translated dictionary string forever and the
+  // user's rename appears to silently fail everywhere the name is shown.
+  // Only triggered on an actual name change, fetched separately since the
+  // client only sends the fields it's changing (a color/icon-only edit
+  // must leave is_default/translation_key untouched).
+  let updateData: typeof payload.data & { is_default?: false; translation_key?: null } = payload.data;
+  if (payload.data.name !== undefined) {
+    const { data: existing } = await auth.supabase
+      .from("categories")
+      .select("name, is_default")
+      .eq("id", id)
+      .eq("user_id", auth.user.id)
+      .single();
+    if (existing?.is_default && existing.name !== payload.data.name) {
+      updateData = { ...payload.data, is_default: false, translation_key: null };
+    }
+  }
+
   const { error } = await auth.supabase
     .from("categories")
-    .update(payload.data)
+    .update(updateData)
     .eq("id", id)
     .eq("user_id", auth.user.id)
     .is("deleted_at", null);

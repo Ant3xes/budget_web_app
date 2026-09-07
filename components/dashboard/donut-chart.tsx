@@ -21,15 +21,23 @@ interface DonutChartProps {
   height?: number;
   emptyLabel?: string;
   /**
-   * Drill-down base path (plan §Étape 3), e.g. "/expenses" — a slice with a
-   * `categoryId` links to `${drillDownBasePath}?category_id=${categoryId}`
-   * on click; a slice with no categoryId (e.g. "Sans catégorie") stays
-   * non-interactive (there's no "uncategorized" filter on /expenses to link
-   * to). A plain string rather than a callback prop: DonutChart is a Client
-   * Component but its callers (e.g. expense-by-category-widget.tsx) are
-   * Server Components, and a function prop can't cross that boundary.
+   * Drill-down base path, e.g. "/expenses" — a slice with a `categoryId`
+   * links to `${drillDownBasePath}?category_id=${categoryId}` on click.
+   * Still used by /accounts/[id] (account-detail.tsx) and /budget
+   * (budget-list.tsx), which stay full-page navigations — out of the
+   * dashboard redesign's scope.
    */
   drillDownBasePath?: string;
+  /**
+   * Slice-click callback (plan Étape 2, dashboard only) — previously the
+   * dashboard's donut also navigated via `drillDownBasePath`; it now opens
+   * an in-place overlay instead, see `category-transactions-overlay.tsx`.
+   * Takes priority over `drillDownBasePath` when both are given (a caller
+   * only ever passes one). Only called for a slice with a real
+   * `categoryId` — a slice with none (e.g. "Sans catégorie") stays
+   * non-interactive either way.
+   */
+  onSliceClick?: (categoryId: string) => void;
 }
 
 /**
@@ -97,6 +105,7 @@ export function DonutChart({
   height = 280,
   emptyLabel = "Aucune dépense",
   drillDownBasePath,
+  onSliceClick,
 }: DonutChartProps) {
   const router = useRouter();
 
@@ -134,16 +143,20 @@ export function DonutChart({
           isAnimationActive={false}
         >
           {data.map((entry, index) => {
-            const href =
-              drillDownBasePath && entry.categoryId
-                ? `${drillDownBasePath}?category_id=${entry.categoryId}`
-                : null;
+            const categoryId = entry.categoryId;
+            const handleClick = !categoryId
+              ? undefined
+              : onSliceClick
+                ? () => onSliceClick(categoryId)
+                : drillDownBasePath
+                  ? () => router.push(`${drillDownBasePath}?category_id=${categoryId}`)
+                  : undefined;
             return (
               <Cell
                 key={`cell-${index}`}
                 fill={entry.color}
-                onClick={href ? () => router.push(href) : undefined}
-                style={{ cursor: href ? "pointer" : "default" }}
+                onClick={handleClick}
+                style={{ cursor: handleClick ? "pointer" : "default" }}
               />
             );
           })}

@@ -1,3 +1,6 @@
+"use client";
+
+import { useLocale } from "@/components/locale-provider";
 import { StatTile } from "@/components/ui/stat-tile";
 import { formatEuros } from "@/lib/format";
 
@@ -14,9 +17,10 @@ interface SavingsThisMonthProps {
  * against a transfer back out, with no need to special-case `kind`.
  */
 export function SavingsThisMonth({ amountCents }: SavingsThisMonthProps) {
+  const { t } = useLocale();
   return (
     <StatTile
-      label="Épargne ce mois"
+      label={t("dashboard.savingsThisMonth")}
       value={formatEuros(amountCents)}
       valueClassName={amountCents < 0 ? "text-expense" : undefined}
     />

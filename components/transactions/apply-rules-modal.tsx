@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 
+import { useLocale } from "@/components/locale-provider";
+
 type PreviewItem = {
   id: string;
   description: string;
@@ -27,6 +29,7 @@ interface ApplyRulesModalProps {
 }
 
 export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalProps) {
+  const { t } = useLocale();
   const [previews, setPreviews] = useState<PreviewItem[]>([]);
   const [unmatchedCount, setUnmatchedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +44,7 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
       setIsLoading(false);
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
-        setError(data.error ?? "Erreur lors du chargement");
+        setError(data.error ?? t("transactions.applyRules.loadError"));
         return;
       }
       const data = (await res.json()) as {
@@ -53,6 +56,7 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
       setUnmatchedCount(data.unmatched_count);
     };
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` only labels a rare error response; re-fetching on locale change would be wasteful
   }, [kind]);
 
   const handleApply = async () => {
@@ -75,7 +79,7 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
 
     if (!res.ok) {
       const data = (await res.json()) as { error?: string };
-      setError(data.error ?? "Erreur lors de l'application");
+      setError(data.error ?? t("transactions.applyRules.applyError"));
       return;
     }
 
@@ -100,7 +104,7 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
   }
   grouped.sort((a, b) => b.items.length - a.items.length);
 
-  const kindLabel = kind === "expense" ? "dépenses" : "revenus";
+  const kindLabel = t(kind === "expense" ? "transactions.applyRules.kindLabelExpense" : "transactions.applyRules.kindLabelIncome");
 
   return (
     <div
@@ -111,7 +115,7 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
       <div className="w-full max-w-lg rounded-lg bg-white shadow-xl flex flex-col max-h-[85vh] dark:bg-zinc-900">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
-          <h2 className="text-lg font-semibold">Appliquer les règles de catégorisation</h2>
+          <h2 className="text-lg font-semibold">{t("transactions.applyRules.title")}</h2>
           <button
             onClick={onClose}
             className="text-zinc-400 hover:text-zinc-700 text-xl leading-none dark:text-zinc-500 dark:hover:text-zinc-200"
@@ -123,32 +127,47 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
         {/* Content */}
         <div className="flex-1 overflow-auto p-6">
           {isLoading ? (
-            <p className="text-sm text-zinc-500">Chargement…</p>
+            <p className="text-sm text-zinc-500">{t("common.state.loading")}</p>
           ) : appliedCount !== null ? (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
               <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
-              <p className="text-lg font-semibold">Catégorisation appliquée</p>
+              <p className="text-lg font-semibold">{t("transactions.applyRules.appliedTitle")}</p>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                {appliedCount} {kindLabel} catégorisée{appliedCount > 1 ? "s" : ""} avec succès.
+                {t(
+                  kind === "expense"
+                    ? "transactions.applyRules.appliedDescriptionExpense"
+                    : "transactions.applyRules.appliedDescriptionIncome",
+                  { count: appliedCount, plural: appliedCount > 1 ? "s" : "" },
+                )}
               </p>
             </div>
           ) : previews.length === 0 ? (
             <div className="space-y-2">
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Aucune correspondance trouvée parmi les {kindLabel} sans catégorie.
+                {t("transactions.applyRules.noMatch", { kindLabel })}
               </p>
               <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                Ajoutez des règles d&apos;import dans les paramètres pour améliorer la reconnaissance.
+                {t("transactions.applyRules.noMatchHint")}
               </p>
             </div>
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">{previews.length}</span>{" "}
-                {kindLabel} seront catégorisée{previews.length > 1 ? "s" : ""} automatiquement.
+                {t(
+                  kind === "expense"
+                    ? "transactions.applyRules.willApplyCountExpense"
+                    : "transactions.applyRules.willApplyCountIncome",
+                  { kindLabel },
+                )}
                 {unmatchedCount > 0 && (
                   <span className="ml-1 text-zinc-400 dark:text-zinc-500">
-                    ({unmatchedCount} sans correspondance, non modifiée{unmatchedCount > 1 ? "s" : ""})
+                    {t(
+                      kind === "expense"
+                        ? "transactions.applyRules.unmatchedSuffixExpense"
+                        : "transactions.applyRules.unmatchedSuffixIncome",
+                      { count: unmatchedCount, plural: unmatchedCount > 1 ? "s" : "" },
+                    )}
                   </span>
                 )}
               </p>
@@ -165,7 +184,10 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
                         {group.category_name}
                       </span>
                       <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {group.items.length} transaction{group.items.length > 1 ? "s" : ""}
+                        {t("transactions.applyRules.transactionCount", {
+                          count: group.items.length,
+                          plural: group.items.length > 1 ? "s" : "",
+                        })}
                       </span>
                     </div>
                     <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -181,7 +203,9 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
                                 : "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
                             }`}
                           >
-                            {item.suggestion_source === "rule" ? "règle" : "historique"}
+                            {item.suggestion_source === "rule"
+                              ? t("transactions.applyRules.sourceRule")
+                              : t("transactions.applyRules.sourceHistory")}
                           </span>
                         </li>
                       ))}
@@ -202,7 +226,7 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
               onClick={onSuccess}
               className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-white dark:text-zinc-900"
             >
-              Fermer
+              {t("common.actions.close")}
             </button>
           ) : (
             <>
@@ -210,7 +234,7 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
                 onClick={onClose}
                 className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600 dark:text-zinc-300"
               >
-                Annuler
+                {t("common.actions.cancel")}
               </button>
               {previews.length > 0 && (
                 <button
@@ -219,8 +243,11 @@ export function ApplyRulesModal({ kind, onSuccess, onClose }: ApplyRulesModalPro
                   className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-white dark:text-zinc-900"
                 >
                   {isSubmitting
-                    ? "Application en cours…"
-                    : `Appliquer ${previews.length} catégorisation${previews.length > 1 ? "s" : ""}`}
+                    ? t("transactions.applyRules.applying")
+                    : t("transactions.applyRules.applyButton", {
+                        count: previews.length,
+                        plural: previews.length > 1 ? "s" : "",
+                      })}
                 </button>
               )}
             </>
