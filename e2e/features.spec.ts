@@ -92,22 +92,22 @@ test.describe("Import", () => {
     await login(page);
   });
 
-  test("import button opens the modal on expenses page", async ({ page }) => {
-    await page.goto("/expenses");
+  test("import button opens the modal on transactions page", async ({ page }) => {
+    await page.goto("/transactions");
     await page.getByRole("button", { name: /importer/i }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByText(/formats supportés/i)).toBeVisible();
   });
 
   test("shows error when submitting without a file", async ({ page }) => {
-    await page.goto("/expenses");
+    await page.goto("/transactions");
     await page.getByRole("button", { name: /importer/i }).click();
     await page.getByRole("button", { name: /analyser le fichier/i }).click();
     await expect(page.getByText(/sélectionner un fichier/i)).toBeVisible();
   });
 
   test("shows error when submitting without selecting an account", async ({ page }) => {
-    await page.goto("/expenses");
+    await page.goto("/transactions");
     await page.getByRole("button", { name: /importer/i }).click();
     // Deselect account
     await page.getByLabel(/compte de destination/i).selectOption({ index: 0 });
@@ -117,7 +117,7 @@ test.describe("Import", () => {
   });
 
   test("shows preview table after uploading valid N26 CSV", async ({ page }) => {
-    await page.goto("/expenses");
+    await page.goto("/transactions");
     await page.getByRole("button", { name: /importer/i }).click();
     // Wait for the account list to load and auto-select a destination account
     // before uploading, otherwise the analyse can race ahead of the fetch.

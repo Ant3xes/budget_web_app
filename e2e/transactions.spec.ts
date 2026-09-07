@@ -50,14 +50,15 @@ test.describe("Transactions", () => {
     await login(page);
   });
 
-  test("expenses page loads", async ({ page }) => {
-    await page.goto("/expenses");
-    await expect(page.getByRole("heading", { name: /dépenses/i })).toBeVisible();
+  test("transactions page loads", async ({ page }) => {
+    await page.goto("/transactions");
+    await expect(page.getByRole("heading", { name: "Transactions", exact: true })).toBeVisible();
   });
 
-  test("can create an expense", async ({ page }) => {
-    await page.goto("/expenses");
-    await page.getByRole("button", { name: /nouvelle dépense|ajouter/i }).click();
+  test("can create an expense via the type picker", async ({ page }) => {
+    await page.goto("/transactions");
+    await page.getByRole("button", { name: "+ Ajouter" }).click();
+    await page.getByRole("button", { name: "+ Dépense" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     // Wait for accounts to load then select the first one
     await page.getByLabel(/compte/i).selectOption({ index: 1 });
@@ -67,19 +68,23 @@ test.describe("Transactions", () => {
     await expect(page.getByText("Test dépense E2E")).toBeVisible({ timeout: 10000 });
   });
 
-  test("incomes page loads", async ({ page }) => {
-    await page.goto("/incomes");
-    await expect(page.getByRole("heading", { name: /revenus/i })).toBeVisible();
+  test("can create a transfer via the type picker", async ({ page }) => {
+    await page.goto("/transactions");
+    await page.getByRole("button", { name: "+ Ajouter" }).click();
+    await page.getByRole("button", { name: "+ Virement" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.getByLabel(/compte source/i).selectOption({ index: 1 });
+    await page.getByLabel(/compte destination/i).selectOption({ index: 2 });
+    await page.getByLabel(/montant/i).fill("100");
+    await page.getByRole("button", { name: /créer|enregistrer/i }).click();
+    await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 10000 });
   });
-});
 
-test.describe("Transfers", () => {
-  test.beforeEach(async ({ page }) => {
-    await login(page);
-  });
-
-  test("transfers page loads", async ({ page }) => {
-    await page.goto("/transfers");
-    await expect(page.getByRole("heading", { name: /virements/i })).toBeVisible();
+  test("can filter the list by type", async ({ page }) => {
+    await page.goto("/transactions");
+    await page.getByRole("button", { name: "Virements", exact: true }).click();
+    await expect(page).toHaveURL(/\/transactions$/);
+    await page.getByRole("button", { name: "Toutes", exact: true }).click();
+    await expect(page).toHaveURL(/\/transactions$/);
   });
 });

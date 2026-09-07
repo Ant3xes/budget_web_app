@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { fetchTransferCounterparts } from "@/lib/transactions/transfer-counterparts";
 import { uuidSchema } from "@/lib/validation/uuid";
 
 const transactionSchema = z.object({
@@ -15,9 +16,18 @@ const transactionSchema = z.object({
 });
 
 const querySchema = z.object({
-  kind: z.enum(["expense", "income", "transfer_debit", "transfer_credit"]).optional(),
+  // UI-level kind: "transfer" covers both transfer_debit/transfer_credit,
+  // represented by a single row (the debit side) — see the pairing logic
+  // below, which mirrors app/api/transfers/route.ts's GET.
+  kind: z.enum(["expense", "income", "transfer"]).optional(),
   account_id: uuidSchema.optional(),
   category_id: uuidSchema.optional(),
+  // z.coerce.boolean() would treat "?uncategorized=false" as true (any
+  // non-empty string is truthy) — only the literal "true" turns it on.
+  uncategorized: z
+    .string()
+    .optional()
+    .transform((v) => v === "true"),
   date_from: z.string().optional(),
   date_to: z.string().optional(),
   q: z.string().optional(),
@@ -46,9 +56,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: query.error.issues[0]?.message ?? "Invalid query" }, { status: 400 });
   }
 
-  const { kind, account_id, category_id, date_from, date_to, q, page, per_page } = query.data;
+  const { kind, account_id, category_id, uncategorized, date_from, date_to, q, page, per_page } = query.data;
   const from = (page - 1) * per_page;
   const to = from + per_page - 1;
+
+  // Map the UI-level kind to DB kinds. "transfer_credit" rows are always
+  // excluded here — they're the mirror side of a transfer pair, re-attached
+  // below as `to_account` on the representative "transfer_debit" row instead
+  // of appearing as their own line.
+  let dbKinds: string[];
+  if (kind === "expense") dbKinds = ["expense"];
+  else if (kind === "income") dbKinds = ["income"];
+  else if (kind === "transfer") dbKinds = ["transfer_debit"];
+  else dbKinds = ["expense", "income", "transfer_debit"];
+
+  // A transfer has no category, so "uncategorized" only makes sense among
+  // expense/income rows — narrow dbKinds accordingly regardless of `kind`.
+  if (uncategorized) dbKinds = dbKinds.filter((k) => k === "expense" || k === "income");
 
   let builder = auth.supabase
     .from("transactions")
@@ -58,13 +82,14 @@ export async function GET(request: Request) {
     )
     .eq("user_id", auth.user.id)
     .is("deleted_at", null)
-    .in("kind", kind ? [kind] : ["expense", "income", "transfer_debit", "transfer_credit"])
+    .in("kind", dbKinds)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false })
     .range(from, to);
 
   if (account_id) builder = builder.eq("account_id", account_id);
   if (category_id) builder = builder.eq("category_id", category_id);
+  if (uncategorized) builder = builder.is("category_id", null);
   if (date_from) builder = builder.gte("date", date_from);
   if (date_to) builder = builder.lte("date", date_to);
   if (q) builder = builder.ilike("description", `%${q}%`);
@@ -75,7 +100,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ transactions: data ?? [], total: count ?? 0 });
+  const transactions = data ?? [];
+
+  // Batch-fetch the counterpart account for any transfer_debit rows on this page.
+  const transferIds = transactions
+    .filter((t) => t.kind === "transfer_debit" && t.transfer_id)
+    .map((t) => t.transfer_id as string);
+
+  const toAccountByTransferId = await fetchTransferCounterparts(auth.supabase, auth.user.id, transferIds);
+
+  const withToAccount = transactions.map((t) => ({
+    ...t,
+    to_account: t.kind === "transfer_debit" && t.transfer_id ? (toAccountByTransferId[t.transfer_id] ?? null) : null,
+  }));
+
+  return NextResponse.json({ transactions: withToAccount, total: count ?? 0 });
 }
 
 export async function POST(request: Request) {

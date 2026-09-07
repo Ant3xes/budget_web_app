@@ -48,7 +48,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (existing.transfer_id) {
-    return NextResponse.json({ error: "Les transactions de virement ne peuvent pas être modifiées individuellement" }, { status: 400 });
+    return NextResponse.json({ error: "Les transactions de virement doivent être modifiées via le formulaire Virement" }, { status: 400 });
   }
 
   const payload = transactionUpdateSchema.safeParse(await request.json());
@@ -94,7 +94,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (existing.transfer_id) {
-    return NextResponse.json({ error: "Les transactions de virement doivent être supprimées depuis la page Virements" }, { status: 400 });
+    return NextResponse.json({ error: "Les transactions de virement doivent être supprimées via le formulaire Virement" }, { status: 400 });
   }
 
   const { error } = await auth.supabase
