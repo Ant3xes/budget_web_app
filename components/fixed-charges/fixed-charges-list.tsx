@@ -5,6 +5,7 @@ import { AlertTriangle, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import { FixedChargeModal } from "@/components/fixed-charges/fixed-charges-modal";
 import { Button } from "@/components/ui/button";
+import { formatEuros } from "@/lib/format";
 
 type FixedCharge = {
   id: string;
@@ -20,10 +21,6 @@ type FixedCharge = {
   accounts: { name: string } | null;
   categories: { name: string; color: string | null; icon: string | null } | null;
 };
-
-function formatEuros(cents: number): string {
-  return (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-}
 
 function monthlyEquivalent(charge: FixedCharge): number {
   if (charge.frequency === "monthly") return charge.amount_cents;

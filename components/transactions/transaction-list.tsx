@@ -11,6 +11,7 @@ import { CategoryBadge } from "@/components/category-badge";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
+import { formatDate, formatEuros } from "@/lib/format";
 
 type Transaction = {
   id: string;
@@ -36,18 +37,6 @@ interface TransactionListProps {
 }
 
 const PER_PAGE = 25;
-
-const formatAmount = (cents: number, currency: string) => {
-  return `${currency} ${(Math.abs(cents) / 100).toFixed(2)}`;
-};
-
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "Europe/Paris",
-  });
 
 export function TransactionList({ kind }: TransactionListProps) {
   // Pre-filter from a drill-down link (e.g. the dashboard's category donut
@@ -311,7 +300,7 @@ export function TransactionList({ kind }: TransactionListProps) {
                     }`}
                   >
                     {t.kind === "expense" ? "−" : "+"}
-                    {formatAmount(t.amount_cents, t.currency)}
+                    {formatEuros(Math.abs(t.amount_cents), t.currency)}
                   </td>
                   <td className="px-4 py-3">
                     {!t.transfer_id ? (

@@ -8,6 +8,7 @@ import { Banknote, Home, Landmark, PiggyBank, Wallet, type LucideIcon } from "lu
 import { AccountModal } from "@/components/accounts/account-modal";
 import type { BankAccountGroup } from "@/lib/accounts/group-accounts-by-bank";
 import { ACCOUNT_TYPE_LABELS, ACCOUNT_TYPES } from "@/lib/constants";
+import { formatEuros } from "@/lib/format";
 
 type AccountCardData = {
   id: string;
@@ -23,9 +24,6 @@ interface AccountsListProps {
   groups: BankAccountGroup<AccountCardData>[];
   importButton?: ReactNode;
 }
-
-const formatEuros = (cents: number, currency: string) =>
-  `${(cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
 // Per account-type icon + accent color, so each card reads at a glance
 // (courant = current account, épargne/livret = savings-flavored, PEL =
