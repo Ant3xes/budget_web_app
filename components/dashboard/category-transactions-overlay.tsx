@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 
+import { ViewAllLink } from "@/components/dashboard/view-all-link";
 import { useLocale } from "@/components/locale-provider";
 import { formatDate, formatEuros } from "@/lib/format";
 
@@ -17,6 +18,8 @@ interface CategoryTransactionsOverlayProps {
   onClose: () => void;
   title: string;
   transactions: OverlayTransaction[];
+  /** When set, shows a "voir tout" link (issue #35) to `/transactions` with the same filter this overlay is scoped to — e.g. `/transactions?type=expense&category_id=<id>`. */
+  viewAllHref?: string;
 }
 
 /**
@@ -29,7 +32,7 @@ interface CategoryTransactionsOverlayProps {
  * no fetch here, `transactions` is data the dashboard page already resolved
  * server-side (see app/(app)/dashboard/page.tsx).
  */
-export function CategoryTransactionsOverlay({ open, onClose, title, transactions }: CategoryTransactionsOverlayProps) {
+export function CategoryTransactionsOverlay({ open, onClose, title, transactions, viewAllHref }: CategoryTransactionsOverlayProps) {
   const { t } = useLocale();
   if (!open) return null;
 
@@ -44,15 +47,18 @@ export function CategoryTransactionsOverlay({ open, onClose, title, transactions
         className="max-h-[80vh] w-full max-w-md overflow-hidden rounded-lg bg-white shadow-xl dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
           <h2 className="text-base font-semibold">{title}</h2>
-          <button
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-            aria-label={t("common.actions.close")}
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex shrink-0 items-center gap-3">
+            {viewAllHref && <ViewAllLink href={viewAllHref} />}
+            <button
+              onClick={onClose}
+              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+              aria-label={t("common.actions.close")}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
         <ul className="max-h-[60vh] space-y-2 overflow-y-auto p-4 text-sm">
           {transactions.map((tx) => (

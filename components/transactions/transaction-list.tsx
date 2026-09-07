@@ -13,6 +13,7 @@ import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
+import { UNCATEGORIZED_CATEGORY_ID } from "@/lib/constants";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 import { formatDate, formatEuros } from "@/lib/format";
 
@@ -40,7 +41,6 @@ type Category = { id: string; name: string; kind: string; is_default?: boolean; 
 // (the API returns one representative row per transfer pair, see
 // app/api/transactions/route.ts).
 type TypeFilter = "all" | "expense" | "income" | "transfer";
-const UNCATEGORIZED = "__uncategorized__";
 
 const PER_PAGE = 25;
 
@@ -83,7 +83,7 @@ export function TransactionList() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const totalPages = Math.ceil(total / PER_PAGE);
-  const isUncategorized = categorySelection === UNCATEGORIZED;
+  const isUncategorized = categorySelection === UNCATEGORIZED_CATEGORY_ID;
 
   const loadRefData = useCallback(async () => {
     const [accRes, catRes] = await Promise.all([fetch("/api/accounts"), fetch("/api/categories")]);
@@ -259,7 +259,7 @@ export function TransactionList() {
               className="appearance-none rounded-md border border-zinc-300 px-3 py-1.5 pr-8 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
             >
               <option value="">{t("transactions.list.allCategories")}</option>
-              <option value={UNCATEGORIZED}>{t("transactions.list.uncategorizedOption")}</option>
+              <option value={UNCATEGORIZED_CATEGORY_ID}>{t("transactions.list.uncategorizedOption")}</option>
               {filterCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {resolveCategoryName(c, t)}

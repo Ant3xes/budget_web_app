@@ -11,7 +11,12 @@ interface RemainingToLiveProps {
   afterChargesCents: number;
 }
 
-/** "Reste à vivre" (hors charges) KPI bubble — a `StatTile` with an extra parenthetical line via its `footer` slot. */
+/**
+ * "Reste à vivre" (hors charges) KPI bubble — explicitly scoped to the
+ * current month in its label (issue #35). The "with upcoming charges"
+ * figure used to be a parenthetical caption below the main value; it's now
+ * a second label/value pair laid out horizontally next to it instead.
+ */
 export function RemainingToLive({ amountCents, afterChargesCents }: RemainingToLiveProps) {
   const { t } = useLocale();
   return (
@@ -20,9 +25,12 @@ export function RemainingToLive({ amountCents, afterChargesCents }: RemainingToL
       value={formatEuros(amountCents)}
       valueClassName={amountCents < 0 ? "text-expense" : undefined}
       footer={
-        <p className="mt-1 text-xs text-muted-foreground">
-          {t("dashboard.remainingToLive.footer", { amount: formatEuros(afterChargesCents) })}
-        </p>
+        <div className="mt-2 flex items-center gap-2 border-t border-zinc-100 pt-2 text-sm dark:border-zinc-800">
+          <span className="text-muted-foreground">{t("dashboard.remainingToLive.afterChargesLabel")}</span>
+          <span className={`font-semibold ${afterChargesCents < 0 ? "text-expense" : ""}`}>
+            {formatEuros(afterChargesCents)}
+          </span>
+        </div>
       }
     />
   );

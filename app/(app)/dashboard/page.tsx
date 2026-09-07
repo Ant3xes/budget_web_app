@@ -18,6 +18,7 @@ import { computeExpenseByCategory } from "@/lib/accounts/compute-expense-by-cate
 import { groupAccountBalancesByBank, type AccountBalance } from "@/lib/accounts/group-account-balances";
 import { runScopedQuery } from "@/lib/accounts/run-scoped-query";
 import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amount";
+import { UNCATEGORIZED_CATEGORY_ID } from "@/lib/constants";
 import {
   currentMonth,
   parsePeriodParam,
@@ -174,7 +175,7 @@ export default async function DashboardPage({
     now,
     periodToMonth,
   );
-  const [periodTxRes, monthTxRes, recentTxRes, trendTxRes, budgetsRes, goalsRes, fixedChargesRes] = await Promise.all([
+  const [periodTxRes, monthTxRes, recentTxRes, trendTxRes, budgetsRes, goalsRes, fixedChargesRes, paidFixedChargesRes] = await Promise.all([
     // 1. Selected-period transactions for donut + KPIs. `id`/`date`/
     // `description` (beyond kind/amount/category) feed the donut's
     // click-to-open overlay (see groupByCategoryId below) — previously a
@@ -283,6 +284,18 @@ export default async function DashboardPage({
       .lte("next_due_date", currentMonthEnd)
       .is("deleted_at", null)
       .order("next_due_date", { ascending: true }),
+
+    // 8. Active fixed charges already marked paid this month (issue #35's
+    // "Charges fixes" widget also lists these, not just upcoming ones) —
+    // `last_paid_date` is only ever set by POST /api/fixed-charges/:id/pay.
+    supabase
+      .from("fixed_charges")
+      .select("id, name, amount_cents, last_paid_date, categories(icon)")
+      .eq("status", "active")
+      .gte("last_paid_date", monthStart)
+      .lte("last_paid_date", todayStr)
+      .is("deleted_at", null)
+      .order("last_paid_date", { ascending: false }),
   ]);
 
   // ── Per-account / per-category running totals ────────────────────────────
@@ -358,13 +371,30 @@ export default async function DashboardPage({
   const remainingToLiveAfterChargesCents =
     selectedCourantIds.length === 0 ? 0 : courantBalanceCents - upcomingFixedChargesCents;
 
-  const fixedChargeRows = upcomingFixedCharges.map((fc) => ({
-    id: fc.id,
-    name: fc.name,
-    amount_cents: fc.amount_cents,
-    next_due_date: fc.next_due_date,
-    icon: (fc.categories as unknown as { icon: string | null } | null)?.icon ?? null,
-  }));
+  const paidFixedCharges = paidFixedChargesRes.data ?? [];
+  // Merged list for the "Charges fixes" widget: upcoming rows first (already
+  // sorted ascending by the query), paid ones after (already sorted most
+  // recently paid first) — `date` is next_due_date for one, last_paid_date
+  // for the other, both under one field since the widget renders them the
+  // same way (see FixedChargesSummary's own sort/pagination).
+  const fixedChargeRows = [
+    ...upcomingFixedCharges.map((fc) => ({
+      id: fc.id,
+      name: fc.name,
+      amount_cents: fc.amount_cents,
+      date: fc.next_due_date,
+      icon: (fc.categories as unknown as { icon: string | null } | null)?.icon ?? null,
+      paid: false as const,
+    })),
+    ...paidFixedCharges.map((fc) => ({
+      id: fc.id,
+      name: fc.name,
+      amount_cents: fc.amount_cents,
+      date: fc.last_paid_date as string,
+      icon: (fc.categories as unknown as { icon: string | null } | null)?.icon ?? null,
+      paid: true as const,
+    })),
+  ];
 
   // ── "Épargne ce mois" (non-courant accounts, any transaction kind —
   // transfers are stored as two rows so summing amount_cents already nets
@@ -415,6 +445,17 @@ export default async function DashboardPage({
     return { ...point, is_default: meta?.is_default ?? false, translation_key: meta?.translation_key ?? null };
   });
   const donutTransactionsByCategory = groupByCategoryId(periodExpenseTx);
+  // `groupByCategoryId` drops rows with no category_id — the donut's "Sans
+  // catégorie" slice (now clickable, issue #35) needs its own bucket, keyed
+  // by the same sentinel donut-chart.tsx reports on click. Kept local to the
+  // donut rather than changing groupByCategoryId itself, which
+  // budgetTransactionsByCategory below also relies on unchanged.
+  const uncategorizedExpenseTx = periodExpenseTx
+    .filter((tx) => !tx.category_id)
+    .map((tx) => ({ id: tx.id, date: tx.date, description: tx.description, amount_cents: tx.amount_cents }));
+  if (uncategorizedExpenseTx.length > 0) {
+    donutTransactionsByCategory[UNCATEGORIZED_CATEGORY_ID] = uncategorizedExpenseTx;
+  }
 
   // ── Income/expense trend chart (same period) ─────────────────────────────
   const barData = computeIncomeExpenseSeries(trendTxRes.data ?? [], trendMonthCount, now, periodToMonth);
