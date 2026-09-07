@@ -2,21 +2,20 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { useLocale } from "@/components/locale-provider";
 import { ACCOUNT_TYPES } from "@/lib/constants";
 
-const accountSchema = z.object({
-  name: z.string().trim().min(1, "Le nom est requis").max(80),
-  type: z.enum(ACCOUNT_TYPES),
-  bank: z.string().trim().max(80).optional().or(z.literal("")),
-  initialBalanceCents: z.number().int(),
-  currency: z.string().length(3),
-});
-
-export type AccountFormValues = z.infer<typeof accountSchema>;
+export type AccountFormValues = {
+  name: string;
+  type: (typeof ACCOUNT_TYPES)[number];
+  bank?: string;
+  initialBalanceCents: number;
+  currency: string;
+};
 
 interface AccountFormProps {
   accountId?: string;
@@ -26,8 +25,23 @@ interface AccountFormProps {
 
 export function AccountForm({ accountId, defaultValues, onSuccess }: AccountFormProps) {
   const router = useRouter();
+  const { t } = useLocale();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Validation messages need the current `t`, so the schema is built inside
+  // the component (memoized on the locale) rather than at module scope.
+  const accountSchema = useMemo(
+    () =>
+      z.object({
+        name: z.string().trim().min(1, t("accounts.form.nameRequired")).max(80),
+        type: z.enum(ACCOUNT_TYPES),
+        bank: z.string().trim().max(80).optional().or(z.literal("")),
+        initialBalanceCents: z.number().int(),
+        currency: z.string().length(3),
+      }),
+    [t],
+  );
 
   const {
     register,
@@ -58,7 +72,7 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? "Impossible d'enregistrer le compte");
+      setError(result.error ?? t("accounts.form.saveError"));
       return;
     }
 
@@ -74,33 +88,33 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <label className="block text-sm font-medium">
-        Nom
+        {t("accounts.form.name")}
         <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" {...register("name")} />
         {errors.name ? <p className="mt-1 text-xs text-red-600">{errors.name.message}</p> : null}
       </label>
 
       <label className="block text-sm font-medium">
-        Type
+        {t("accounts.form.type")}
         <select className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" {...register("type")}>
           {ACCOUNT_TYPES.map((type) => (
             <option key={type} value={type}>
-              {type}
+              {t(`accounts.types.${type}`)}
             </option>
           ))}
         </select>
       </label>
 
       <label className="block text-sm font-medium">
-        Banque <span className="font-normal text-zinc-400">(optionnel)</span>
+        {t("accounts.form.bank")} <span className="font-normal text-zinc-400">{t("accounts.form.optional")}</span>
         <input
           className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          placeholder="BNP, N26…"
+          placeholder={t("accounts.form.bankPlaceholder")}
           {...register("bank")}
         />
       </label>
 
       <label className="block text-sm font-medium">
-        Solde initial (centimes)
+        {t("accounts.form.initialBalance")}
         <input
           className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
           type="number"
@@ -109,7 +123,7 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
       </label>
 
       <label className="block text-sm font-medium">
-        Devise
+        {t("accounts.form.currency")}
         <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" maxLength={3} {...register("currency")} />
       </label>
 
@@ -120,7 +134,7 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
         disabled={isSubmitting}
         type="submit"
       >
-        {accountId ? "Enregistrer" : "Créer le compte"}
+        {accountId ? t("common.actions.save") : t("accounts.form.createButton")}
       </button>
     </form>
   );

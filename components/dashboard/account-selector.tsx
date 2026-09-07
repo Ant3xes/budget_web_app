@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+import { useLocale } from "@/components/locale-provider";
 import { buildDashboardHref } from "@/lib/dashboard/build-dashboard-href";
 import { pillButtonClass } from "@/lib/dashboard/pill-class";
 
@@ -30,6 +31,7 @@ interface AccountSelectorProps {
  */
 export function AccountSelector({ accounts, selectedIds, basePath, periodParam }: AccountSelectorProps) {
   const router = useRouter();
+  const { t } = useLocale();
   if (accounts.length === 0) return null;
 
   const selectedIdSet = new Set(selectedIds);
@@ -57,7 +59,7 @@ export function AccountSelector({ accounts, selectedIds, basePath, periodParam }
   return (
     <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
       <button type="button" onClick={() => navigate(undefined)} className={pillButtonClass(allSelected)}>
-        Tous les comptes
+        {t("dashboard.allAccounts")}
       </button>
       {/* Separates "Tous les comptes" (a reset control) from the individual
           account toggles below — same divider period-selector.tsx uses

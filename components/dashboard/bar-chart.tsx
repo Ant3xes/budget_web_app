@@ -10,6 +10,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { useLocale } from "@/components/locale-provider";
 import { formatEuros, formatEurosAxisTick } from "@/lib/format";
 import { EXPENSE_COLOR, INCOME_COLOR } from "@/lib/constants";
 import { ChartEmptyState } from "@/components/chart-empty-state";
@@ -25,11 +26,6 @@ interface IncomeExpenseBarChartProps {
   height?: number;
 }
 
-const chartConfig = {
-  expense: { label: "Dépenses", color: EXPENSE_COLOR },
-  income: { label: "Revenus", color: INCOME_COLOR },
-} satisfies ChartConfig;
-
 /**
  * Plan §Étape 2 (visual polish): rebuilt on the shadcn `ChartContainer` —
  * replaces the manual `useTheme()`/`isDark` color computation (also
@@ -43,9 +39,15 @@ const chartConfig = {
  * dashboard-only scope.
  */
 export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarChartProps) {
+  const { t } = useLocale();
   if (data.length === 0) {
     return <ChartEmptyState />;
   }
+
+  const chartConfig = {
+    expense: { label: t("dashboard.expenseIncome.expense"), color: EXPENSE_COLOR },
+    income: { label: t("dashboard.expenseIncome.income"), color: INCOME_COLOR },
+  } satisfies ChartConfig;
 
   const dense = data.length > 8;
   const bottomMargin = dense ? 28 : 4;

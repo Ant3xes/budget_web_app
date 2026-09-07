@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { useLocale } from "@/components/locale-provider";
 import { currentMonth, periodToParam, type Period } from "@/lib/dates/period";
 import { buildDashboardHref } from "@/lib/dashboard/build-dashboard-href";
 
@@ -23,6 +24,7 @@ interface PeriodSelectorCustomProps {
  */
 export function PeriodSelectorCustom({ current, basePath, accountsParam }: PeriodSelectorCustomProps) {
   const router = useRouter();
+  const { t } = useLocale();
   const isActive = current.type === "range";
   const defaultMonth = currentMonth();
   const [from, setFrom] = useState(current.type === "range" ? current.from : defaultMonth);
@@ -52,12 +54,12 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam }: Perio
           : "text-zinc-600 dark:text-zinc-400"
       }`}
     >
-      <span className="whitespace-nowrap">Personnalisé</span>
+      <span className="whitespace-nowrap">{t("periodSelector.custom.label")}</span>
       <input
         type="month"
         value={from}
         onChange={(e) => setFrom(e.target.value)}
-        aria-label="Mois de début"
+        aria-label={t("periodSelector.custom.fromLabel")}
         className="rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
       />
       <span aria-hidden>–</span>
@@ -65,7 +67,7 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam }: Perio
         type="month"
         value={to}
         onChange={(e) => setTo(e.target.value)}
-        aria-label="Mois de fin"
+        aria-label={t("periodSelector.custom.toLabel")}
         className="rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
       />
       <button
@@ -73,7 +75,7 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam }: Perio
         onClick={() => router.push(buildDashboardHref(basePath, { period: `${from}:${to}`, accounts: accountsParam }))}
         className="rounded px-1.5 py-0.5 text-xs font-medium underline-offset-2 hover:underline"
       >
-        Appliquer
+        {t("periodSelector.custom.apply")}
       </button>
     </div>
   );

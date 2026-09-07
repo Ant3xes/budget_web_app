@@ -2,6 +2,8 @@
 
 import { Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from "recharts";
 
+import { useMemo } from "react";
+
 import {
   ChartContainer,
   ChartLegend,
@@ -13,18 +15,13 @@ import {
 import { formatEuros, formatEurosAxisTick } from "@/lib/format";
 import { INCOME_COLOR, EXPENSE_COLOR } from "@/lib/constants";
 import { ChartEmptyState } from "@/components/chart-empty-state";
+import { useLocale } from "@/components/locale-provider";
 import type { IncomeExpenseSeriesPoint } from "@/lib/accounts/compute-income-expense-series";
 
 interface CashflowChartProps {
   data: IncomeExpenseSeriesPoint[];
   height?: number;
 }
-
-const chartConfig = {
-  income: { label: "Revenus", color: INCOME_COLOR },
-  expenseNegated: { label: "Dépenses", color: EXPENSE_COLOR },
-  net: { label: "Net", color: "var(--chart-3)" },
-} satisfies ChartConfig;
 
 /**
  * "Cash-flow mensuel" — diverging stacked bars (plan §Étape 4, plan
@@ -36,6 +33,18 @@ const chartConfig = {
  * income/expense) rather than a redundant 3rd bar.
  */
 export function CashflowChart({ data, height = 280 }: CashflowChartProps) {
+  const { t } = useLocale();
+
+  const chartConfig = useMemo(
+    () =>
+      ({
+        income: { label: t("analytics.cashflow.income"), color: INCOME_COLOR },
+        expenseNegated: { label: t("analytics.cashflow.expense"), color: EXPENSE_COLOR },
+        net: { label: t("analytics.cashflow.net"), color: "var(--chart-3)" },
+      }) satisfies ChartConfig,
+    [t],
+  );
+
   if (data.length === 0) {
     return <ChartEmptyState />;
   }

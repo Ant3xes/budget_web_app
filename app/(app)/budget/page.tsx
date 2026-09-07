@@ -1,4 +1,5 @@
 import { BudgetList } from "@/components/budget/budget-list";
+import { T } from "@/components/i18n/t";
 
 export default async function BudgetPage({
   searchParams,
@@ -15,7 +16,9 @@ export default async function BudgetPage({
 
   return (
     <section className="space-y-4 p-6">
-      <h1 className="text-2xl font-semibold">Budget</h1>
+      <h1 className="text-2xl font-semibold">
+        <T k="budget.title" />
+      </h1>
       <BudgetList initialMonth={month} />
     </section>
   );

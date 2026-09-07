@@ -11,31 +11,40 @@ async function login(page: import("@playwright/test").Page) {
   await expect(page).toHaveURL(/dashboard/);
 }
 
-// Safety net for the dashboard redesign (see plan §6, Étape 0): captures the
-// content contract of the current dashboard so the widget-extraction refactor
-// in Étape 1 can't silently drop a section.
+// Safety net for the dashboard v2 redesign (bank bubbles, combined
+// expenses/income line, click-to-open overlay instead of navigation, i18n):
+// captures the current dashboard's content contract so a future refactor
+// can't silently drop a section or regress the FR default / EN toggle.
 test.describe("Dashboard (smoke)", () => {
-  test("renders the KPI cards, charts and recent transactions", async ({ page }) => {
+  test("renders the header, KPI tiles, charts and recent transactions", async ({ page }) => {
     await login(page);
 
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tableau de bord" })).toBeVisible();
 
-    // 3 KPI cards
+    // Solde consolidé + bank bubbles (replaces the former "Comptes par banque" block)
     await expect(page.getByText("Solde consolidé")).toBeVisible();
-    await expect(page.getByText("Dépenses ce mois")).toBeVisible();
-    await expect(page.getByText("Revenus ce mois")).toBeVisible();
+
+    // Combined expenses/income tile (replaces the former separate "Dépenses
+    // ce mois"/"Revenus ce mois" tiles)
+    await expect(page.getByText("Dépenses / Revenus (ce mois)")).toBeVisible();
+    await expect(page.getByText("Reste à vivre (hors charges)")).toBeVisible();
 
     // Charts
-    await expect(page.getByText("Dépenses par catégorie (ce mois)")).toBeVisible();
+    await expect(page.getByText("Dépenses par catégorie (septembre 2026)")).toBeVisible();
     await expect(page.getByText("Revenus vs Dépenses (6 mois)")).toBeVisible();
+
+    // New "Charges fixes" block
+    await expect(page.getByText("Charges fixes (à venir)")).toBeVisible();
+
+    // "Comptes par banque" was removed in favor of the bank bubbles
+    await expect(page.getByText("Comptes par banque")).toHaveCount(0);
 
     // Recent transactions section
     await expect(page.getByText("Dernières transactions")).toBeVisible();
+    await expect(page.getByText("Objectifs d'épargne")).toBeVisible();
   });
 
-  // Plan §Étape 3: period filter, account balances by bank, savings goals
-  // summary, and category drill-down.
-  test("period filter, new widgets, and category drill-down work", async ({ page }) => {
+  test("period filter and category drill-down (overlay, not navigation) work", async ({ page }) => {
     await login(page);
 
     await expect(page.getByRole("link", { name: "Ce mois" })).toBeVisible();
@@ -47,15 +56,21 @@ test.describe("Dashboard (smoke)", () => {
     // The trend chart keeps its 6-month floor regardless of a shorter filter.
     await expect(page.getByText("Revenus vs Dépenses (6 mois)")).toBeVisible();
 
-    await expect(page.getByText("Comptes par banque")).toBeVisible();
-    await expect(page.getByText("Objectifs d'épargne")).toBeVisible();
-
-    // Drill-down: a budget row's category name links into /expenses
-    // pre-filtered on that category (seed data has budgets for the current
+    // Drill-down: a budget bar click now opens an in-place overlay instead
+    // of navigating to /expenses (seed data has budgets for the current
     // month — see supabase/seed.sql).
-    const firstCategoryLink = page.locator('a[href^="/expenses?category_id="]').first();
-    await expect(firstCategoryLink).toBeVisible();
-    await firstCategoryLink.click();
-    await expect(page).toHaveURL(/\/expenses\?category_id=/);
+    const budgetChart = page.locator("text=Budgets du mois en cours").locator("..");
+    await budgetChart.locator(".recharts-bar-rectangle").first().click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page).not.toHaveURL(/\/expenses\?category_id=/);
+  });
+
+  test("switching to English updates menus and dashboard headings", async ({ page }) => {
+    await login(page);
+
+    await page.getByRole("button", { name: "EN", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByText("Consolidated balance")).toBeVisible();
+    await expect(page.getByText("Recent transactions")).toBeVisible();
   });
 });

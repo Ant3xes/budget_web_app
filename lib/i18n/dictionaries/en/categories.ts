@@ -1,0 +1,26 @@
+export const categories = {
+  kind: {
+    expense: "Expense",
+    income: "Income",
+    transfer: "Transfer",
+  },
+  defaults: {
+    alimentation: "Groceries",
+    logement: "Housing",
+    transport: "Transport",
+    sante: "Health",
+    loisirs: "Leisure",
+    vetements: "Clothing",
+    restaurants: "Restaurants",
+    voyages: "Travel",
+    abonnements: "Subscriptions",
+    education: "Education",
+    cadeaux: "Gifts",
+    banque_frais: "Bank & Fees",
+    salaire: "Salary",
+    freelance: "Freelance",
+    remboursement: "Reimbursement",
+    autre_revenu: "Other income",
+    virement_interne: "Internal transfer",
+  },
+} as const;

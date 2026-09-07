@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import { FixedChargeModal } from "@/components/fixed-charges/fixed-charges-modal";
+import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { formatEuros } from "@/lib/format";
+import { formatFixedChargeDate, isDueSoon } from "@/lib/fixed-charges/due-date";
 
 type FixedCharge = {
   id: string;
@@ -28,34 +30,6 @@ function monthlyEquivalent(charge: FixedCharge): number {
   return Math.round(charge.amount_cents / 12);
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso + "T00:00:00Z").toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
-function isDueSoon(iso: string): boolean {
-  const due = new Date(iso + "T00:00:00Z");
-  const in7 = new Date();
-  in7.setDate(in7.getDate() + 7);
-  return due <= in7;
-}
-
-const FREQUENCY_LABELS = {
-  monthly: "Mensuelle",
-  quarterly: "Trimestrielle",
-  yearly: "Annuelle",
-} as const;
-
-const STATUS_LABELS = {
-  active: "Actif",
-  suspended: "Suspendu",
-  cancelled: "Annulé",
-} as const;
-
 const STATUS_COLORS = {
   active: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   suspended: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -63,6 +37,7 @@ const STATUS_COLORS = {
 } as const;
 
 export function FixedChargesList() {
+  const { t } = useLocale();
   const [charges, setCharges] = useState<FixedCharge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -108,7 +83,7 @@ export function FixedChargesList() {
 
   const handleDelete = async (id: string) => {
     setOpenMenuId(null);
-    if (!confirm("Supprimer définitivement cette charge fixe ?")) return;
+    if (!confirm(t("fixedCharges.deleteConfirm"))) return;
     const res = await fetch(`/api/fixed-charges/${id}`, { method: "DELETE" });
     if (res.ok) await loadData();
   };
@@ -121,7 +96,7 @@ export function FixedChargesList() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-zinc-500">
-            Total mensuel estimé (charges actives) :{" "}
+            {t("fixedCharges.totalMonthlyEstimate")}{" "}
             <span className="font-semibold text-zinc-800 dark:text-zinc-100">{formatEuros(totalMonthly)}</span>
           </p>
         </div>
@@ -129,29 +104,29 @@ export function FixedChargesList() {
           onClick={() => setShowCreate(true)}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          + Nouvelle charge
+          {t("fixedCharges.newCharge")}
         </button>
       </div>
 
       {isLoading ? (
-        <p className="py-8 text-center text-sm text-zinc-500">Chargement…</p>
+        <p className="py-8 text-center text-sm text-zinc-500">{t("common.state.loading")}</p>
       ) : charges.length === 0 ? (
         <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-600">
-          <p className="text-zinc-500">Aucune charge fixe enregistrée.</p>
+          <p className="text-zinc-500">{t("fixedCharges.empty")}</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg bg-white shadow-sm dark:bg-zinc-900">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100 text-left text-xs font-medium text-zinc-500 uppercase dark:border-zinc-700 dark:text-zinc-400">
-                <th className="px-4 py-3">Nom</th>
-                <th className="px-4 py-3 text-right">Montant</th>
-                <th className="px-4 py-3 text-right">Éq. mensuel</th>
-                <th className="px-4 py-3">Fréquence</th>
-                <th className="px-4 py-3">Prochaine échéance</th>
-                <th className="px-4 py-3">Compte</th>
-                <th className="px-4 py-3">Statut</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3">{t("fixedCharges.table.name")}</th>
+                <th className="px-4 py-3 text-right">{t("fixedCharges.table.amount")}</th>
+                <th className="px-4 py-3 text-right">{t("fixedCharges.table.monthlyEquivalent")}</th>
+                <th className="px-4 py-3">{t("fixedCharges.table.frequency")}</th>
+                <th className="px-4 py-3">{t("fixedCharges.table.nextDueDate")}</th>
+                <th className="px-4 py-3">{t("fixedCharges.table.account")}</th>
+                <th className="px-4 py-3">{t("fixedCharges.table.status")}</th>
+                <th className="px-4 py-3 text-right">{t("fixedCharges.table.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -175,19 +150,19 @@ export function FixedChargesList() {
                     <td className="px-4 py-3 text-right text-zinc-500">
                       {charge.frequency !== "monthly" ? formatEuros(monthlyEquivalent(charge)) : "—"}
                     </td>
-                    <td className="px-4 py-3">{FREQUENCY_LABELS[charge.frequency]}</td>
+                    <td className="px-4 py-3">{t(`fixedCharges.frequency.${charge.frequency}`)}</td>
                     <td className={`px-4 py-3 ${dueSoon ? "font-semibold text-red-700 dark:text-red-400" : ""}`}>
-                      {formatDate(charge.next_due_date)}
+                      {formatFixedChargeDate(charge.next_due_date)}
                       {dueSoon && (
                         <span className="ml-1 inline-flex items-center gap-0.5 text-xs text-red-500">
-                          <AlertTriangle className="h-3 w-3" /> Bientôt
+                          <AlertTriangle className="h-3 w-3" /> {t("fixedCharges.dueSoon")}
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-zinc-500">{charge.accounts?.name ?? "—"}</td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[charge.status]}`}>
-                        {STATUS_LABELS[charge.status]}
+                        {t(`fixedCharges.status.${charge.status}`)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -196,8 +171,8 @@ export function FixedChargesList() {
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => setEditingCharge(charge)}
-                          aria-label="Modifier la charge fixe"
-                          title="Modifier"
+                          aria-label={t("fixedCharges.editCharge")}
+                          title={t("common.actions.edit")}
                         >
                           <Pencil />
                         </Button>
@@ -205,8 +180,8 @@ export function FixedChargesList() {
                           variant="destructive"
                           size="icon-sm"
                           onClick={() => handleDelete(charge.id)}
-                          aria-label="Supprimer la charge fixe"
-                          title="Supprimer"
+                          aria-label={t("fixedCharges.deleteCharge")}
+                          title={t("common.actions.delete")}
                         >
                           <Trash2 />
                         </Button>
@@ -215,8 +190,8 @@ export function FixedChargesList() {
                             variant="ghost"
                             size="icon-sm"
                             onClick={() => setOpenMenuId(openMenuId === charge.id ? null : charge.id)}
-                            aria-label="Autres actions"
-                            title="Autres actions"
+                            aria-label={t("fixedCharges.otherActions")}
+                            title={t("fixedCharges.otherActions")}
                           >
                             <MoreVertical />
                           </Button>
@@ -227,7 +202,7 @@ export function FixedChargesList() {
                                   onClick={() => handleStatusChange(charge.id, "suspended")}
                                   className="w-full px-4 py-2 text-left text-sm text-yellow-700 hover:bg-zinc-50"
                                 >
-                                  Suspendre
+                                  {t("fixedCharges.suspend")}
                                 </button>
                               )}
                               {charge.status === "suspended" && (
@@ -235,7 +210,7 @@ export function FixedChargesList() {
                                   onClick={() => handleStatusChange(charge.id, "active")}
                                   className="w-full px-4 py-2 text-left text-sm text-green-700 hover:bg-zinc-50"
                                 >
-                                  Réactiver
+                                  {t("fixedCharges.reactivate")}
                                 </button>
                               )}
                               {charge.status !== "cancelled" && (
@@ -243,7 +218,7 @@ export function FixedChargesList() {
                                   onClick={() => handleStatusChange(charge.id, "cancelled")}
                                   className="w-full px-4 py-2 text-left text-sm text-zinc-500 hover:bg-zinc-50"
                                 >
-                                  Marquer annulé
+                                  {t("fixedCharges.markCancelled")}
                                 </button>
                               )}
                             </div>

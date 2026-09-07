@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -7,16 +8,13 @@ import { formatEurosAxisTick } from "@/lib/format";
 import { EXPENSE_COLOR } from "@/lib/constants";
 import { ChartEmptyState } from "@/components/chart-empty-state";
 import { EuroTooltipValue } from "@/components/euro-tooltip-value";
+import { useLocale } from "@/components/locale-provider";
 import type { IncomeExpenseSeriesPoint } from "@/lib/accounts/compute-income-expense-series";
 
 interface ExpenseTrendChartProps {
   data: IncomeExpenseSeriesPoint[];
   height?: number;
 }
-
-const chartConfig = {
-  expense: { label: "Dépenses", color: EXPENSE_COLOR },
-} satisfies ChartConfig;
 
 /** Signed % change of the last point vs the one before it, or null with fewer than 2 points (or a zero baseline — a % change from 0 is undefined). */
 function computeMonthOverMonthDelta(data: IncomeExpenseSeriesPoint[]): { pct: number; isIncrease: boolean } | null {
@@ -36,6 +34,16 @@ function computeMonthOverMonthDelta(data: IncomeExpenseSeriesPoint[]): { pct: nu
  * green, regardless of the raw sign.
  */
 export function ExpenseTrendChart({ data, height = 240 }: ExpenseTrendChartProps) {
+  const { t } = useLocale();
+
+  const chartConfig = useMemo(
+    () =>
+      ({
+        expense: { label: t("analytics.expenseTrend.seriesLabel"), color: EXPENSE_COLOR },
+      }) satisfies ChartConfig,
+    [t],
+  );
+
   if (data.length === 0) {
     return <ChartEmptyState />;
   }
@@ -46,7 +54,7 @@ export function ExpenseTrendChart({ data, height = 240 }: ExpenseTrendChartProps
     <div>
       {delta && (
         <p className={`mb-2 text-sm font-medium ${delta.isIncrease ? "text-expense" : "text-income"}`}>
-          {delta.isIncrease ? "▲" : "▼"} {Math.abs(delta.pct).toFixed(0)}% vs mois précédent
+          {delta.isIncrease ? "▲" : "▼"} {Math.abs(delta.pct).toFixed(0)}% {t("analytics.expenseTrend.vsPreviousMonth")}
         </p>
       )}
       <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -7,16 +8,13 @@ import { formatEurosAxisTick } from "@/lib/format";
 import { NET_WORTH_COLOR } from "@/lib/constants";
 import { ChartEmptyState } from "@/components/chart-empty-state";
 import { EuroTooltipValue } from "@/components/euro-tooltip-value";
+import { useLocale } from "@/components/locale-provider";
 import type { BalanceSeriesPoint } from "@/lib/accounts/compute-balance-series";
 
 interface NetWorthChartProps {
   data: BalanceSeriesPoint[];
   height?: number;
 }
-
-const chartConfig = {
-  balance: { label: "Patrimoine net", color: NET_WORTH_COLOR },
-} satisfies ChartConfig;
 
 /**
  * "Patrimoine net" detail chart (plan §Étape 4) — single-series area, built
@@ -29,6 +27,16 @@ const chartConfig = {
  * function needed (see app/(app)/analytics/page.tsx).
  */
 export function NetWorthChart({ data, height = 280 }: NetWorthChartProps) {
+  const { t } = useLocale();
+
+  const chartConfig = useMemo(
+    () =>
+      ({
+        balance: { label: t("analytics.netWorth.seriesLabel"), color: NET_WORTH_COLOR },
+      }) satisfies ChartConfig,
+    [t],
+  );
+
   if (data.length === 0) {
     return <ChartEmptyState />;
   }

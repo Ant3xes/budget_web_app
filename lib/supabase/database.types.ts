@@ -119,8 +119,10 @@ export type Database = {
           deleted_at: string | null
           icon: string | null
           id: string
+          is_default: boolean
           kind: string
           name: string
+          translation_key: string | null
           updated_at: string
           user_id: string
         }
@@ -130,8 +132,10 @@ export type Database = {
           deleted_at?: string | null
           icon?: string | null
           id?: string
+          is_default?: boolean
           kind: string
           name: string
+          translation_key?: string | null
           updated_at?: string
           user_id: string
         }
@@ -141,8 +145,10 @@ export type Database = {
           deleted_at?: string | null
           icon?: string | null
           id?: string
+          is_default?: boolean
           kind?: string
           name?: string
+          translation_key?: string | null
           updated_at?: string
           user_id?: string
         }

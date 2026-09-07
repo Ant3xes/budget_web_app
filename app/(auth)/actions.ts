@@ -44,7 +44,7 @@ export async function signup(formData: FormData) {
     redirect("/dashboard");
   }
 
-  redirect("/login?message=Signup%20successful.%20Confirm%20your%20email%20before%20logging%20in.");
+  redirect("/login?message=signupSuccess");
 }
 
 export async function logout() {

@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, CheckCircle2 } from "lucide-react";
 
+import { useLocale } from "@/components/locale-provider";
+import { resolveCategoryName } from "@/lib/i18n/category-name";
+
 type PreviewRowRaw = {
   hash: string;
   date: string;
@@ -16,7 +19,14 @@ type PreviewRowRaw = {
 
 type PreviewRow = PreviewRowRaw & { rowId: string };
 
-type Category = { id: string; name: string; kind: string; icon: string | null };
+type Category = {
+  id: string;
+  name: string;
+  kind: string;
+  icon: string | null;
+  is_default?: boolean;
+  translation_key?: string | null;
+};
 type Account = { id: string; name: string };
 
 interface ImportModalProps {
@@ -41,6 +51,7 @@ const formatDate = (iso: string) =>
   });
 
 export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: ImportModalProps) {
+  const { t } = useLocale();
   const [step, setStep] = useState<Step>("upload");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -82,11 +93,11 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
   const handleUpload = async () => {
     const file = fileRef.current?.files?.[0];
     if (!file) {
-      setError("Veuillez sélectionner un fichier");
+      setError(t("transactions.importModal.selectFileError"));
       return;
     }
     if (!selectedAccountId) {
-      setError("Veuillez sélectionner un compte");
+      setError(t("transactions.importModal.selectAccountError"));
       return;
     }
 
@@ -101,7 +112,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
 
     if (!res.ok) {
       const data = (await res.json()) as { error?: string };
-      setError(data.error ?? "Erreur lors du parsing");
+      setError(data.error ?? t("transactions.importModal.parseError"));
       return;
     }
 
@@ -116,7 +127,11 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
         .filter((r) => r.kind === kind)
         .map((r, i): PreviewRow => ({ ...r, rowId: `${kind}_${i}` }));
       if (rows.length === 0) {
-        setError(`Aucune transaction de type "${kind === "expense" ? "dépense" : "revenu"}" trouvée dans ce fichier.`);
+        setError(
+          t("transactions.importModal.noTransactionsOfKindError", {
+            kind: t(kind === "expense" ? "transactions.importModal.kindExpenseWord" : "transactions.importModal.kindIncomeWord"),
+          }),
+        );
         return;
       }
       if (kind === "expense") setExpensePreview(rows);
@@ -129,7 +144,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
     } else {
       // Two-step mode (all kinds)
       if (data.preview.length === 0) {
-        setError("Aucune transaction trouvée dans ce fichier.");
+        setError(t("transactions.importModal.noTransactions"));
         return;
       }
       const expenses = data.preview
@@ -158,7 +173,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
     const allRows = [...expensePreview, ...incomePreview];
     const selected = allRows.filter((r) => checked[r.rowId]);
     if (selected.length === 0) {
-      setError("Aucune transaction sélectionnée");
+      setError(t("transactions.importModal.noTransactionSelected"));
       return;
     }
 
@@ -185,7 +200,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
 
     if (!res.ok) {
       const data = (await res.json()) as { error?: string };
-      setError(data.error ?? "Erreur lors de l'import");
+      setError(data.error ?? t("transactions.importModal.importError"));
       return;
     }
 
@@ -214,7 +229,9 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
           <h2 className="text-lg font-semibold">
-            {kind ? `Importer des ${kind === "expense" ? "dépenses" : "revenus"}` : "Importer des transactions"}
+            {kind
+              ? t(kind === "expense" ? "transactions.importModal.titleExpense" : "transactions.importModal.titleIncome")
+              : t("transactions.importModal.titleAll")}
           </h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 text-xl leading-none dark:text-zinc-500 dark:hover:text-zinc-200">
             ×
@@ -223,21 +240,21 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
 
         {/* Steps indicator */}
         <div className="flex gap-4 px-6 py-3 border-b border-zinc-100 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-          <span className={step === "upload" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>1. Fichier</span>
+          <span className={step === "upload" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepFile")}</span>
           <span>→</span>
           {kind ? (
             <>
-              <span className={step === "preview_expense" || step === "preview_income" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>2. Prévisualisation</span>
+              <span className={step === "preview_expense" || step === "preview_income" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepPreview")}</span>
               <span>→</span>
-              <span className={step === "done" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>3. Confirmation</span>
+              <span className={step === "done" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepConfirm")}</span>
             </>
           ) : (
             <>
-              <span className={step === "preview_expense" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>2. Dépenses</span>
+              <span className={step === "preview_expense" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepExpenses")}</span>
               <span>→</span>
-              <span className={step === "preview_income" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>3. Revenus</span>
+              <span className={step === "preview_income" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepIncomes")}</span>
               <span>→</span>
-              <span className={step === "done" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>4. Confirmation</span>
+              <span className={step === "done" ? "font-semibold text-zinc-900 dark:text-zinc-100" : ""}>{t("transactions.importModal.stepConfirmAll")}</span>
             </>
           )}
         </div>
@@ -247,25 +264,26 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
           {step === "upload" && (
             <div className="space-y-4 max-w-md">
               <p className="text-sm text-zinc-600">
-                Formats supportés : <strong>N26</strong> (.csv) et <strong>BNP</strong> (.xls, .xlsx).
+                {t("transactions.importModal.formatsSupported")} <strong>N26</strong> (.csv) {t("transactions.importModal.and")}{" "}
+                <strong>BNP</strong> (.xls, .xlsx).
               </p>
 
               {defaultAccountId ? (
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Compte :{" "}
+                  {t("transactions.importModal.accountLabel")}{" "}
                   <span className="font-medium text-zinc-800 dark:text-zinc-200">
                     {accounts.find((a) => a.id === defaultAccountId)?.name ?? "…"}
                   </span>
                 </p>
               ) : (
                 <label className="block text-sm font-medium">
-                  Compte de destination
+                  {t("transactions.importModal.destinationAccount")}
                   <select
                     value={selectedAccountId}
                     onChange={(e) => setSelectedAccountId(e.target.value)}
                     className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
                   >
-                    <option value="">— Sélectionner —</option>
+                    <option value="">{t("transactions.importModal.selectPlaceholder")}</option>
                     {accounts.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.name}
@@ -276,7 +294,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
               )}
 
               <label className="block text-sm font-medium">
-                Fichier
+                {t("transactions.importModal.file")}
                 <input
                   ref={fileRef}
                   type="file"
@@ -292,7 +310,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                 disabled={isLoading}
                 className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
               >
-                {isLoading ? "Analyse en cours…" : "Analyser le fichier"}
+                {isLoading ? t("transactions.importModal.analyzing") : t("transactions.importModal.analyzeButton")}
               </button>
             </div>
           )}
@@ -301,19 +319,25 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
             <div className="space-y-3">
               {!kind && (
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                  {step === "preview_expense" ? "Étape 2 — Dépenses" : "Étape 3 — Revenus"}
+                  {step === "preview_expense" ? t("transactions.importModal.stepExpensesLabel") : t("transactions.importModal.stepIncomesLabel")}
                 </p>
               )}
               {currentPreview.length === 0 ? (
                 <p className="text-sm text-zinc-500">
-                  Aucune transaction de type &laquo;&nbsp;{step === "preview_expense" ? "dépense" : "revenu"}&nbsp;&raquo; dans ce fichier.
+                  {t("transactions.importModal.noTransactionsOfKindPreview", {
+                    kind: t(step === "preview_expense" ? "transactions.importModal.kindExpenseWord" : "transactions.importModal.kindIncomeWord"),
+                  })}
                 </p>
               ) : (
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-zinc-600">
-                      {currentPreview.length} transaction{currentPreview.length > 1 ? "s" : ""} trouvée{currentPreview.length > 1 ? "s" : ""} —{" "}
-                      {currentPreview.filter((r) => r.is_duplicate).length} doublon{currentPreview.filter((r) => r.is_duplicate).length > 1 ? "s" : ""} détecté{currentPreview.filter((r) => r.is_duplicate).length > 1 ? "s" : ""}
+                      {t("transactions.importModal.transactionsFound", {
+                        count: currentPreview.length,
+                        plural: currentPreview.length > 1 ? "s" : "",
+                        dupCount: currentPreview.filter((r) => r.is_duplicate).length,
+                        dupPlural: currentPreview.filter((r) => r.is_duplicate).length > 1 ? "s" : "",
+                      })}
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
                       {/* Filter buttons */}
@@ -328,7 +352,11 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                                 : "hover:bg-zinc-50 text-zinc-500 dark:text-zinc-400 dark:hover:bg-zinc-800"
                             }`}
                           >
-                            {f === "all" ? "Tous" : f === "transfer" ? "Virements" : "Autres"}
+                            {f === "all"
+                              ? t("transactions.importModal.filterAll")
+                              : f === "transfer"
+                                ? t("transactions.importModal.filterTransfer")
+                                : t("transactions.importModal.filterOther")}
                           </button>
                         ))}
                       </div>
@@ -342,7 +370,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                           }}
                           className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                         >
-                          Tout sélectionner
+                          {t("transactions.importModal.selectAll")}
                         </button>
                         <button
                           onClick={() => {
@@ -352,7 +380,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                           }}
                           className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
                         >
-                          Tout désélectionner
+                          {t("transactions.importModal.selectNone")}
                         </button>
                       </div>
                     </div>
@@ -366,13 +394,16 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                     return (
                       <div className="flex flex-wrap items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs dark:border-zinc-700 dark:bg-zinc-800">
                         <span className="font-medium text-zinc-700 dark:text-zinc-200">
-                          {checkedInView.length} ligne{checkedInView.length > 1 ? "s" : ""} sélectionnée{checkedInView.length > 1 ? "s" : ""}
+                          {t("transactions.importModal.rowsSelected", {
+                            count: checkedInView.length,
+                            plural: checkedInView.length > 1 ? "s" : "",
+                          })}
                         </span>
                         {nonTransferChecked.length > 0 && (
                           <>
                             <span className="text-zinc-300 dark:text-zinc-600">|</span>
                             <span className="text-zinc-500 dark:text-zinc-400">
-                              Catégorie <span className="text-zinc-400">({nonTransferChecked.length})</span> :
+                              {t("transactions.importModal.categoryLabel")} <span className="text-zinc-400">({nonTransferChecked.length})</span> :
                             </span>
                             <select
                               defaultValue=""
@@ -388,10 +419,10 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                               }}
                               className="rounded border border-zinc-300 px-2 py-0.5 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
                             >
-                              <option value="">— Choisir —</option>
+                              <option value="">{t("transactions.importModal.chooseOption")}</option>
                               {currentCategories.map((c) => (
                                 <option key={c.id} value={c.id}>
-                                  {c.icon ? `${c.icon} ` : ""}{c.name}
+                                  {c.icon ? `${c.icon} ` : ""}{resolveCategoryName(c, t)}
                                 </option>
                               ))}
                             </select>
@@ -401,7 +432,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                           <>
                             <span className="text-zinc-300 dark:text-zinc-600">|</span>
                             <span className="text-zinc-500 dark:text-zinc-400">
-                              Contrepartie <span className="text-zinc-400">({transferChecked.length})</span> :
+                              {t("transactions.importModal.counterpartyLabel")} <span className="text-zinc-400">({transferChecked.length})</span> :
                             </span>
                             <select
                               defaultValue=""
@@ -417,7 +448,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                               }}
                               className="rounded border border-blue-300 bg-blue-50 px-2 py-0.5 dark:border-blue-700 dark:bg-blue-900/30 dark:text-zinc-100"
                             >
-                              <option value="">— Choisir —</option>
+                              <option value="">{t("transactions.importModal.chooseOption")}</option>
                               {otherAccounts.map((a) => (
                                 <option key={a.id} value={a.id}>{a.name}</option>
                               ))}
@@ -435,11 +466,11 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                           <th className="px-3 py-2">
                             <Check className="h-3.5 w-3.5" />
                           </th>
-                          <th className="px-3 py-2">Date</th>
-                          <th className="px-3 py-2">Description</th>
-                          <th className="px-3 py-2 text-right">Montant</th>
-                          <th className="px-3 py-2">Virement ?</th>
-                          <th className="px-3 py-2 min-w-[160px]">Catégorie / Contrepartie</th>
+                          <th className="px-3 py-2">{t("transactions.importModal.colDate")}</th>
+                          <th className="px-3 py-2">{t("transactions.importModal.colDescription")}</th>
+                          <th className="px-3 py-2 text-right">{t("transactions.importModal.colAmount")}</th>
+                          <th className="px-3 py-2">{t("transactions.importModal.colTransfer")}</th>
+                          <th className="px-3 py-2 min-w-[160px]">{t("transactions.importModal.colCategoryOrCounterparty")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -471,7 +502,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                             <td className="px-3 py-2 max-w-[200px] truncate cursor-help" title={row.description}>
                               {row.description}
                               {row.is_duplicate && (
-                                <span className="ml-1 rounded bg-zinc-200 px-1 py-0.5 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">doublon</span>
+                                <span className="ml-1 rounded bg-zinc-200 px-1 py-0.5 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400">{t("transactions.importModal.duplicateBadge")}</span>
                               )}
                             </td>
                             <td
@@ -491,7 +522,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                                       : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-600"
                                   }`}
                                 >
-                                  {rowIsTransfer ? "Oui" : "Non"}
+                                  {rowIsTransfer ? t("transactions.importModal.transferYes") : t("transactions.importModal.transferNo")}
                                 </button>
                               )}
                             </td>
@@ -508,11 +539,11 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                                       : "border-zinc-300 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
                                   }`}
                                 >
-                                  <option value="">— Sans catégorie —</option>
+                                  <option value="">{t("transactions.importModal.noCategoryOption")}</option>
                                   {currentCategories.map((c) => (
                                     <option key={c.id} value={c.id}>
                                       {c.icon ? `${c.icon} ` : ""}
-                                      {c.name}
+                                      {resolveCategoryName(c, t)}
                                     </option>
                                   ))}
                                 </select>
@@ -525,7 +556,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                                   }
                                   className="w-full rounded border px-2 py-1 text-xs border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/20 dark:text-zinc-100"
                                 >
-                                  <option value="">— Compte inconnu —</option>
+                                  <option value="">{t("transactions.importModal.unknownAccountOption")}</option>
                                   {accounts
                                     .filter((a) => a.id !== selectedAccountId)
                                     .map((a) => (
@@ -549,9 +580,12 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
           {step === "done" && (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
               <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
-              <p className="text-lg font-semibold">Import terminé</p>
+              <p className="text-lg font-semibold">{t("transactions.importModal.doneTitle")}</p>
               <p className="text-sm text-zinc-600">
-                {importedCount} transaction{importedCount > 1 ? "s" : ""} importée{importedCount > 1 ? "s" : ""} avec succès.
+                {t("transactions.importModal.doneDescription", {
+                  count: importedCount,
+                  plural: importedCount > 1 ? "s" : "",
+                })}
               </p>
             </div>
           )}
@@ -561,7 +595,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
         <div className="flex justify-end gap-2 border-t border-zinc-200 px-6 py-4 dark:border-zinc-700">
           {step === "upload" && (
             <button onClick={onClose} className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600 dark:text-zinc-300">
-              Annuler
+              {t("common.actions.cancel")}
             </button>
           )}
           {step === "preview_expense" && (
@@ -570,7 +604,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                 onClick={() => setStep("upload")}
                 className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600 dark:text-zinc-300"
               >
-                ← Retour
+                {t("transactions.importModal.back")}
               </button>
               {kind ? (
                 <button
@@ -579,15 +613,18 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                   className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
                 >
                   {isLoading
-                    ? "Import en cours…"
-                    : `Importer ${expenseSelectedCount} transaction${expenseSelectedCount > 1 ? "s" : ""}`}
+                    ? t("transactions.importModal.importing")
+                    : t("transactions.importModal.importButton", {
+                        count: expenseSelectedCount,
+                        plural: expenseSelectedCount > 1 ? "s" : "",
+                      })}
                 </button>
               ) : (
                 <button
                   onClick={() => setStep("preview_income")}
                   className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white"
                 >
-                  Suivant →
+                  {t("transactions.importModal.next")}
                 </button>
               )}
             </>
@@ -598,7 +635,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                 onClick={() => setStep(kind ? "upload" : "preview_expense")}
                 className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600 dark:text-zinc-300"
               >
-                ← Retour
+                {t("transactions.importModal.back")}
               </button>
               <button
                 onClick={() => void handleConfirm()}
@@ -606,8 +643,11 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
                 className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
               >
                 {isLoading
-                  ? "Import en cours…"
-                  : `Importer ${totalSelectedCount} transaction${totalSelectedCount > 1 ? "s" : ""}`}
+                  ? t("transactions.importModal.importing")
+                  : t("transactions.importModal.importButton", {
+                      count: totalSelectedCount,
+                      plural: totalSelectedCount > 1 ? "s" : "",
+                    })}
               </button>
             </>
           )}
@@ -616,7 +656,7 @@ export function ImportModal({ kind, defaultAccountId, onSuccess, onClose }: Impo
               onClick={onSuccess}
               className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white"
             >
-              Fermer
+              {t("common.actions.close")}
             </button>
           )}
         </div>

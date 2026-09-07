@@ -1,5 +1,7 @@
 import { InviteForm } from "@/components/invitations/invite-form";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { T } from "@/components/i18n/t";
+import { InvitationStatusLabel } from "@/components/invitations/invitation-status-label";
 
 export default async function InvitationsPage() {
   const supabase = await createServerSupabaseClient();
@@ -11,25 +13,39 @@ export default async function InvitationsPage() {
 
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold">Invitations</h1>
+      <h1 className="text-2xl font-semibold">
+        <T k="invitations.title" />
+      </h1>
       <article className="max-w-md rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-        <h2 className="text-lg font-medium">Invite 2-5 friends</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Each invited user keeps an independent private space.</p>
+        <h2 className="text-lg font-medium">
+          <T k="invitations.invite.heading" />
+        </h2>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          <T k="invitations.invite.description" />
+        </p>
         <div className="mt-3">
           <InviteForm />
         </div>
       </article>
 
       <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
-        <h2 className="text-lg font-medium">Recent invitations</h2>
+        <h2 className="text-lg font-medium">
+          <T k="invitations.recent.heading" />
+        </h2>
         <ul className="mt-3 space-y-2 text-sm">
           {(data ?? []).map((invite) => (
             <li key={invite.id} className="flex items-center justify-between rounded-md border border-zinc-200 p-2 dark:border-zinc-700">
               <span>{invite.invitee_email}</span>
-              <span className="capitalize text-zinc-600 dark:text-zinc-400">{invite.status}</span>
+              <span className="capitalize text-zinc-600 dark:text-zinc-400">
+                <InvitationStatusLabel status={invite.status} />
+              </span>
             </li>
           ))}
-          {!data?.length ? <li className="text-zinc-500 dark:text-zinc-400">No invitations yet.</li> : null}
+          {!data?.length ? (
+            <li className="text-zinc-500 dark:text-zinc-400">
+              <T k="invitations.recent.empty" />
+            </li>
+          ) : null}
         </ul>
       </article>
     </section>

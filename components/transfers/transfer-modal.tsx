@@ -1,22 +1,19 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-const transferSchema = z.object({
-  from_account_id: z.string().uuid({ message: "Compte source requis" }),
-  to_account_id: z.string().uuid({ message: "Compte destination requis" }),
-  amount: z.string().regex(/^\d+([.,]\d{1,2})?$/, "Montant invalide (doit être positif)"),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide"),
-  description: z.string().trim().max(255).optional(),
-}).refine((d) => d.from_account_id !== d.to_account_id, {
-  message: "Les comptes source et destination doivent être différents",
-  path: ["to_account_id"],
-});
+import { useLocale } from "@/components/locale-provider";
 
-type TransferFormValues = z.infer<typeof transferSchema>;
+type TransferFormValues = {
+  from_account_id: string;
+  to_account_id: string;
+  amount: string;
+  date: string;
+  description?: string;
+};
 
 type Account = { id: string; name: string };
 
@@ -30,9 +27,29 @@ interface TransferModalProps {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function TransferModal({ transferId, defaultValues, onSuccess, onClose }: TransferModalProps) {
+  const { t } = useLocale();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Validation messages need the current `t`, so the schema is built inside
+  // the component (memoized on the locale) rather than at module scope.
+  const transferSchema = useMemo(
+    () =>
+      z
+        .object({
+          from_account_id: z.string().uuid({ message: t("transactions.transfers.form.fromAccountRequired") }),
+          to_account_id: z.string().uuid({ message: t("transactions.transfers.form.toAccountRequired") }),
+          amount: z.string().regex(/^\d+([.,]\d{1,2})?$/, t("transactions.transfers.form.amountInvalid")),
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t("transactions.transfers.form.dateInvalid")),
+          description: z.string().trim().max(255).optional(),
+        })
+        .refine((d) => d.from_account_id !== d.to_account_id, {
+          message: t("transactions.transfers.form.accountsMustDiffer"),
+          path: ["to_account_id"],
+        }),
+    [t],
+  );
 
   const {
     register,
@@ -90,7 +107,7 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? "Impossible de sauvegarder");
+      setError(result.error ?? t("transactions.transfers.form.saveError"));
       return;
     }
 
@@ -102,7 +119,7 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">
-            {transferId ? "Modifier le virement" : "Nouveau virement"}
+            {transferId ? t("transactions.transfers.form.titleEdit") : t("transactions.transfers.form.titleNew")}
           </h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 text-xl leading-none dark:text-zinc-500 dark:hover:text-zinc-200">
             ×
@@ -113,12 +130,12 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
           {!transferId && (
             <>
               <label className="block text-sm font-medium">
-                Compte source
+                {t("transactions.transfers.form.fromAccount")}
                 <select
                   className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   {...register("from_account_id")}
                 >
-                  <option value="">— Sélectionner —</option>
+                  <option value="">{t("transactions.form.selectPlaceholder")}</option>
                   {accounts.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
@@ -131,12 +148,12 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
               </label>
 
               <label className="block text-sm font-medium">
-                Compte destination
+                {t("transactions.transfers.form.toAccount")}
                 <select
                   className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   {...register("to_account_id")}
                 >
-                  <option value="">— Sélectionner —</option>
+                  <option value="">{t("transactions.form.selectPlaceholder")}</option>
                   {accounts.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
@@ -151,10 +168,10 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
           )}
 
           <label className="block text-sm font-medium">
-            Montant (€)
+            {t("transactions.transfers.form.amount")}
             <input
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              placeholder="ex: 500.00"
+              placeholder={t("transactions.transfers.form.amountPlaceholder")}
               type="text"
               inputMode="decimal"
               {...register("amount")}
@@ -163,7 +180,7 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
           </label>
 
           <label className="block text-sm font-medium">
-            Date
+            {t("transactions.transfers.form.date")}
             <input
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               type="date"
@@ -173,7 +190,7 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
           </label>
 
           <label className="block text-sm font-medium">
-            Description
+            {t("transactions.transfers.form.description")}
             <input
               className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               {...register("description")}
@@ -188,14 +205,14 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
               disabled={isSubmitting}
               className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
             >
-              {isSubmitting ? "Sauvegarde…" : transferId ? "Mettre à jour" : "Créer"}
+              {isSubmitting ? t("common.state.saving") : transferId ? t("common.actions.update") : t("common.actions.create")}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600 dark:text-zinc-300"
             >
-              Annuler
+              {t("common.actions.cancel")}
             </button>
           </div>
         </form>
