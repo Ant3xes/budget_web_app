@@ -25,6 +25,7 @@ export function KpiRow({ consolidatedBalance, periodExpense, periodIncome, perio
         label="Solde consolidé"
         value={formatEuros(consolidatedBalance)}
         valueClassName={consolidatedBalance < 0 ? "text-expense" : undefined}
+        footer={<p className="mt-1 text-xs text-muted-foreground">Tous comptes confondus</p>}
       />
       <StatTile
         label={`Dépenses ${periodLabel}`}

@@ -55,20 +55,24 @@ function tierColorFor(ratio: number): string {
 
 /**
  * "Budgets du mois en cours" — replaces the plain list of `BudgetBar` rows
- * (former `budget-utilization.tsx`) with a horizontal stacked bar chart:
- * one bar per budget category, "consumed" (colored by spending-rhythm tier)
- * stacked against "remaining" (neutral `--border` — `--muted` used to sit
- * here but is nearly invisible against the card background). Over budget (`consumed
- * >= amount`) clamps "remaining" to 0 rather than going negative, mirroring
- * `budget-bar.tsx`'s own over-budget handling.
+ * (former `budget-utilization.tsx`) with a vertical (column) stacked bar
+ * chart: one column per budget category, "consumed" (colored by
+ * spending-rhythm tier) stacked under "remaining" (neutral `--border` —
+ * `--muted` used to sit here but is nearly invisible against the card
+ * background). Over budget (`consumed >= amount`) clamps "remaining" to 0
+ * rather than going negative, mirroring `budget-bar.tsx`'s own over-budget
+ * handling. Rows arrive pre-sorted by budget amount descending (see
+ * app/(app)/dashboard/page.tsx).
  *
  * Built on the shared `ChartContainer`/`ChartConfig` (see bar-chart.tsx/
  * donut-chart.tsx) for automatic light/dark theming, same as every other
- * recharts widget on this dashboard.
+ * recharts widget on this dashboard. Category labels sit below their column
+ * instead of a Y-axis, so once there are more than a handful they're angled
+ * (same "dense" idiom as bar-chart.tsx's month labels) to avoid overlapping.
  *
  * The former list's per-row drill-down into `/expenses?category_id=...`
  * (only when the budget had a real category) is preserved here as a bar
- * click, since a recharts Y-axis category tick isn't naturally a link.
+ * click, since a recharts X-axis category tick isn't naturally a link.
  */
 export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
   const router = useRouter();
@@ -89,7 +93,8 @@ export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
     };
   });
 
-  const height = Math.max(data.length * 44, 120);
+  const dense = data.length > 4;
+  const bottomMargin = dense ? 44 : 8;
 
   const handleBarClick = (event: BarClickEvent) => {
     const categoryId = event.payload?.categoryId;
@@ -99,17 +104,27 @@ export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
   return (
     <DashboardCard>
       <h2 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Budgets du mois en cours</h2>
-      <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
-        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+      <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height: 280 }}>
+        <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: bottomMargin }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis
-            type="number"
-            tickFormatter={formatEurosAxisTick}
-            tick={{ fontSize: 11 }}
+            dataKey="label"
+            tick={{ fontSize: dense ? 10 : 12 }}
+            interval={0}
+            angle={dense ? -35 : 0}
+            textAnchor={dense ? "end" : "middle"}
+            height={dense ? 56 : 24}
             axisLine={false}
             tickLine={false}
           />
-          <YAxis type="category" dataKey="label" tick={{ fontSize: 12 }} width={140} axisLine={false} tickLine={false} />
+          <YAxis
+            type="number"
+            tickFormatter={formatEurosAxisTick}
+            tick={{ fontSize: 11 }}
+            width={48}
+            axisLine={false}
+            tickLine={false}
+          />
           <ChartTooltip
             content={
               <ChartTooltipContent
@@ -136,7 +151,7 @@ export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
           <Bar
             dataKey="consumed"
             stackId="budget"
-            radius={[3, 0, 0, 3]}
+            radius={[0, 0, 3, 3]}
             isAnimationActive={false}
             onClick={handleBarClick}
             className="cursor-pointer"
@@ -149,7 +164,7 @@ export function BudgetStackedChart({ rows }: BudgetStackedChartProps) {
             dataKey="remaining"
             stackId="budget"
             fill={REMAINING_COLOR}
-            radius={[0, 3, 3, 0]}
+            radius={[3, 3, 0, 0]}
             isAnimationActive={false}
             onClick={handleBarClick}
             className="cursor-pointer"
