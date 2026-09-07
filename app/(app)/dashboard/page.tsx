@@ -354,11 +354,9 @@ export default async function DashboardPage({
         consumed: budgetConsumption[b.category_id] ?? 0,
       };
     })
-    .sort((a, b) => {
-      const ra = a.amount > 0 ? a.consumed / a.amount : 0;
-      const rb = b.amount > 0 ? b.consumed / b.amount : 0;
-      return rb - ra;
-    });
+    // Highest budget max first (per plan — was previously sorted by
+    // consumption ratio descending).
+    .sort((a, b) => b.amount - a.amount);
 
   // ── Savings goals summary ────────────────────────────────────────────────
   // The category-totals fetch (Supabase query) is duplicated from
@@ -421,16 +419,15 @@ export default async function DashboardPage({
         <IncomeVsExpenseWidget data={barData} periodLabel={trendLabel} />
       </div>
 
-      {/* Budget du mois en cours before Objectifs d'épargne — order inverted
-          per plan §1.1 (was the other way round). */}
-      <BudgetStackedChart rows={budgetRows} />
-
       <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
+        <BudgetStackedChart rows={budgetRows} />
         <AccountBalances groups={bankGroups} />
-        <SavingsGoalsSummary goals={goalSummaries} />
       </div>
 
-      <RecentTransactions transactions={recentTransactions} />
+      <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
+        <SavingsGoalsSummary goals={goalSummaries} />
+        <RecentTransactions transactions={recentTransactions} />
+      </div>
     </section>
   );
 }

@@ -40,6 +40,14 @@ export function AccountSelector({ accounts, selectedIds, basePath, periodParam }
   };
 
   const toggleAccount = (id: string) => {
+    // Starting from "all selected", clicking one account means "just this
+    // one" (a fresh isolated selection), not "every account except this
+    // one" — the set-difference below would otherwise read as a strange
+    // near-total selection after a single click.
+    if (allSelected) {
+      navigate(id);
+      return;
+    }
     const next = selectedIdSet.has(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id];
     // Covering every account again is the "reset" state — represented by
     // dropping `?accounts=` entirely rather than spelling out every id.
@@ -51,6 +59,10 @@ export function AccountSelector({ accounts, selectedIds, basePath, periodParam }
       <button type="button" onClick={() => navigate(undefined)} className={pillButtonClass(allSelected)}>
         Tous les comptes
       </button>
+      {/* Separates "Tous les comptes" (a reset control) from the individual
+          account toggles below — same divider period-selector.tsx uses
+          before its "Personnalisé" block. */}
+      <div aria-hidden className="mx-1 w-px self-stretch bg-zinc-200 dark:bg-zinc-700" />
       {accounts.map((account) => {
         const isSelected = selectedIdSet.has(account.id);
         return (

@@ -172,7 +172,8 @@ body {
 }
 
 /* Dark mode: native date/number controls */
-.dark input[type="date"] {
+.dark input[type="date"],
+.dark input[type="month"] {
   color-scheme: dark;
 }
 .dark input[type="number"]::-webkit-inner-spin-button,
