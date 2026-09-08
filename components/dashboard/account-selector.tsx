@@ -22,38 +22,42 @@ interface AccountSelectorProps {
 }
 
 /**
- * Courant-accounts filter for the Dashboard (plan §1.5/§1.6) — every button
- * toggles independently (on by default, i.e. "all" is the no-`?accounts=`
- * state), "Tous les comptes" resets to that default rather than being a
- * toggle itself. Same pill styling and `?period=`-preserving URL pattern as
+ * Courant-accounts filter for the Dashboard — strict single-selection: each
+ * account button, whatever the current state, replaces the whole selection
+ * with just that one account (no multi-account toggle-combining). "Tous les
+ * comptes" stays the only control that clears the filter back to every
+ * courant account, represented by dropping `?accounts=` entirely rather than
+ * spelling out every id. Clicking the account that's already the sole
+ * selection just re-navigates to the same URL — a harmless no-op. Same pill
+ * styling and `?period=`-preserving URL pattern as
  * `period-selector.tsx`/`period-selector-custom.tsx`, via the shared
- * `buildDashboardHref` helper so toggling one filter never drops the other.
+ * `buildDashboardHref` helper so switching one filter never drops the other.
  */
 export function AccountSelector({ accounts, selectedIds, basePath, periodParam }: AccountSelectorProps) {
   const router = useRouter();
   const { t } = useLocale();
   if (accounts.length === 0) return null;
 
-  const selectedIdSet = new Set(selectedIds);
+  // A URL built by this component always encodes "all" (no `?accounts=`) or
+  // exactly one id — but `?accounts=` is a plain query param a stale
+  // bookmark/shared link from before this component went single-select can
+  // still carry 2+ comma-separated ids. Guarding on `selectedIds.length ===
+  // 1` (rather than just `.has(id)`) keeps that legacy multi-id URL from
+  // rendering more than one pill as pressed, which would contradict the
+  // single-selection UI this component otherwise always presents.
+  const selectedIdSet = selectedIds.length === 1 ? new Set(selectedIds) : new Set<string>();
+  // Only used to style the "Tous les comptes" button as active — selection
+  // is otherwise always either "all" or exactly one account.
   const allSelected = selectedIds.length === accounts.length;
 
   const navigate = (accountsParam: string | undefined) => {
     router.push(buildDashboardHref(basePath, { period: periodParam, accounts: accountsParam }));
   };
 
-  const toggleAccount = (id: string) => {
-    // Starting from "all selected", clicking one account means "just this
-    // one" (a fresh isolated selection), not "every account except this
-    // one" — the set-difference below would otherwise read as a strange
-    // near-total selection after a single click.
-    if (allSelected) {
-      navigate(id);
-      return;
-    }
-    const next = selectedIdSet.has(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id];
-    // Covering every account again is the "reset" state — represented by
-    // dropping `?accounts=` entirely rather than spelling out every id.
-    navigate(next.length === accounts.length ? undefined : next.join(","));
+  // Always replaces the selection with just this one account, regardless of
+  // what was selected before (all accounts, or a different single account).
+  const selectAccount = (id: string) => {
+    navigate(id);
   };
 
   return (
@@ -71,7 +75,7 @@ export function AccountSelector({ accounts, selectedIds, basePath, periodParam }
           <button
             key={account.id}
             type="button"
-            onClick={() => toggleAccount(account.id)}
+            onClick={() => selectAccount(account.id)}
             aria-pressed={isSelected}
             className={pillButtonClass(isSelected)}
           >

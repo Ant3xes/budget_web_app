@@ -4,6 +4,9 @@ export const dashboard = {
   consolidatedBalanceFooter: "Tous comptes confondus",
   noBank: "Sans banque renseignée",
   allAccounts: "Tous les comptes",
+  accountsOverview: {
+    heading: "Vue d'ensemble des comptes",
+  },
   remainingToLive: {
     label: "Reste à vivre — mois en cours (hors charges)",
     afterChargesLabel: "Avec charges à venir",

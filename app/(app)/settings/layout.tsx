@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useLocale } from "@/components/locale-provider";
+import { NAV_ACCENTS, navPillClass } from "@/lib/nav-icons";
 
 const SETTINGS_NAV = [
   { href: "/settings/categories", key: "categories" },
@@ -22,7 +23,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           {t("nav.settingsNav.title")}
         </h2>
         {SETTINGS_NAV.map((item) => {
-          // Same prefix-match fix as the main Sidebar (issue #37) — none of
+          // Same prefix-match fix as the main TopNav (issue #37) — none of
           // these 3 items has a sub-route today, so this is a no-op change
           // in current behavior, just closing off the same exact-match
           // landmine before a future settings sub-route (e.g. an import
@@ -32,11 +33,13 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-md px-3 py-2 text-sm ${
-                active
-                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                  : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              }`}
+              // Same pill/accent language as the top navbar (issue #42) —
+              // shares `navPillClass`/`NAV_ACCENTS` with top-nav.tsx (rather
+              // than each hand-typing the same class string and color) so
+              // this pill can't silently drift out of sync with the top
+              // navbar's own "Paramètres" pill.
+              className={navPillClass(active)}
+              style={active ? { backgroundColor: NAV_ACCENTS.settings } : undefined}
             >
               {t(`nav.settingsNav.${item.key}`)}
             </Link>

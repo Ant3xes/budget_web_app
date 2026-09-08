@@ -22,7 +22,7 @@ export const ACCOUNT_TYPE_LABELS: Record<(typeof ACCOUNT_TYPES)[number], string>
 /**
  * `key` maps to `nav.items.<key>` in the i18n dictionaries
  * (lib/i18n/dictionaries/{fr,en}/nav.ts) — `label` stays as the French
- * fallback for any non-translated consumer, `Sidebar` itself renders
+ * fallback for any non-translated consumer, `TopNav` itself renders
  * `t(`nav.items.${item.key}`)` instead.
  */
 export const NAV_ITEMS = [

@@ -61,23 +61,31 @@ export const analytics = {
     heading: "Balances by bank / account",
     balance: "Balance",
   },
+  accountTypeBreakdown: {
+    heading: "Balances by account type",
+  },
   fixedChargesShare: {
     heading: "Share of your left-to-live-on absorbed by fixed charges",
     noBalance: "No balance available on courant accounts",
     caption: "Upcoming fixed charges this month / courant accounts balance",
   },
   histogram: {
-    heading: "Expense amount distribution (this month)",
+    heading: "Expense amount distribution ({period})",
     seriesLabel: "Number of expenses",
     tooltipCount: "{count} expense(s)",
   },
   heatmap: {
-    heading: "Daily expenses (this month)",
+    heading: "Daily expenses ({period})",
     less: "Less",
     more: "More",
   },
+  weekdayExpense: {
+    heading: "Expenses by weekday ({period})",
+    seriesLabel: "Expenses",
+  },
   yearOverYear: {
     heading: "Year-over-year comparison (expenses)",
+    headingIncome: "Year-over-year comparison (income)",
     current: "This year",
     previous: "Previous year",
   },

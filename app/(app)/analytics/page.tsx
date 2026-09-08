@@ -19,6 +19,8 @@ import { AmountHistogramChart } from "@/components/analytics/amount-histogram-ch
 import { ExpenseCalendarHeatmap, type DailyExpensePoint } from "@/components/analytics/expense-calendar-heatmap";
 import { YearOverYearChart } from "@/components/analytics/year-over-year-chart";
 import { GoalProgressChart } from "@/components/analytics/goal-progress-chart";
+import { WeekdayExpenseChart } from "@/components/analytics/weekday-expense-chart";
+import { DivergingBarChart } from "@/components/analytics/diverging-bar-chart";
 import { computeBalanceSeries } from "@/lib/accounts/compute-balance-series";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { computeTransferVolumeSeries } from "@/lib/accounts/compute-transfer-volume-series";
@@ -26,13 +28,27 @@ import { computeCategoryTrendSeries } from "@/lib/accounts/compute-category-tren
 import { computeExpenseByCategory } from "@/lib/accounts/compute-expense-by-category";
 import { computeAmountHistogram } from "@/lib/accounts/compute-amount-histogram";
 import { computeYearOverYear } from "@/lib/accounts/compute-year-over-year";
+import { computeWeekdayExpenseTotals } from "@/lib/accounts/compute-weekday-expense-totals";
 import { groupAccountBalancesByBank, type AccountBalance } from "@/lib/accounts/group-account-balances";
 import { runScopedQuery } from "@/lib/accounts/run-scoped-query";
 import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amount";
 import { computeGoalProgressSeries } from "@/lib/savings-goals/compute-goal-progress-series";
-import { addMonths, parsePeriodParam, periodBounds, periodLabel as resolvePeriodLabel, todayISO } from "@/lib/dates/period";
+import { addMonths, parsePeriodParam, periodBounds, periodLabel as resolvePeriodLabel, todayISO, toMonthLabel } from "@/lib/dates/period";
 import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-transaction-date";
-import { UNCATEGORIZED_CATEGORY_ID } from "@/lib/constants";
+import { UNCATEGORIZED_CATEGORY_ID, ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/constants";
+
+// Fixed categorical order (dataviz skill: assign hues in fixed order, never
+// cycled per-render) — ACCOUNT_TYPES itself is already a fixed, known-order
+// list (courant/épargne/livret/PEL/autre), so a direct index->chart-N
+// mapping is enough; no hashing needed like account-balance-breakdown-chart's
+// per-bank coloring (bank names aren't a fixed enum).
+const ACCOUNT_TYPE_CHART_COLORS: Record<(typeof ACCOUNT_TYPES)[number], string> = {
+  courant: "var(--chart-1)",
+  épargne: "var(--chart-2)",
+  livret: "var(--chart-3)",
+  PEL: "var(--chart-4)",
+  autre: "var(--chart-5)",
+};
 
 type CategoryJoin = { name: string; color: string | null; icon: string | null; is_default: boolean; translation_key: string | null };
 
@@ -62,10 +78,12 @@ function Section({ titleKey, vars, children }: { titleKey: string; vars?: Record
  * pistes listées dans #36 (patrimoine net et cash-flow restent uniques à
  * "Vue d'ensemble").
  *
- * Changer de préréglage de période réinitialise l'onglet à "Vue d'ensemble"
- * (PeriodSelector ne transmet pas `?tab=` — composant partagé avec
- * /dashboard, pas étendu pour ce seul cas) : compromis assumé plutôt que de
- * complexifier un composant partagé pour un confort mineur.
+ * `PeriodSelector` est affiché et actif sur les 5 onglets (issue #42) — même
+ * les onglets "Comptes" et "Transactions", qui utilisaient jusque-là une
+ * fenêtre fixe sur le mois courant, sont désormais scopés par la période
+ * choisie. `PeriodSelector`/`PeriodSelectorCustom` transmettent `?tab=` sur
+ * chacun de leurs liens (`tabParam`) pour que changer de période ne
+ * réinitialise plus l'onglet actif.
  */
 export default async function AnalyticsPage({
   searchParams,
@@ -77,7 +95,6 @@ export default async function AnalyticsPage({
 
   const { period: periodParam, tab: tabParam } = await searchParams;
   const tab: AnalyticsTab = (ANALYTICS_TABS as string[]).includes(tabParam ?? "") ? (tabParam as AnalyticsTab) : "overview";
-  const showPeriodSelector = tab === "overview" || tab === "categories" || tab === "comparisons";
 
   // Active accounts — every tab needs at least the id list.
   const accountsRes = await supabase
@@ -92,25 +109,22 @@ export default async function AnalyticsPage({
   const currentMonthEnd = `${currentMonthValue}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, "0")}`;
   const todayStr = todayISO(now);
 
-  // Period resolution (including resolveEarliestTransactionDate's own
-  // query for "tout") only runs for the tabs that actually show
-  // PeriodSelector — "accounts" and "transactions" use their own
-  // always-current-month window instead (currentMonthStart/-End above),
-  // so they'd otherwise pay for an unneeded query on every load just
-  // because `?period=` happens to be present in the URL.
+  // Period resolution — now runs for every tab (issue #42): "accounts" and
+  // "transactions" used to keep a fixed current-month window instead, but
+  // PeriodSelector is now shown (and functional) on all 5 tabs.
+  //
+  // resolveEarliestTransactionDate's own extra round-trip is only there to
+  // resolve `windowFrom` for the "tout" preset (it never affects `windowTo`
+  // — see periodBounds's "tout" branch) — skipped on "accounts", the one tab
+  // that reads `windowTo` alone and never `windowFrom`, to not pay for a
+  // query whose result would go unused there.
   const period = parsePeriodParam(periodParam ?? "6m", now);
-  let windowFrom = currentMonthStart;
-  let windowTo = currentMonthEnd;
-  let windowMonthCount: number | null = 1;
-  let windowLabel = "";
-  if (showPeriodSelector) {
-    const earliestDate =
-      period.type === "preset" && period.value === "tout"
-        ? await resolveEarliestTransactionDate(supabase, accountIds)
-        : null;
-    ({ from: windowFrom, to: windowTo, monthCount: windowMonthCount } = periodBounds(period, { now, earliestDate }));
-    windowLabel = resolvePeriodLabel(period, now);
-  }
+  const earliestDate =
+    period.type === "preset" && period.value === "tout" && tab !== "accounts"
+      ? await resolveEarliestTransactionDate(supabase, accountIds)
+      : null;
+  const { from: windowFrom, to: windowTo, monthCount: windowMonthCount } = periodBounds(period, { now, earliestDate });
+  const windowLabel = resolvePeriodLabel(period, now);
   const windowToMonth = windowTo.slice(0, 7);
 
   let tabContent: ReactNode = null;
@@ -329,10 +343,25 @@ export default async function AnalyticsPage({
       </>
     );
   } else if (tab === "accounts") {
+    const courantAccounts = accounts.filter((a) => a.type === "courant");
+    const courantAccountIdSet = new Set(courantAccounts.map((a) => a.id));
     const [accountTxRes, fixedChargesRes] = await Promise.all([
-      runScopedQuery<{ account_id: string; amount_cents: number }>([accountIds], () =>
-        supabase.from("transactions").select("account_id, amount_cents").in("account_id", accountIds).is("deleted_at", null),
+      // Bounded to `todayStr`, not `windowTo` — `periodBounds` always
+      // clamps `windowTo <= todayStr`, so a single todayStr-bounded fetch
+      // covers both balances this tab needs: the by-bank/by-type breakdown
+      // below filters these rows down to `windowTo` itself ("balance at the
+      // end of the selected period"), while `courantBalanceCents` uses the
+      // full todayStr-bounded set as-is ("balance right now" — paired
+      // against charges "due this month going forward" in
+      // FixedChargesShareStat, so it must stay "right now" even when the
+      // selected period ends in the past, rather than a second, mostly
+      // redundant query bounded to todayStr on its own).
+      runScopedQuery<{ account_id: string; date: string; amount_cents: number }>([accountIds], () =>
+        supabase.from("transactions").select("account_id, date, amount_cents").in("account_id", accountIds).is("deleted_at", null).lte("date", todayStr),
       ),
+      // Unchanged: upcoming fixed charges stay bounded to the current
+      // calendar month regardless of the selected period — "reste-à-vivre"
+      // is inherently about what's due this month, not a rangeable window.
       supabase
         .from("fixed_charges")
         .select("amount_cents")
@@ -341,7 +370,9 @@ export default async function AnalyticsPage({
         .lte("next_due_date", currentMonthEnd)
         .is("deleted_at", null),
     ]);
-    const accountTxTotals = (accountTxRes.data ?? []).reduce<Record<string, number>>((acc, tx) => {
+    const accountTx = accountTxRes.data ?? [];
+    const accountTxTotals = accountTx.reduce<Record<string, number>>((acc, tx) => {
+      if (tx.date > windowTo) return acc; // breakdown charts stay windowTo-bounded, not today-bounded
       acc[tx.account_id] = (acc[tx.account_id] ?? 0) + tx.amount_cents;
       return acc;
     }, {});
@@ -354,22 +385,41 @@ export default async function AnalyticsPage({
     }));
     const bankGroups = groupAccountBalancesByBank(accountBalances);
 
-    const courantAccountIdSet = new Set(accounts.filter((a) => a.type === "courant").map((a) => a.id));
-    const courantBalanceCents = accountBalances
-      .filter((a) => courantAccountIdSet.has(a.id))
-      .reduce((sum, a) => sum + a.balanceCents, 0);
+    // "Répartition des soldes par type de compte" (issue #42) — same
+    // balances-at-end-of-period as the by-bank breakdown above, regrouped by
+    // `type` instead. ACCOUNT_TYPES gives a fixed, known order/color slot
+    // (see ACCOUNT_TYPE_CHART_COLORS above), unlike bank names.
+    const typeTotals = new Map<string, number>();
+    for (const a of accountBalances) typeTotals.set(a.type, (typeTotals.get(a.type) ?? 0) + a.balanceCents);
+    const typeBreakdownData = ACCOUNT_TYPES.filter((type) => typeTotals.has(type)).map((type) => ({
+      id: type,
+      label: ACCOUNT_TYPE_LABELS[type],
+      value: typeTotals.get(type) ?? 0,
+      color: ACCOUNT_TYPE_CHART_COLORS[type],
+    }));
+
+    const courantInitialCents = courantAccounts.reduce((sum, a) => sum + a.initial_balance_cents, 0);
+    const courantBalanceCents =
+      courantInitialCents +
+      accountTx.filter((tx) => courantAccountIdSet.has(tx.account_id)).reduce((sum, tx) => sum + tx.amount_cents, 0);
     const upcomingFixedChargesCents = (fixedChargesRes.data ?? []).reduce((sum, fc) => sum + fc.amount_cents, 0);
 
     tabContent = (
-      <div className="grid gap-4 md:grid-cols-2">
-        <Section titleKey="analytics.accountBreakdown.heading">
-          <AccountBalanceBreakdownChart groups={bankGroups} />
-        </Section>
+      <>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Section titleKey="analytics.accountBreakdown.heading">
+            <AccountBalanceBreakdownChart groups={bankGroups} />
+          </Section>
 
-        <Section titleKey="analytics.fixedChargesShare.heading">
-          <FixedChargesShareStat courantBalanceCents={courantBalanceCents} upcomingFixedChargesCents={upcomingFixedChargesCents} />
+          <Section titleKey="analytics.fixedChargesShare.heading">
+            <FixedChargesShareStat courantBalanceCents={courantBalanceCents} upcomingFixedChargesCents={upcomingFixedChargesCents} />
+          </Section>
+        </div>
+
+        <Section titleKey="analytics.accountTypeBreakdown.heading">
+          <DivergingBarChart data={typeBreakdownData} />
         </Section>
-      </div>
+      </>
     );
   } else if (tab === "transactions") {
     const monthTxRes = await runScopedQuery<{ date: string; amount_cents: number }>([accountIds], () =>
@@ -379,30 +429,48 @@ export default async function AnalyticsPage({
         .in("account_id", accountIds)
         .eq("kind", "expense")
         .is("deleted_at", null)
-        .gte("date", currentMonthStart)
-        .lte("date", currentMonthEnd),
+        .gte("date", windowFrom)
+        .lte("date", windowTo),
     );
     const monthTx = monthTxRes.data ?? [];
     const histogram = computeAmountHistogram(monthTx);
+    const weekdayTotals = computeWeekdayExpenseTotals(monthTx);
 
+    // The heatmap only ever renders a single calendar month's grid — build
+    // it for the *end* month of the selected period (windowToMonth) rather
+    // than always the current month, so e.g. a past custom range shows the
+    // right month instead of always defaulting to "now".
     const totalsByDay = new Map<string, number>();
     for (const tx of monthTx) totalsByDay.set(tx.date, (totalsByDay.get(tx.date) ?? 0) + Math.abs(tx.amount_cents));
-    const daysInMonth = Number(currentMonthEnd.slice(8, 10));
-    const dailyPoints: DailyExpensePoint[] = Array.from({ length: daysInMonth }, (_, i) => {
-      const date = `${currentMonthStart.slice(0, 8)}${String(i + 1).padStart(2, "0")}`;
+    const heatmapMonthStart = `${windowToMonth}-01`;
+    const [heatmapYear, heatmapMonth] = windowToMonth.split("-").map(Number);
+    const heatmapDaysInMonth = new Date(heatmapYear!, heatmapMonth!, 0).getDate();
+    const dailyPoints: DailyExpensePoint[] = Array.from({ length: heatmapDaysInMonth }, (_, i) => {
+      const date = `${heatmapMonthStart.slice(0, 8)}${String(i + 1).padStart(2, "0")}`;
       return { date, amountCents: totalsByDay.get(date) ?? 0 };
     });
+    // The heading names the actual month rendered (e.g. "mars 2025"), not
+    // `windowLabel` (which reads like "6 derniers mois") — the heatmap only
+    // ever shows windowToMonth's single-month grid, so its own label must
+    // say which month that is, not the full (possibly wider) selected range.
+    const heatmapMonthLabel = toMonthLabel(windowToMonth);
 
     tabContent = (
-      <div className="grid gap-4 md:grid-cols-2">
-        <Section titleKey="analytics.histogram.heading">
-          <AmountHistogramChart data={histogram} />
-        </Section>
+      <>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Section titleKey="analytics.histogram.heading" vars={{ period: windowLabel }}>
+            <AmountHistogramChart data={histogram} />
+          </Section>
 
-        <Section titleKey="analytics.heatmap.heading">
-          <ExpenseCalendarHeatmap days={dailyPoints} />
+          <Section titleKey="analytics.heatmap.heading" vars={{ period: heatmapMonthLabel }}>
+            <ExpenseCalendarHeatmap days={dailyPoints} />
+          </Section>
+        </div>
+
+        <Section titleKey="analytics.weekdayExpense.heading" vars={{ period: windowLabel }}>
+          <WeekdayExpenseChart data={weekdayTotals} />
         </Section>
-      </div>
+      </>
     );
   } else {
     // comparisons
@@ -410,15 +478,15 @@ export default async function AnalyticsPage({
     const yoyFrom = addMonths(windowFrom.slice(0, 7), -12) + "-01";
 
     const [yoyTxRes, goalsRes] = await Promise.all([
-      // Only "expense" fetched: computeYearOverYear below is only ever
-      // called with metric "expense", so an "income" row would just be
-      // fetched and immediately discarded.
+      // Both "expense" and "income" fetched in one query — computeYearOverYear
+      // is called twice below (once per metric) on the same rows, one round
+      // trip instead of two.
       runScopedQuery<{ date: string; kind: string; amount_cents: number }>([accountIds], () =>
         supabase
           .from("transactions")
           .select("date, kind, amount_cents")
           .in("account_id", accountIds)
-          .eq("kind", "expense")
+          .in("kind", ["expense", "income"])
           .is("deleted_at", null)
           .gte("date", yoyFrom)
           .lte("date", windowTo),
@@ -431,6 +499,7 @@ export default async function AnalyticsPage({
     ]);
 
     const yoyPoints = computeYearOverYear(yoyTxRes.data ?? [], yoyMonthCount, now, windowToMonth, "expense");
+    const yoyIncomePoints = computeYearOverYear(yoyTxRes.data ?? [], yoyMonthCount, now, windowToMonth, "income");
 
     const goals = goalsRes.data ?? [];
     const linkedCategoryIds = goals.map((g) => g.linked_category_id).filter((id): id is string => Boolean(id));
@@ -471,6 +540,10 @@ export default async function AnalyticsPage({
           <YearOverYearChart data={yoyPoints} />
         </Section>
 
+        <Section titleKey="analytics.yearOverYear.headingIncome">
+          <YearOverYearChart data={yoyIncomePoints} />
+        </Section>
+
         <Section titleKey="analytics.goalProgress.heading" vars={{ period: windowLabel }}>
           <GoalProgressChart points={goalPoints} series={goalSeries} manualGoals={manualGoals} />
         </Section>
@@ -484,7 +557,12 @@ export default async function AnalyticsPage({
         <h1 className="text-2xl font-semibold">
           <T k="nav.items.analytics" />
         </h1>
-        {showPeriodSelector && <PeriodSelector current={period} basePath="/analytics" presets={["6m", "1a", "tout"]} />}
+        <PeriodSelector
+          current={period}
+          basePath="/analytics"
+          presets={["6m", "1a", "tout"]}
+          tabParam={tab === "overview" ? undefined : tab}
+        />
       </div>
 
       <AnalyticsTabs current={tab} periodParam={periodParam} />

@@ -9,6 +9,7 @@ import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
+import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
 type Category = {
   id: string;
@@ -69,7 +70,7 @@ export default function CategoriesPage() {
   const kindSection = (kind: "expense" | "income" | "transfer") => {
     const items = grouped[kind] ?? [];
     return (
-      <article key={kind} className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
+      <article key={kind} className="rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900">
         <h2 className="mb-3 text-base font-medium">{t(`categories.kind.${kind}`)}</h2>
         {items.length === 0 ? (
           <p className="text-sm text-zinc-400">{t("settings.categories.emptyForKind")}</p>
@@ -82,40 +83,51 @@ export default function CategoriesPage() {
           // section and wrapping every multi-word name. auto-fill sizes
           // off the container itself, however narrow.
           <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
-            {items.map((cat) => (
-              <div
-                key={cat.id}
-                title={resolveCategoryName(cat, t)}
-                className="group relative flex min-w-0 flex-col items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 pt-7 pb-3 text-center dark:border-zinc-700 dark:bg-zinc-950"
-              >
-                <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => setEditingId(cat.id)}
-                    aria-label={t("common.actions.edit")}
-                    title={t("common.actions.edit")}
-                  >
-                    <Pencil />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon-sm"
-                    onClick={() => setDeletingCategory(cat)}
-                    aria-label={t("common.actions.delete")}
-                    title={t("common.actions.delete")}
-                  >
-                    <Trash2 />
-                  </Button>
+            {items.map((cat) => {
+              const accentColor = cat.color ?? CATEGORY_COLOR_FALLBACK;
+              return (
+                <div
+                  key={cat.id}
+                  title={resolveCategoryName(cat, t)}
+                  className="group relative flex min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white px-2 pb-3 pt-8 text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-950"
+                >
+                  {/* Bande d'accent colorée en haut de la card, clippée par overflow-hidden + rounded-2xl du conteneur */}
+                  <span aria-hidden className="absolute inset-x-0 top-0 z-0 h-1.5" style={{ backgroundColor: accentColor }} />
+                  {/* Halo doux derrière l'icône, teinté avec la couleur de la catégorie */}
+                  <span
+                    aria-hidden
+                    className="absolute left-1/2 top-6 z-0 h-9 w-9 -translate-x-1/2 rounded-full"
+                    style={{ backgroundColor: `color-mix(in srgb, ${accentColor} 18%, transparent)` }}
+                  />
+                  <div className="absolute right-1 top-2.5 z-20 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setEditingId(cat.id)}
+                      aria-label={t("common.actions.edit")}
+                      title={t("common.actions.edit")}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon-sm"
+                      onClick={() => setDeletingCategory(cat)}
+                      aria-label={t("common.actions.delete")}
+                      title={t("common.actions.delete")}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
+                  <CategoryBadge
+                    name={resolveCategoryName(cat, t)}
+                    color={cat.color}
+                    icon={cat.icon}
+                    className="relative z-10 w-full min-w-0 flex-col break-words text-sm"
+                  />
                 </div>
-                <CategoryBadge
-                  name={resolveCategoryName(cat, t)}
-                  color={cat.color}
-                  icon={cat.icon}
-                  className="w-full min-w-0 flex-col break-words text-sm"
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </article>

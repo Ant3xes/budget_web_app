@@ -61,23 +61,31 @@ export const analytics = {
     heading: "Répartition des soldes par banque / compte",
     balance: "Solde",
   },
+  accountTypeBreakdown: {
+    heading: "Répartition des soldes par type de compte",
+  },
   fixedChargesShare: {
     heading: "Part du reste-à-vivre absorbée par les charges fixes",
     noBalance: "Aucun solde disponible sur les comptes courants",
     caption: "Charges fixes à venir ce mois / solde des comptes courants",
   },
   histogram: {
-    heading: "Distribution des montants de dépenses (ce mois)",
+    heading: "Distribution des montants de dépenses ({period})",
     seriesLabel: "Nombre de dépenses",
     tooltipCount: "{count} dépense(s)",
   },
   heatmap: {
-    heading: "Dépenses quotidiennes (ce mois)",
+    heading: "Dépenses quotidiennes ({period})",
     less: "Moins",
     more: "Plus",
   },
+  weekdayExpense: {
+    heading: "Dépenses par jour de la semaine ({period})",
+    seriesLabel: "Dépenses",
+  },
   yearOverYear: {
     heading: "Comparaison année sur année (dépenses)",
+    headingIncome: "Comparaison année sur année (revenus)",
     current: "Cette année",
     previous: "Année précédente",
   },

@@ -521,21 +521,35 @@ export default async function DashboardPage({
         <PeriodSelector current={period} basePath="/dashboard" accountsParam={accountsParam} />
       </div>
 
-      {/* Solde consolidé + bulles banques (remplace l'ancien bloc "Comptes par banque") */}
-      <div className="flex flex-wrap items-start gap-3">
-        <ConsolidatedBalanceTile amountCents={consolidatedBalance} />
-        <div className="flex min-w-0 flex-1 items-center">
-          <BankBubbles groups={bankGroups} />
+      {/* Zone comptes — solde consolidé, bulles banques (elles-mêmes déjà
+          dans leur propre "grosse bulle", voir bank-bubbles.tsx) et
+          sélecteur de compte regroupés dans un seul panneau visuellement
+          distinct du reste du dashboard (grids de DashboardCard plus bas),
+          pour que cette zone de "vue d'ensemble des comptes" se distingue
+          d'un premier coup d'œil des widgets d'activité/période. */}
+      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          <T k="dashboard.accountsOverview.heading" />
+        </h2>
+
+        {/* Solde consolidé + bulles banques (remplace l'ancien bloc "Comptes par banque") */}
+        <div className="flex flex-wrap items-start gap-3">
+          <ConsolidatedBalanceTile amountCents={consolidatedBalance} />
+          <div className="flex min-w-0 flex-1 items-center">
+            <BankBubbles groups={bankGroups} />
+          </div>
+        </div>
+
+        {/* Sélecteur de comptes — sous les bulles, puisqu'il ne modifie pas leur affichage */}
+        <div className="mt-3">
+          <AccountSelector
+            accounts={courantAccounts}
+            selectedIds={selectedCourantIds}
+            basePath="/dashboard"
+            periodParam={periodParam}
+          />
         </div>
       </div>
-
-      {/* Sélecteur de comptes — sous les bulles, puisqu'il ne modifie pas leur affichage */}
-      <AccountSelector
-        accounts={courantAccounts}
-        selectedIds={selectedCourantIds}
-        basePath="/dashboard"
-        periodParam={periodParam}
-      />
 
       <div className="grid gap-4 md:grid-cols-3 [&>*]:min-w-0">
         <RemainingToLive amountCents={courantBalanceCents} afterChargesCents={remainingToLiveAfterChargesCents} />
