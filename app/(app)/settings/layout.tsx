@@ -22,7 +22,12 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           {t("nav.settingsNav.title")}
         </h2>
         {SETTINGS_NAV.map((item) => {
-          const active = pathname === item.href;
+          // Same prefix-match fix as the main Sidebar (issue #37) — none of
+          // these 3 items has a sub-route today, so this is a no-op change
+          // in current behavior, just closing off the same exact-match
+          // landmine before a future settings sub-route (e.g. an import
+          // rule's own detail page) resurrects it here too.
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}

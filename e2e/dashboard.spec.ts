@@ -27,14 +27,14 @@ test.describe("Dashboard (smoke)", () => {
     // Combined expenses/income tile (replaces the former separate "Dépenses
     // ce mois"/"Revenus ce mois" tiles)
     await expect(page.getByText("Dépenses / Revenus (ce mois)")).toBeVisible();
-    await expect(page.getByText("Reste à vivre (hors charges)")).toBeVisible();
+    await expect(page.getByText("Reste à vivre — mois en cours (hors charges)")).toBeVisible();
 
     // Charts
     await expect(page.getByText("Dépenses par catégorie (septembre 2026)")).toBeVisible();
     await expect(page.getByText("Revenus vs Dépenses (6 mois)")).toBeVisible();
 
-    // New "Charges fixes" block
-    await expect(page.getByText("Charges fixes (à venir)")).toBeVisible();
+    // "Charges fixes" now covers both upcoming and already-paid charges (issue #35)
+    await expect(page.getByText("Charges fixes (ce mois)")).toBeVisible();
 
     // "Comptes par banque" was removed in favor of the bank bubbles
     await expect(page.getByText("Comptes par banque")).toHaveCount(0);
@@ -42,6 +42,26 @@ test.describe("Dashboard (smoke)", () => {
     // Recent transactions section
     await expect(page.getByText("Dernières transactions")).toBeVisible();
     await expect(page.getByText("Objectifs d'épargne")).toBeVisible();
+  });
+
+  test("'voir tout' buttons link to the right destination (issue #35)", async ({ page }) => {
+    await login(page);
+
+    // Recent transactions → unified /transactions menu
+    const recentTxCard = page.getByText("Dernières transactions").locator("xpath=ancestor::article[1]");
+    await expect(recentTxCard.getByRole("link", { name: "Voir tout" })).toHaveAttribute("href", "/transactions");
+
+    // Savings goals → /goals
+    const goalsCard = page.getByText("Objectifs d'épargne").locator("xpath=ancestor::article[1]");
+    await expect(goalsCard.getByRole("link", { name: "Voir tout" })).toHaveAttribute("href", "/goals");
+
+    // Budget widget → /goals (per the original request, not /budget)
+    const budgetCard = page.getByText("Budgets du mois en cours").locator("xpath=ancestor::article[1]");
+    await expect(budgetCard.getByRole("link", { name: "Voir tout" })).toHaveAttribute("href", "/goals");
+
+    // Fixed charges → /fixed-charges (pre-existing, unchanged by #35)
+    const fixedChargesCard = page.getByText("Charges fixes (ce mois)").locator("xpath=ancestor::article[1]");
+    await expect(fixedChargesCard.getByRole("link", { name: "Voir tout" })).toHaveAttribute("href", "/fixed-charges");
   });
 
   test("period filter and category drill-down (overlay, not navigation) work", async ({ page }) => {
@@ -57,12 +77,22 @@ test.describe("Dashboard (smoke)", () => {
     await expect(page.getByText("Revenus vs Dépenses (6 mois)")).toBeVisible();
 
     // Drill-down: a budget bar click now opens an in-place overlay instead
-    // of navigating to /expenses (seed data has budgets for the current
-    // month — see supabase/seed.sql).
-    const budgetChart = page.locator("text=Budgets du mois en cours").locator("..");
+    // of navigating away (seed data has budgets for the current month — see
+    // supabase/seed.sql). The heading now shares its card with the widget's
+    // own "voir tout" link (issue #35), so scope by the whole card
+    // (nearest <article>, DashboardCard's own element) rather than the
+    // heading's immediate parent.
+    const budgetChart = page.getByText("Budgets du mois en cours").locator("xpath=ancestor::article[1]");
     await budgetChart.locator(".recharts-bar-rectangle").first().click();
-    await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(page).not.toHaveURL(/\/expenses\?category_id=/);
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(page).not.toHaveURL(/\/transactions\?/);
+    // The overlay's own "voir tout" deep-links into /transactions with the
+    // clicked category's filter applied (issue #35).
+    await expect(dialog.getByRole("link", { name: "Voir tout" })).toHaveAttribute(
+      "href",
+      /^\/transactions\?type=expense&category_id=/,
+    );
   });
 
   test("switching to English updates menus and dashboard headings", async ({ page }) => {

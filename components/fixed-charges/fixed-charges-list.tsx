@@ -81,6 +81,12 @@ export function FixedChargesList() {
     if (res.ok) await loadData();
   };
 
+  const handleMarkPaid = async (id: string) => {
+    setOpenMenuId(null);
+    const res = await fetch(`/api/fixed-charges/${id}/pay`, { method: "POST" });
+    if (res.ok) await loadData();
+  };
+
   const handleDelete = async (id: string) => {
     setOpenMenuId(null);
     if (!confirm(t("fixedCharges.deleteConfirm"))) return;
@@ -197,6 +203,14 @@ export function FixedChargesList() {
                           </Button>
                           {openMenuId === charge.id && (
                             <div className="absolute right-0 z-10 mt-1 w-44 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+                              {charge.status === "active" && (
+                                <button
+                                  onClick={() => handleMarkPaid(charge.id)}
+                                  className="w-full px-4 py-2 text-left text-sm text-green-700 hover:bg-zinc-50"
+                                >
+                                  {t("fixedCharges.markPaid")}
+                                </button>
+                              )}
                               {charge.status === "active" && (
                                 <button
                                   onClick={() => handleStatusChange(charge.id, "suspended")}

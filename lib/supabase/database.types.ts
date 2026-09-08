@@ -220,6 +220,7 @@ export type Database = {
           deleted_at: string | null
           frequency: string
           id: string
+          last_paid_date: string | null
           name: string
           next_due_date: string
           notes: string | null
@@ -236,6 +237,7 @@ export type Database = {
           deleted_at?: string | null
           frequency: string
           id?: string
+          last_paid_date?: string | null
           name: string
           next_due_date: string
           notes?: string | null
@@ -252,6 +254,7 @@ export type Database = {
           deleted_at?: string | null
           frequency?: string
           id?: string
+          last_paid_date?: string | null
           name?: string
           next_due_date?: string
           notes?: string | null

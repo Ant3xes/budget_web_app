@@ -74,37 +74,49 @@ export default function CategoriesPage() {
         {items.length === 0 ? (
           <p className="text-sm text-zinc-400">{t("settings.categories.emptyForKind")}</p>
         ) : (
-          <ul className="space-y-2">
+          // auto-fill/minmax instead of viewport breakpoints (sm:/lg:) —
+          // this grid sits inside a column that's already halved by the
+          // Dépense/Revenu split above md:, so a viewport-based breakpoint
+          // would size columns off the *page* width, not the space this
+          // grid actually has, packing 3-4 columns into a half-width
+          // section and wrapping every multi-word name. auto-fill sizes
+          // off the container itself, however narrow.
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
             {items.map((cat) => (
-              <li key={cat.id}>
-                <div className="group flex items-center justify-between rounded-md px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                  <div className="flex items-center gap-3">
-                    <CategoryBadge name={resolveCategoryName(cat, t)} color={cat.color} icon={cat.icon} className="text-sm" />
-                  </div>
-                  <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => setEditingId(cat.id)}
-                      aria-label={t("common.actions.edit")}
-                      title={t("common.actions.edit")}
-                    >
-                      <Pencil />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="icon-sm"
-                      onClick={() => setDeletingCategory(cat)}
-                      aria-label={t("common.actions.delete")}
-                      title={t("common.actions.delete")}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </div>
+              <div
+                key={cat.id}
+                title={resolveCategoryName(cat, t)}
+                className="group relative flex min-w-0 flex-col items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2 pt-7 pb-3 text-center dark:border-zinc-700 dark:bg-zinc-950"
+              >
+                <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setEditingId(cat.id)}
+                    aria-label={t("common.actions.edit")}
+                    title={t("common.actions.edit")}
+                  >
+                    <Pencil />
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="icon-sm"
+                    onClick={() => setDeletingCategory(cat)}
+                    aria-label={t("common.actions.delete")}
+                    title={t("common.actions.delete")}
+                  >
+                    <Trash2 />
+                  </Button>
                 </div>
-              </li>
+                <CategoryBadge
+                  name={resolveCategoryName(cat, t)}
+                  color={cat.color}
+                  icon={cat.icon}
+                  className="w-full min-w-0 flex-col break-words text-sm"
+                />
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </article>
     );

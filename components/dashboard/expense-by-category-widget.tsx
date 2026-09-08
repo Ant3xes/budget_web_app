@@ -6,6 +6,7 @@ import { CategoryTransactionsOverlay, type OverlayTransaction } from "@/componen
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { DonutChart } from "@/components/dashboard/donut-chart";
 import { useLocale } from "@/components/locale-provider";
+import { UNCATEGORIZED_CATEGORY_ID } from "@/lib/constants";
 import type { Period } from "@/lib/dates/period";
 import { formatCategoryWidgetLabel } from "@/lib/i18n/format-period-label";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
@@ -44,7 +45,11 @@ export function ExpenseByCategoryWidget({ data, period, currentMonthValue, trans
   // name) so the chart's grouping logic stays untouched; only the label
   // shown for each already-grouped slice changes.
   const translatedData = data.map((d) => ({ ...d, name: resolveCategoryName({ name: d.name, is_default: d.is_default, translation_key: d.translation_key }, t) }));
-  const overlayEntry = translatedData.find((d) => d.categoryId === overlayCategoryId);
+  // The "Sans catégorie" slice's own `categoryId` is `null`, but the click
+  // handler below reports it as UNCATEGORIZED_CATEGORY_ID (donut-chart.tsx)
+  // — bridge the two here rather than overloading `null` for both "closed"
+  // and "uncategorized selected".
+  const overlayEntry = translatedData.find((d) => (d.categoryId ?? UNCATEGORIZED_CATEGORY_ID) === overlayCategoryId);
   const periodLabel = formatCategoryWidgetLabel(period, currentMonthValue, locale, t);
 
   return (
@@ -62,6 +67,7 @@ export function ExpenseByCategoryWidget({ data, period, currentMonthValue, trans
         onClose={() => setOverlayCategoryId(null)}
         title={t("dashboard.overlay.categoryTitle", { category: overlayEntry?.name ?? "", period: periodLabel })}
         transactions={overlayCategoryId ? (transactionsByCategory[overlayCategoryId] ?? []) : []}
+        viewAllHref={overlayCategoryId ? `/transactions?type=expense&category_id=${overlayCategoryId}` : undefined}
       />
     </DashboardCard>
   );

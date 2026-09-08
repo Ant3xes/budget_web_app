@@ -96,7 +96,9 @@ export const NET_WORTH_COLOR = "var(--chart-1)";
  * Sentinel `category_id` value meaning "no category" — used wherever a
  * category filter/selection needs to distinguish "uncategorized" from "no
  * filter applied" (both of which would otherwise be an empty/null value).
- * Shared by the /transactions filter, the dashboard's donut "Sans
- * catégorie" slice, and /analytics' category-scoped charts (issue #36).
+ * Originally a local const in transaction-list.tsx (GET /api/transactions's
+ * `uncategorized=true` param); shared here so the dashboard's donut chart
+ * (issue #35), the /transactions filter, and /analytics' category-scoped
+ * charts (issue #36) can all use the same sentinel.
  */
 export const UNCATEGORIZED_CATEGORY_ID = "__uncategorized__";

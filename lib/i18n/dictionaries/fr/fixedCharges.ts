@@ -8,6 +8,7 @@ export const fixedCharges = {
   editCharge: "Modifier la charge fixe",
   deleteCharge: "Supprimer la charge fixe",
   otherActions: "Autres actions",
+  markPaid: "Marquer comme payée",
   suspend: "Suspendre",
   reactivate: "Réactiver",
   markCancelled: "Marquer annulé",

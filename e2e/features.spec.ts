@@ -146,3 +146,28 @@ test.describe("Import", () => {
     await expect(dialog.getByText("Lidl")).toBeVisible();
   });
 });
+
+test.describe("Settings", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
+  // Issue #37: the "Paramètres" nav item used an exact pathname match, so it
+  // visually deactivated the moment you navigated one level deeper into any
+  // of its own sub-pages.
+  test("'Paramètres' nav item stays active on every settings sub-page", async ({ page }) => {
+    const settingsNavLink = page.getByRole("link", { name: "Paramètres", exact: true });
+
+    for (const path of ["/settings", "/settings/categories", "/settings/import-rules", "/settings/profile"]) {
+      await page.goto(path);
+      await expect(settingsNavLink).toHaveClass(/bg-zinc-900/);
+    }
+  });
+
+  test("categories page groups categories as cards by type", async ({ page }) => {
+    await page.goto("/settings/categories");
+    await expect(page.getByRole("heading", { name: "Catégories" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dépense", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Revenu", exact: true })).toBeVisible();
+  });
+});
