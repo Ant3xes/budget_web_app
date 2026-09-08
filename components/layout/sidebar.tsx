@@ -15,7 +15,11 @@ export function Sidebar() {
       <h1 className="mb-4 text-lg font-semibold dark:text-zinc-100">{t("nav.appTitle")}</h1>
       <nav className="flex gap-2 overflow-x-auto md:flex-col">
         {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href;
+          // Exact match only used to miss every child route (e.g.
+          // /settings/categories under the "Paramètres" item, /accounts/[id]
+          // under "Comptes") — the nav item would visually deactivate the
+          // moment you navigated one level deeper into its own section.
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link
