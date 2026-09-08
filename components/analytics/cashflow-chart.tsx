@@ -17,9 +17,12 @@ import { INCOME_COLOR, EXPENSE_COLOR } from "@/lib/constants";
 import { ChartEmptyState } from "@/components/chart-empty-state";
 import { useLocale } from "@/components/locale-provider";
 import type { IncomeExpenseSeriesPoint } from "@/lib/accounts/compute-income-expense-series";
+import type { TransferVolumeSeriesPoint } from "@/lib/accounts/compute-transfer-volume-series";
 
 interface CashflowChartProps {
   data: IncomeExpenseSeriesPoint[];
+  /** Same window/month buckets as `data` (see app/(app)/analytics/page.tsx) — zipped in by index, not summed into the income/expense stack (issue #36: shown as its own bar, since a transfer's debit/credit pair nets to zero and has no place in that stack's math — see compute-transfer-volume-series.ts). Omit to render the chart without it. */
+  transferData?: TransferVolumeSeriesPoint[];
   height?: number;
 }
 
@@ -30,9 +33,11 @@ interface CashflowChartProps {
  * both `<Bar>`s anchors them at a shared zero baseline instead of grouping
  * them side by side like the dashboard's bar-chart.tsx. `net` rides as a
  * thin line (a 3rd categorical slot, `--chart-3`, distinct from
- * income/expense) rather than a redundant 3rd bar.
+ * income/expense) rather than a redundant 3rd bar. `transferVolume` (issue
+ * #36) is a 4th slot, `--chart-4`, its own (non-stacked) bar beside the
+ * income/expense pair — a volume, not a signed flow.
  */
-export function CashflowChart({ data, height = 280 }: CashflowChartProps) {
+export function CashflowChart({ data, transferData, height = 280 }: CashflowChartProps) {
   const { t } = useLocale();
 
   const chartConfig = useMemo(
@@ -41,6 +46,7 @@ export function CashflowChart({ data, height = 280 }: CashflowChartProps) {
         income: { label: t("analytics.cashflow.income"), color: INCOME_COLOR },
         expenseNegated: { label: t("analytics.cashflow.expense"), color: EXPENSE_COLOR },
         net: { label: t("analytics.cashflow.net"), color: "var(--chart-3)" },
+        transferVolume: { label: t("analytics.cashflow.transferVolume"), color: "var(--chart-4)" },
       }) satisfies ChartConfig,
     [t],
   );
@@ -49,11 +55,19 @@ export function CashflowChart({ data, height = 280 }: CashflowChartProps) {
     return <ChartEmptyState />;
   }
 
+  // Zipped by `key` (YYYY-MM), not array index: `data` and `transferData`
+  // are computed by two independent helpers that each derive their own
+  // start month when the window is unbounded ("tout" period) — their
+  // arrays can differ in length/offset even though both end at the same
+  // month, so index-based pairing would silently misalign every point but
+  // the last.
+  const transferByKey = new Map((transferData ?? []).map((t) => [t.key, t.transferVolume]));
   const chartData = data.map((d) => ({
     month: d.month,
     income: d.income,
     expenseNegated: -d.expense,
     net: d.income - d.expense,
+    transferVolume: transferByKey.get(d.key) ?? 0,
   }));
 
   return (
@@ -106,6 +120,9 @@ export function CashflowChart({ data, height = 280 }: CashflowChartProps) {
           radius={[0, 0, 3, 3]}
           isAnimationActive={false}
         />
+        {transferData && (
+          <Bar dataKey="transferVolume" fill="var(--color-transferVolume)" radius={[3, 3, 3, 3]} isAnimationActive={false} />
+        )}
         <Line
           type="monotone"
           dataKey="net"

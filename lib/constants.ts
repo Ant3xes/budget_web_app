@@ -91,3 +91,12 @@ export const EXPENSE_COLOR = "var(--expense)";
 
 /** Single-series color for the "patrimoine net" chart (plan §Étape 4) — the validated categorical palette's first (blue) slot, per the dataviz skill's "sequential hue: blue" default. */
 export const NET_WORTH_COLOR = "var(--chart-1)";
+
+/**
+ * Sentinel `category_id` value meaning "no category" — used wherever a
+ * category filter/selection needs to distinguish "uncategorized" from "no
+ * filter applied" (both of which would otherwise be an empty/null value).
+ * Shared by the /transactions filter, the dashboard's donut "Sans
+ * catégorie" slice, and /analytics' category-scoped charts (issue #36).
+ */
+export const UNCATEGORIZED_CATEGORY_ID = "__uncategorized__";
