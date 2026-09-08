@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { ViewAllLink } from "@/components/dashboard/view-all-link";
 import { useLocale } from "@/components/locale-provider";
 import { Pagination } from "@/components/ui/pagination";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
@@ -40,7 +41,10 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
 
   return (
     <DashboardCard>
-      <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("dashboard.recentTransactions.heading")}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("dashboard.recentTransactions.heading")}</h2>
+        <ViewAllLink href="/transactions" />
+      </div>
       <ul className="mt-3 space-y-2 text-sm">
         {pageItems.map((tx) => (
           <li key={tx.id} className="flex justify-between border-b border-zinc-100 pb-2 dark:border-zinc-800">

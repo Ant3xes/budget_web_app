@@ -5,8 +5,8 @@ export const dashboard = {
   noBank: "Sans banque renseignée",
   allAccounts: "Tous les comptes",
   remainingToLive: {
-    label: "Reste à vivre (hors charges)",
-    footer: "({amount} en tenant compte des charges à venir)",
+    label: "Reste à vivre — mois en cours (hors charges)",
+    afterChargesLabel: "Avec charges à venir",
   },
   expenseIncome: {
     label: "Dépenses / Revenus ({period})",
@@ -28,10 +28,11 @@ export const dashboard = {
     noCategory: "Sans catégorie",
   },
   fixedCharges: {
-    heading: "Charges fixes (à venir)",
+    heading: "Charges fixes (ce mois)",
     total: "Total à venir ce mois",
     dueSoon: "Bientôt",
-    empty: "Aucune charge fixe à venir",
+    empty: "Aucune charge fixe ce mois-ci",
+    paidBadge: "Payée",
   },
   recentTransactions: {
     heading: "Dernières transactions",

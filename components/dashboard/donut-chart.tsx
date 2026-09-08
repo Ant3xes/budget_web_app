@@ -6,6 +6,7 @@ import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recha
 import type { TooltipContentProps } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 
+import { UNCATEGORIZED_CATEGORY_ID } from "@/lib/constants";
 import { formatEuros } from "@/lib/format";
 
 interface DonutDatum {
@@ -21,11 +22,15 @@ interface DonutChartProps {
   height?: number;
   emptyLabel?: string;
   /**
-   * Drill-down base path, e.g. "/expenses" — a slice with a `categoryId`
-   * links to `${drillDownBasePath}?category_id=${categoryId}` on click.
-   * Still used by /accounts/[id] (account-detail.tsx) and /budget
-   * (budget-list.tsx), which stay full-page navigations — out of the
-   * dashboard redesign's scope.
+   * Drill-down base path, e.g. "/expenses" — a slice links to
+   * `${drillDownBasePath}?category_id=${categoryId}` on click (the
+   * "Sans catégorie" slice sends `UNCATEGORIZED_CATEGORY_ID`, same as
+   * `onSliceClick` below — a consumer needs to handle that sentinel the way
+   * `/transactions` does). Currently unused: neither /accounts/[id]
+   * (account-detail.tsx) nor /budget (budget-list.tsx) passes it, so their
+   * donuts stay purely visual. Kept for a future caller that wants a
+   * full-page-navigation drill-down instead of `onSliceClick`'s in-place
+   * overlay.
    */
   drillDownBasePath?: string;
   /**
@@ -33,9 +38,11 @@ interface DonutChartProps {
    * dashboard's donut also navigated via `drillDownBasePath`; it now opens
    * an in-place overlay instead, see `category-transactions-overlay.tsx`.
    * Takes priority over `drillDownBasePath` when both are given (a caller
-   * only ever passes one). Only called for a slice with a real
-   * `categoryId` — a slice with none (e.g. "Sans catégorie") stays
-   * non-interactive either way.
+   * only ever passes one). Called for every slice, including one with no
+   * `categoryId` (e.g. "Sans catégorie") — that slice reports
+   * `UNCATEGORIZED_CATEGORY_ID` instead (issue #35: it used to stay
+   * non-interactive, dropping the only way to drill into uncategorized
+   * expenses from this chart).
    */
   onSliceClick?: (categoryId: string) => void;
 }
@@ -143,14 +150,14 @@ export function DonutChart({
           isAnimationActive={false}
         >
           {data.map((entry, index) => {
-            const categoryId = entry.categoryId;
-            const handleClick = !categoryId
-              ? undefined
-              : onSliceClick
-                ? () => onSliceClick(categoryId)
-                : drillDownBasePath
-                  ? () => router.push(`${drillDownBasePath}?category_id=${categoryId}`)
-                  : undefined;
+            // A slice with no categoryId is "Sans catégorie" — reported as
+            // UNCATEGORIZED_CATEGORY_ID rather than left non-interactive.
+            const categoryId = entry.categoryId ?? UNCATEGORIZED_CATEGORY_ID;
+            const handleClick = onSliceClick
+              ? () => onSliceClick(categoryId)
+              : drillDownBasePath
+                ? () => router.push(`${drillDownBasePath}?category_id=${categoryId}`)
+                : undefined;
             return (
               <Cell
                 key={`cell-${index}`}

@@ -1,6 +1,7 @@
 "use client";
 
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { ViewAllLink } from "@/components/dashboard/view-all-link";
 import { useLocale } from "@/components/locale-provider";
 import { formatEuros } from "@/lib/format";
 
@@ -31,7 +32,10 @@ export function SavingsGoalsSummary({ goals }: SavingsGoalsSummaryProps) {
 
   return (
     <DashboardCard>
-      <h2 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("dashboard.savingsGoals.heading")}</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("dashboard.savingsGoals.heading")}</h2>
+        <ViewAllLink href="/goals" />
+      </div>
       <div className="space-y-3">
         {goals.map((goal) => {
           const pct = goal.targetCents > 0 ? Math.min(100, Math.round((goal.currentCents / goal.targetCents) * 100)) : 0;

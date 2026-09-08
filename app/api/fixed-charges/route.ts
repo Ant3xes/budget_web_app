@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { advanceWhile } from "@/lib/fixed-charges/due-date";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { uuidSchema } from "@/lib/validation/uuid";
 
@@ -16,21 +17,8 @@ const fixedChargeSchema = z.object({
 });
 
 function advanceDueDate(dateStr: string, frequency: "monthly" | "quarterly" | "yearly"): string {
-  const [y, m, d] = dateStr.split("-").map(Number) as [number, number, number];
-  const date = new Date(Date.UTC(y, m - 1, d));
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-
-  while (date < today) {
-    if (frequency === "monthly") {
-      date.setUTCMonth(date.getUTCMonth() + 1);
-    } else if (frequency === "quarterly") {
-      date.setUTCMonth(date.getUTCMonth() + 3);
-    } else {
-      date.setUTCFullYear(date.getUTCFullYear() + 1);
-    }
-  }
-  return date.toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  return advanceWhile(dateStr, frequency, (d) => d < today);
 }
 
 const withUser = async () => {

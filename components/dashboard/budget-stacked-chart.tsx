@@ -5,6 +5,7 @@ import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 
 import { CategoryTransactionsOverlay, type OverlayTransaction } from "@/components/dashboard/category-transactions-overlay";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
+import { ViewAllLink } from "@/components/dashboard/view-all-link";
 import { useLocale } from "@/components/locale-provider";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
@@ -117,7 +118,12 @@ export function BudgetStackedChart({ rows, transactionsByCategory }: BudgetStack
 
   return (
     <DashboardCard>
-      <h2 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("dashboard.budgets.heading")}</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("dashboard.budgets.heading")}</h2>
+        {/* Points to /goals, not /budget — per the original request, this
+            card's "voir tout" leads to the savings-goals menu. */}
+        <ViewAllLink href="/goals" />
+      </div>
       <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height: 280 }}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: bottomMargin }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -190,6 +196,7 @@ export function BudgetStackedChart({ rows, transactionsByCategory }: BudgetStack
         onClose={() => setOverlayCategoryId(null)}
         title={t("dashboard.overlay.budgetTitle", { category: overlayRow?.label ?? "" })}
         transactions={overlayCategoryId ? (transactionsByCategory[overlayCategoryId] ?? []) : []}
+        viewAllHref={overlayCategoryId ? `/transactions?type=expense&category_id=${overlayCategoryId}` : undefined}
       />
     </DashboardCard>
   );
