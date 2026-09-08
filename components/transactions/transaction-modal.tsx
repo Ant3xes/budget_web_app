@@ -6,6 +6,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 
 type TransactionFormValues = {
@@ -145,32 +148,29 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">{t(titleKey)}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 text-xl leading-none dark:text-zinc-500 dark:hover:text-zinc-200">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} className="text-xl leading-none">
             ×
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <label className="block text-sm font-medium">
             {t("transactions.form.account")}
-            <select
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              {...register("account_id")}
-            >
+            <Select className="mt-1" {...register("account_id")}>
               <option value="">{t("transactions.form.selectPlaceholder")}</option>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
                 </option>
               ))}
-            </select>
+            </Select>
             {errors.account_id ? <p className="mt-1 text-xs text-red-600">{errors.account_id.message}</p> : null}
           </label>
 
           <label className="block text-sm font-medium">
             {t("transactions.form.amount")}
-            <input
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            <Input
+              className="mt-1"
               placeholder={t("transactions.form.amountPlaceholder")}
               type="text"
               inputMode="decimal"
@@ -181,29 +181,19 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
 
           <label className="block text-sm font-medium">
             {t("transactions.form.date")}
-            <input
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              type="date"
-              {...register("date")}
-            />
+            <Input className="mt-1" type="date" {...register("date")} />
             {errors.date ? <p className="mt-1 text-xs text-red-600">{errors.date.message}</p> : null}
           </label>
 
           <label className="block text-sm font-medium">
             {t("transactions.form.description")}
-            <input
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              {...register("description")}
-            />
+            <Input className="mt-1" {...register("description")} />
             {errors.description ? <p className="mt-1 text-xs text-red-600">{errors.description.message}</p> : null}
           </label>
 
           <label className="block text-sm font-medium">
             {t("transactions.form.category")}
-            <select
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              {...register("category_id")}
-            >
+            <Select className="mt-1" {...register("category_id")}>
               <option value="">{t("transactions.form.noCategoryOption")}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -211,7 +201,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
                   {resolveCategoryName(c, t)}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
 
           <label className="block text-sm font-medium">
@@ -226,20 +216,12 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
           <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50"
-            >
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? t("common.state.saving") : transactionId ? t("common.actions.update") : t("common.actions.create")}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
+            </Button>
+            <Button type="button" variant="outline" onClick={onClose}>
               {t("common.actions.cancel")}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

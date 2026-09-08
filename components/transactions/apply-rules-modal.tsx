@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 
 import { useLocale } from "@/components/locale-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 
 type PreviewItem = {
@@ -179,12 +182,9 @@ export function ApplyRulesModal({ onSuccess, onClose }: ApplyRulesModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
           <h2 className="text-lg font-semibold">{t("transactions.applyRules.title")}</h2>
-          <button
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-700 text-xl leading-none dark:text-zinc-500 dark:hover:text-zinc-200"
-          >
+          <Button variant="ghost" size="icon-sm" onClick={onClose} className="text-xl leading-none">
             ×
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -280,12 +280,12 @@ export function ApplyRulesModal({ onSuccess, onClose }: ApplyRulesModalProps) {
                             <span className="truncate max-w-[220px] text-zinc-700 dark:text-zinc-300" title={u.description}>
                               {u.description}
                             </span>
-                            <select
+                            <Select
                               value={chosen}
                               onChange={(e) =>
                                 setManualCategory((prev) => ({ ...prev, [u.id]: e.target.value }))
                               }
-                              className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                              className="w-auto"
                             >
                               <option value="">{t("transactions.applyRules.chooseCategoryOption")}</option>
                               {kindCategories.map((c) => (
@@ -294,7 +294,7 @@ export function ApplyRulesModal({ onSuccess, onClose }: ApplyRulesModalProps) {
                                   {resolveCategoryName(c, t)}
                                 </option>
                               ))}
-                            </select>
+                            </Select>
                           </div>
                           {chosen && (
                             <div className="mt-2 flex items-center gap-2 border-t border-zinc-100 pt-2 dark:border-zinc-800">
@@ -309,13 +309,13 @@ export function ApplyRulesModal({ onSuccess, onClose }: ApplyRulesModalProps) {
                                 {t("transactions.applyRules.createRuleLabel")}
                               </label>
                               {(createRule[u.id] ?? true) && (
-                                <input
+                                <Input
                                   type="text"
                                   value={keyword[u.id] ?? u.description}
                                   onChange={(e) => setKeyword((prev) => ({ ...prev, [u.id]: e.target.value }))}
                                   placeholder={t("transactions.applyRules.keywordPlaceholder")}
                                   maxLength={RULE_KEYWORD_MAX_LENGTH}
-                                  className="flex-1 rounded border border-zinc-300 px-2 py-1 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                                  className="flex-1"
                                 />
                               )}
                             </div>
@@ -335,33 +335,21 @@ export function ApplyRulesModal({ onSuccess, onClose }: ApplyRulesModalProps) {
         {/* Footer */}
         <div className="flex justify-end gap-2 border-t border-zinc-200 px-6 py-4 dark:border-zinc-700">
           {result !== null ? (
-            <button
-              onClick={onSuccess}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-white dark:text-zinc-900"
-            >
-              {t("common.actions.close")}
-            </button>
+            <Button onClick={onSuccess}>{t("common.actions.close")}</Button>
           ) : (
             <>
-              <button
-                onClick={onClose}
-                className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600 dark:text-zinc-300"
-              >
+              <Button variant="outline" onClick={onClose}>
                 {t("common.actions.cancel")}
-              </button>
+              </Button>
               {totalActionable > 0 && (
-                <button
-                  onClick={() => void handleApply()}
-                  disabled={isSubmitting}
-                  className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-white dark:text-zinc-900"
-                >
+                <Button onClick={() => void handleApply()} disabled={isSubmitting}>
                   {isSubmitting
                     ? t("transactions.applyRules.applying")
                     : t("transactions.applyRules.applyButton", {
                         count: totalActionable,
                         plural: totalActionable > 1 ? "s" : "",
                       })}
-                </button>
+                </Button>
               )}
             </>
           )}

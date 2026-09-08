@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import { AccountModal } from "@/components/accounts/account-modal";
 import { BalanceChart } from "@/components/accounts/balance-chart";
@@ -10,6 +10,10 @@ import { DonutChart } from "@/components/dashboard/donut-chart";
 import { IncomeExpenseBarChart } from "@/components/dashboard/bar-chart";
 import { ImportModal } from "@/components/import/import-modal";
 import { useLocale } from "@/components/locale-provider";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Pagination } from "@/components/ui/pagination";
 import {
   computeDailyBalanceSeries,
@@ -98,8 +102,8 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
   const operationLabel = t("accounts.detail.operationLabel");
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-      <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
+    <div className="rounded-2xl bg-card shadow-sm ring-1 ring-foreground/10">
+      <div className="border-b border-border px-4 py-3">
         <h3 className="text-sm font-semibold">{title}</h3>
         {transactions.length > 0 && (
           <p className="mt-0.5 text-xs text-zinc-400">
@@ -188,11 +192,10 @@ export function AccountDetail({
   const router = useRouter();
   const { t } = useLocale();
   const [period, setPeriod] = useState<Period>(() => parsePeriodParam(initialPeriod));
-  const [menuOpen, setMenuOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const monthInputRef = useRef<HTMLInputElement>(null);
 
   const earliestDate = useMemo(() => {
@@ -278,7 +281,6 @@ export function AccountDetail({
     preset === "2a" ? t("accounts.detail.twoYearsPreset") : t(`periodSelector.presets.${preset}`);
 
   const handleDelete = async () => {
-    if (!window.confirm(t("accounts.detail.deleteConfirm", { name: account.name }))) return;
     setIsDeleting(true);
     await fetch("/api/accounts", {
       method: "DELETE",
@@ -288,16 +290,6 @@ export function AccountDetail({
     router.push("/accounts");
     router.refresh();
   };
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   return (
     <section className="space-y-6">
@@ -320,89 +312,87 @@ export function AccountDetail({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setImportModalOpen(true)}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
+          <Button variant="outline" onClick={() => setImportModalOpen(true)}>
             {t("accounts.list.importButton")}
-          </button>
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              aria-label={t("accounts.detail.optionsLabel")}
-            >
-              <span className="text-lg leading-none text-zinc-500">⋮</span>
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-10 z-20 min-w-[160px] rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-                <button
-                  onClick={() => { setMenuOpen(false); setEditModalOpen(true); }}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800"
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full"
+                  aria-label={t("accounts.detail.optionsLabel")}
                 >
-                  {t("common.actions.edit")}
-                </button>
-                <button
-                  onClick={() => { setMenuOpen(false); void handleDelete(); }}
-                  disabled={isDeleting}
-                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-zinc-50 disabled:opacity-50 dark:hover:bg-zinc-800"
-                >
-                  {t("common.actions.delete")}
-                </button>
-              </div>
-            )}
-          </div>
+                  <MoreVertical />
+                </Button>
+              }
+            />
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => setEditModalOpen(true)}>
+                <Pencil />
+                {t("common.actions.edit")}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={isDeleting}
+              >
+                <Trash2 />
+                {t("common.actions.delete")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Shared period control */}
-      <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between">
+      <Card className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-1">
           {PRESET_ORDER.map((preset) => (
-            <button
+            <Button
               key={preset}
+              size="xs"
+              variant={isPresetActive(preset) ? "default" : "ghost"}
               onClick={() => selectPreset(preset)}
-              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-                isPresetActive(preset)
-                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                  : "text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
-              }`}
             >
               {presetLabel(preset)}
-            </button>
+            </Button>
           ))}
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-400">{t("accounts.detail.month")}</span>
-          <button
+          <span className="text-xs text-muted-foreground">{t("accounts.detail.month")}</span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => shiftMonth(-1)}
-            className="rounded p-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
             aria-label={t("accounts.detail.prevMonth")}
           >
-            ←
-          </button>
-          <button
+            <ChevronLeft />
+          </Button>
+          <Button
             type="button"
+            variant={period.type === "month" ? "default" : "ghost"}
+            size="sm"
+            className="min-w-[9rem] capitalize"
             onClick={() => applyPeriod({ type: "month", month: selectedMonth })}
-            className={`min-w-[9rem] rounded px-2 py-1 text-sm font-medium capitalize transition-colors ${
-              period.type === "month"
-                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            }`}
           >
             {toMonthLabel(selectedMonth)}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={() => shiftMonth(1)}
-            className="rounded p-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
             aria-label={t("accounts.detail.nextMonth")}
           >
-            →
-          </button>
+            <ChevronRight />
+          </Button>
           <div className="relative">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               onClick={() => {
                 const input = monthInputRef.current;
                 if (input?.showPicker) {
@@ -411,11 +401,10 @@ export function AccountDetail({
                   input?.focus();
                 }
               }}
-              className="flex items-center rounded p-1 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
               aria-label={t("accounts.detail.pickMonth")}
             >
-              <Calendar className="h-4 w-4" />
-            </button>
+              <Calendar />
+            </Button>
             <input
               ref={monthInputRef}
               type="month"
@@ -429,27 +418,27 @@ export function AccountDetail({
             />
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Charts */}
       <div className="space-y-4">
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-          <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+        <Card className="p-4">
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">
             {t("accounts.detail.balanceEvolution")}
           </h2>
           <BalanceChart data={visibleBalanceData} currency={account.currency} />
-        </div>
+        </Card>
 
         <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          <Card className="p-4">
+            <h2 className="mb-3 text-sm font-medium text-muted-foreground">
               {t("accounts.detail.incomeVsExpense")}
             </h2>
             <IncomeExpenseBarChart data={visibleIncomeExpenseData} height={200} />
-          </div>
+          </Card>
 
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          <Card className="p-4">
+            <h2 className="mb-3 text-sm font-medium text-muted-foreground">
               {t("accounts.detail.expenseByCategory")}
             </h2>
             {/* Taller than the bar chart next to it: the legend needs room
@@ -457,7 +446,7 @@ export function AccountDetail({
                 account has many categories (unlike a fixed axis chart, this
                 one's content height genuinely depends on the data). */}
             <DonutChart data={donutData} height={280} />
-          </div>
+          </Card>
         </div>
       </div>
 
@@ -515,6 +504,19 @@ export function AccountDetail({
           }}
         />
       )}
+
+      <AlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title={t("accounts.detail.deleteConfirm", { name: account.name })}
+        onConfirm={() => {
+          setDeleteDialogOpen(false);
+          void handleDelete();
+        }}
+        isConfirming={isDeleting}
+        confirmLabel={t("common.actions.delete")}
+        cancelLabel={t("common.actions.cancel")}
+      />
     </section>
   );
 }

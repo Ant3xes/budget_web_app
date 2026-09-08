@@ -21,6 +21,7 @@ import { GripVertical, Pencil, Trash2 } from "lucide-react";
 import { ImportRulesModal } from "@/components/settings/import-rules-modal";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useLocale } from "@/components/locale-provider";
 
 type ImportRule = {
@@ -56,7 +57,7 @@ function SortableRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 rounded-md border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-700 dark:bg-zinc-900"
+      className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5"
     >
       {/* Drag handle */}
       <button
@@ -170,18 +171,13 @@ export function ImportRulesList() {
             <p className="text-xs text-zinc-400">{t("importRules.reorderHint")}</p>
           )}
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
+        <Button variant="default" onClick={() => setShowCreate(true)}>
           + {t("importRules.newRule")}
-        </button>
+        </Button>
       </div>
 
       {rules.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-zinc-300 py-12 text-center text-sm text-zinc-500 dark:border-zinc-700">
-          {t("importRules.empty")}
-        </div>
+        <EmptyState title={t("importRules.empty")} />
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => void handleDragEnd(e)}>
           <SortableContext items={rules.map((r) => r.id)} strategy={verticalListSortingStrategy}>

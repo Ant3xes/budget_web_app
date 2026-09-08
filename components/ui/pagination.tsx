@@ -1,6 +1,8 @@
 "use client";
 
 import { useLocale } from "@/components/locale-provider";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface PaginationProps {
   page: number;
@@ -26,28 +28,18 @@ export function Pagination({ page, totalPages, total, onPageChange, itemLabel, c
   const label = itemLabel ?? t("common.state.result");
 
   return (
-    <div className={`flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400 ${className ?? ""}`}>
+    <div className={cn("flex items-center justify-between text-sm text-muted-foreground", className)}>
       <span>
         {total} {label}
         {total > 1 ? "s" : ""} — {t("common.pagination.pageOf", { page, totalPages })}
       </span>
       <div className="flex gap-1">
-        <button
-          type="button"
-          disabled={page === 1}
-          onClick={() => onPageChange(page - 1)}
-          className="rounded-md border border-zinc-300 px-3 py-1 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-        >
+        <Button type="button" variant="outline" size="sm" disabled={page === 1} onClick={() => onPageChange(page - 1)}>
           ← {t("common.pagination.previous")}
-        </button>
-        <button
-          type="button"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
-          className="rounded-md border border-zinc-300 px-3 py-1 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-        >
+        </Button>
+        <Button type="button" variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
           {t("common.pagination.next")} →
-        </button>
+        </Button>
       </div>
     </div>
   );

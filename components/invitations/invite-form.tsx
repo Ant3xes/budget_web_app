@@ -7,6 +7,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export function InviteForm() {
   const router = useRouter();
@@ -58,14 +60,14 @@ export function InviteForm() {
     <form onSubmit={onSubmit} className="space-y-3">
       <label className="block text-sm font-medium">
         {t("invitations.invite.emailLabel")}
-        <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" {...register("email")} />
+        <Input className="mt-1" {...register("email")} />
       </label>
       {errors.email ? <p className="text-xs text-red-600">{errors.email.message}</p> : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {success ? <p className="text-sm text-emerald-700 break-all">{success}</p> : null}
-      <button className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white disabled:opacity-50" disabled={isSubmitting} type="submit">
+      <Button variant="default" disabled={isSubmitting} type="submit">
         {t("invitations.invite.submit")}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useLocale } from "@/components/locale-provider";
-import { StatTile } from "@/components/ui/stat-tile";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { formatEuros } from "@/lib/format";
 
 interface RemainingToLiveProps {
@@ -12,26 +13,31 @@ interface RemainingToLiveProps {
 }
 
 /**
- * "Reste à vivre" (hors charges) KPI bubble — explicitly scoped to the
- * current month in its label (issue #35). The "with upcoming charges"
- * figure used to be a parenthetical caption below the main value; it's now
- * a second label/value pair laid out horizontally next to it instead.
+ * "Reste à vivre" (hors charges) KPI card — explicitly scoped to the current
+ * month in its label (issue #35). The "with upcoming charges" figure used to
+ * be a footer row stacked below the main value; `StatTile`'s label/value/
+ * footer slots are all vertical, which doesn't fit a side-by-side need, so
+ * this is now a standalone `Card` with two columns instead: "Reste à vivre"
+ * on the left, "avec charges à venir" on the right, split by a `divide-x`.
  */
 export function RemainingToLive({ amountCents, afterChargesCents }: RemainingToLiveProps) {
   const { t } = useLocale();
   return (
-    <StatTile
-      label={t("dashboard.remainingToLive.label")}
-      value={formatEuros(amountCents)}
-      valueClassName={amountCents < 0 ? "text-expense" : undefined}
-      footer={
-        <div className="mt-2 flex items-center gap-2 border-t border-zinc-100 pt-2 text-sm dark:border-zinc-800">
-          <span className="text-muted-foreground">{t("dashboard.remainingToLive.afterChargesLabel")}</span>
-          <span className={`font-semibold ${afterChargesCents < 0 ? "text-expense" : ""}`}>
-            {formatEuros(afterChargesCents)}
-          </span>
+    <Card>
+      <CardContent className="grid grid-cols-2 divide-x divide-border">
+        <div className="pr-4">
+          <p className="text-sm text-muted-foreground">{t("dashboard.remainingToLive.label")}</p>
+          <p className={cn("mt-1 text-xl font-semibold", amountCents < 0 && "text-expense")}>
+            {formatEuros(amountCents)}
+          </p>
         </div>
-      }
-    />
+        <div className="pl-4">
+          <p className="text-sm text-muted-foreground">{t("dashboard.remainingToLive.afterChargesLabel")}</p>
+          <p className={cn("mt-1 text-xl font-semibold", afterChargesCents < 0 && "text-expense")}>
+            {formatEuros(afterChargesCents)}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

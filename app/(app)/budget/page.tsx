@@ -15,7 +15,7 @@ export default async function BudgetPage({
   const month = monthParam ?? defaultMonth;
 
   return (
-    <section className="space-y-4 p-6">
+    <section className="space-y-4">
       <h1 className="text-2xl font-semibold">
         <T k="budget.title" />
       </h1>

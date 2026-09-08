@@ -10,6 +10,8 @@ import { CategoryBadge } from "@/components/category-badge";
 import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 import { formatEuros } from "@/lib/format";
 
@@ -152,79 +154,64 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
       {/* Month navigation */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
-            onClick={goToPrevMonth}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
+          <Button variant="outline" size="icon" onClick={goToPrevMonth}>
             ←
-          </button>
+          </Button>
           <h2 className="text-lg font-semibold capitalize">{monthLabel(month)}</h2>
-          <button
-            onClick={goToNextMonth}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
+          <Button variant="outline" size="icon" onClick={goToNextMonth}>
             →
-          </button>
+          </Button>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          {t("budget.addEnvelope")}
-        </button>
+        <Button onClick={() => setShowCreate(true)}>{t("budget.addEnvelope")}</Button>
       </div>
 
       {isLoading ? (
         <p className="py-8 text-center text-sm text-zinc-500">{t("common.state.loading")}</p>
       ) : budgets.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-600">
-          <p className="text-zinc-500 dark:text-zinc-400">{t("budget.emptyForMonth", { month: monthLabel(month) })}</p>
-          <div className="mt-4">
-            {copyError && <p className="mb-2 text-sm text-red-500">{copyError}</p>}
-            <p className="mb-3 text-sm text-zinc-500">
-              {t("budget.copyFromPrevQuestion", { month: monthLabel(prevMonth(month)) })}
-            </p>
-            <button
-              onClick={handleCopyFromPrev}
-              disabled={isCopying}
-              className="rounded-md bg-zinc-700 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-            >
-              {isCopying ? t("budget.copying") : t("budget.copyFromPrevButton", { month: monthLabel(prevMonth(month)) })}
-            </button>
-          </div>
-        </div>
+        <EmptyState
+          title={t("budget.emptyForMonth", { month: monthLabel(month) })}
+          description={t("budget.copyFromPrevQuestion", { month: monthLabel(prevMonth(month)) })}
+          action={
+            <div className="flex flex-col items-center gap-2">
+              {copyError && <p className="text-sm text-red-500">{copyError}</p>}
+              <Button onClick={handleCopyFromPrev} disabled={isCopying} variant="outline">
+                {isCopying ? t("budget.copying") : t("budget.copyFromPrevButton", { month: monthLabel(prevMonth(month)) })}
+              </Button>
+            </div>
+          }
+        />
       ) : (
         <>
           {/* Spending by category */}
-          <div className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
+          <Card className="p-4">
             <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
               {t("budget.spendingByCategory")}
             </h2>
             <DonutChart data={donutData} emptyLabel={t("budget.noExpense")} />
-          </div>
+          </Card>
 
           {/* Summary */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
+            <Card className="p-4">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("budget.totalBudget")}</p>
               <p className="mt-1 text-lg font-semibold">{formatEuros(totalBudget)}</p>
-            </article>
-            <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
+            </Card>
+            <Card className="p-4">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("budget.consumed")}</p>
               <p className="mt-1 text-lg font-semibold">{formatEuros(totalConsumed)}</p>
-            </article>
-            <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
+            </Card>
+            <Card className="p-4">
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("budget.remaining")}</p>
               <p
                 className={`mt-1 text-lg font-semibold ${totalBudget - totalConsumed < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}
               >
                 {formatEuros(totalBudget - totalConsumed)}
               </p>
-            </article>
+            </Card>
           </div>
 
           {/* Budget table */}
-          <div className="overflow-x-auto rounded-lg bg-white shadow-sm dark:bg-zinc-900">
+          <Card className="overflow-x-auto p-0">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 text-left text-xs font-medium text-zinc-500 uppercase dark:border-zinc-700 dark:text-zinc-400">
@@ -304,7 +291,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                   })}
               </tbody>
             </table>
-          </div>
+          </Card>
         </>
       )}
 

@@ -7,6 +7,9 @@ import { Banknote, Home, Landmark, PiggyBank, Wallet, type LucideIcon } from "lu
 
 import { AccountModal } from "@/components/accounts/account-modal";
 import { useLocale } from "@/components/locale-provider";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { BankAccountGroup } from "@/lib/accounts/group-accounts-by-bank";
 import { ACCOUNT_TYPES } from "@/lib/constants";
 import { formatEuros } from "@/lib/format";
@@ -66,27 +69,27 @@ export function AccountsList({ groups, importButton }: AccountsListProps) {
         </div>
         <div className="flex items-center gap-2">
           {importButton}
-          <button
+          <Button
+            variant="default"
+            size="icon"
+            className="rounded-full"
             onClick={() => setModalOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-900 text-white shadow hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
             aria-label={t("accounts.list.newAccount")}
             title={t("accounts.list.newAccount")}
           >
             <span className="text-lg leading-none">+</span>
-          </button>
+          </Button>
         </div>
       </div>
 
       {groups.length === 0 ? (
-        <div className="mt-8 flex flex-col items-center gap-3 rounded-xl border border-dashed border-zinc-200 bg-white p-10 text-center text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-500">
-          <p className="text-sm">{t("accounts.list.emptyTitle")}</p>
-          <button
-            onClick={() => setModalOpen(true)}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-zinc-900"
-          >
-            {t("accounts.list.createAccount")}
-          </button>
-        </div>
+        <EmptyState
+          className="mt-8"
+          title={t("accounts.list.emptyTitle")}
+          action={
+            <Button onClick={() => setModalOpen(true)}>{t("accounts.list.createAccount")}</Button>
+          }
+        />
       ) : (
         <div className="space-y-6">
           {groups.map((group) => (
@@ -101,51 +104,49 @@ export function AccountsList({ groups, importButton }: AccountsListProps) {
                   const accentClasses = ACCOUNT_TYPE_ACCENTS[accountType] ?? ACCOUNT_TYPE_ACCENTS.autre;
 
                   return (
-                    <Link
-                      key={account.id}
-                      href={`/accounts/${account.id}`}
-                      className="group rounded-xl border border-zinc-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${accentClasses}`}>
-                          <Icon className="h-5 w-5" aria-hidden="true" />
+                    <Link key={account.id} href={`/accounts/${account.id}`} className="block">
+                      <Card interactive className="group p-5">
+                        <div className="flex items-start gap-3">
+                          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${accentClasses}`}>
+                            <Icon className="h-5 w-5" aria-hidden="true" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-base font-semibold group-hover:text-zinc-600 dark:group-hover:text-zinc-300">
+                              {account.name}
+                            </p>
+                            <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                              {t(`accounts.types.${accountType}`)}
+                            </span>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-base font-semibold group-hover:text-zinc-600 dark:group-hover:text-zinc-300">
-                            {account.name}
-                          </p>
-                          <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                            {t(`accounts.types.${accountType}`)}
-                          </span>
-                        </div>
-                      </div>
 
-                      <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                        <p className="text-xs text-zinc-400 dark:text-zinc-500">{t("accounts.list.currentBalance")}</p>
-                        <p
-                          className={`mt-0.5 text-2xl font-bold tracking-tight ${
-                            account.balanceCents >= 0 ? "text-zinc-900 dark:text-zinc-100" : "text-red-600"
-                          }`}
-                        >
-                          {formatEuros(account.balanceCents, account.currency)}
-                        </p>
-
-                        <div className="mt-3 flex items-baseline justify-between">
-                          <span className="text-xs text-zinc-400 dark:text-zinc-500">{t("accounts.list.monthExpenses")}</span>
-                          {/* No leading "-" (and no red) for a genuinely zero month —
-                              a minus sign on 0,00 € misreads as spending, and red is
-                              a status color reserved for an actual expense (plan
-                              §Étape 5 dark-mode/a11y polish pass). */}
-                          <span
-                            className={`text-sm font-medium ${
-                              account.monthExpenseCents === 0 ? "text-zinc-400 dark:text-zinc-500" : "text-red-500"
+                        <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500">{t("accounts.list.currentBalance")}</p>
+                          <p
+                            className={`mt-0.5 text-2xl font-bold tracking-tight ${
+                              account.balanceCents >= 0 ? "text-zinc-900 dark:text-zinc-100" : "text-red-600"
                             }`}
                           >
-                            {account.monthExpenseCents === 0 ? "" : "-"}
-                            {formatEuros(Math.abs(account.monthExpenseCents), account.currency)}
-                          </span>
+                            {formatEuros(account.balanceCents, account.currency)}
+                          </p>
+
+                          <div className="mt-3 flex items-baseline justify-between">
+                            <span className="text-xs text-zinc-400 dark:text-zinc-500">{t("accounts.list.monthExpenses")}</span>
+                            {/* No leading "-" (and no red) for a genuinely zero month —
+                                a minus sign on 0,00 € misreads as spending, and red is
+                                a status color reserved for an actual expense (plan
+                                §Étape 5 dark-mode/a11y polish pass). */}
+                            <span
+                              className={`text-sm font-medium ${
+                                account.monthExpenseCents === 0 ? "text-zinc-400 dark:text-zinc-500" : "text-red-500"
+                              }`}
+                            >
+                              {account.monthExpenseCents === 0 ? "" : "-"}
+                              {formatEuros(Math.abs(account.monthExpenseCents), account.currency)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
+                      </Card>
                     </Link>
                   );
                 })}

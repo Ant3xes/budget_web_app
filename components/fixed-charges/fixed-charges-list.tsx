@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import { FixedChargeModal } from "@/components/fixed-charges/fixed-charges-modal";
 import { useLocale } from "@/components/locale-provider";
-import { Button } from "@/components/ui/button";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatEuros } from "@/lib/format";
 import { formatFixedChargeDate, isDueSoon } from "@/lib/fixed-charges/due-date";
 
@@ -42,8 +46,8 @@ export function FixedChargesList() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editingCharge, setEditingCharge] = useState<FixedCharge | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [deletingCharge, setDeletingCharge] = useState<FixedCharge | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -60,19 +64,7 @@ export function FixedChargesList() {
     void loadData();
   }, [loadData]);
 
-  // Close menu on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpenMenuId(null);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
   const handleStatusChange = async (id: string, status: FixedCharge["status"]) => {
-    setOpenMenuId(null);
     const res = await fetch(`/api/fixed-charges/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -82,16 +74,19 @@ export function FixedChargesList() {
   };
 
   const handleMarkPaid = async (id: string) => {
-    setOpenMenuId(null);
     const res = await fetch(`/api/fixed-charges/${id}/pay`, { method: "POST" });
     if (res.ok) await loadData();
   };
 
-  const handleDelete = async (id: string) => {
-    setOpenMenuId(null);
-    if (!confirm(t("fixedCharges.deleteConfirm"))) return;
-    const res = await fetch(`/api/fixed-charges/${id}`, { method: "DELETE" });
-    if (res.ok) await loadData();
+  const handleDelete = async () => {
+    if (!deletingCharge) return;
+    setIsDeleting(true);
+    const res = await fetch(`/api/fixed-charges/${deletingCharge.id}`, { method: "DELETE" });
+    setIsDeleting(false);
+    if (res.ok) {
+      setDeletingCharge(null);
+      await loadData();
+    }
   };
 
   const activeCharges = charges.filter((c) => c.status === "active");
@@ -106,22 +101,15 @@ export function FixedChargesList() {
             <span className="font-semibold text-zinc-800 dark:text-zinc-100">{formatEuros(totalMonthly)}</span>
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          {t("fixedCharges.newCharge")}
-        </button>
+        <Button onClick={() => setShowCreate(true)}>{t("fixedCharges.newCharge")}</Button>
       </div>
 
       {isLoading ? (
         <p className="py-8 text-center text-sm text-zinc-500">{t("common.state.loading")}</p>
       ) : charges.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-600">
-          <p className="text-zinc-500">{t("fixedCharges.empty")}</p>
-        </div>
+        <EmptyState title={t("fixedCharges.empty")} />
       ) : (
-        <div className="overflow-x-auto rounded-lg bg-white shadow-sm dark:bg-zinc-900">
+        <Card className="overflow-x-auto p-0">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100 text-left text-xs font-medium text-zinc-500 uppercase dark:border-zinc-700 dark:text-zinc-400">
@@ -185,59 +173,52 @@ export function FixedChargesList() {
                         <Button
                           variant="destructive"
                           size="icon-sm"
-                          onClick={() => handleDelete(charge.id)}
+                          onClick={() => setDeletingCharge(charge)}
                           aria-label={t("fixedCharges.deleteCharge")}
                           title={t("common.actions.delete")}
                         >
                           <Trash2 />
                         </Button>
-                        <div className="relative inline-block" ref={openMenuId === charge.id ? menuRef : null}>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => setOpenMenuId(openMenuId === charge.id ? null : charge.id)}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
                             aria-label={t("fixedCharges.otherActions")}
                             title={t("fixedCharges.otherActions")}
                           >
                             <MoreVertical />
-                          </Button>
-                          {openMenuId === charge.id && (
-                            <div className="absolute right-0 z-10 mt-1 w-44 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-                              {charge.status === "active" && (
-                                <button
-                                  onClick={() => handleMarkPaid(charge.id)}
-                                  className="w-full px-4 py-2 text-left text-sm text-green-700 hover:bg-zinc-50"
-                                >
-                                  {t("fixedCharges.markPaid")}
-                                </button>
-                              )}
-                              {charge.status === "active" && (
-                                <button
-                                  onClick={() => handleStatusChange(charge.id, "suspended")}
-                                  className="w-full px-4 py-2 text-left text-sm text-yellow-700 hover:bg-zinc-50"
-                                >
-                                  {t("fixedCharges.suspend")}
-                                </button>
-                              )}
-                              {charge.status === "suspended" && (
-                                <button
-                                  onClick={() => handleStatusChange(charge.id, "active")}
-                                  className="w-full px-4 py-2 text-left text-sm text-green-700 hover:bg-zinc-50"
-                                >
-                                  {t("fixedCharges.reactivate")}
-                                </button>
-                              )}
-                              {charge.status !== "cancelled" && (
-                                <button
-                                  onClick={() => handleStatusChange(charge.id, "cancelled")}
-                                  className="w-full px-4 py-2 text-left text-sm text-zinc-500 hover:bg-zinc-50"
-                                >
-                                  {t("fixedCharges.markCancelled")}
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            {charge.status === "active" && (
+                              <DropdownMenuItem
+                                onClick={() => handleMarkPaid(charge.id)}
+                                className="text-green-700 dark:text-green-400"
+                              >
+                                {t("fixedCharges.markPaid")}
+                              </DropdownMenuItem>
+                            )}
+                            {charge.status === "active" && (
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange(charge.id, "suspended")}
+                                className="text-yellow-700 dark:text-yellow-400"
+                              >
+                                {t("fixedCharges.suspend")}
+                              </DropdownMenuItem>
+                            )}
+                            {charge.status === "suspended" && (
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange(charge.id, "active")}
+                                className="text-green-700 dark:text-green-400"
+                              >
+                                {t("fixedCharges.reactivate")}
+                              </DropdownMenuItem>
+                            )}
+                            {charge.status !== "cancelled" && (
+                              <DropdownMenuItem onClick={() => handleStatusChange(charge.id, "cancelled")}>
+                                {t("fixedCharges.markCancelled")}
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </tr>
@@ -245,7 +226,7 @@ export function FixedChargesList() {
               })}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
 
       {showCreate && (
@@ -271,6 +252,16 @@ export function FixedChargesList() {
           onClose={() => setEditingCharge(null)}
         />
       )}
+
+      <AlertDialog
+        open={deletingCharge !== null}
+        onOpenChange={(open) => !open && setDeletingCharge(null)}
+        title={t("fixedCharges.deleteConfirm")}
+        onConfirm={handleDelete}
+        isConfirming={isDeleting}
+        confirmLabel={t("common.actions.delete")}
+        cancelLabel={t("common.actions.cancel")}
+      />
     </div>
   );
 }

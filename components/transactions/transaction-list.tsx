@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { ChevronDown, Pencil, Search, Trash2, X } from "lucide-react";
+import { Pencil, Search, Trash2, X } from "lucide-react";
 
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
 import { ImportModal } from "@/components/import/import-modal";
@@ -11,8 +11,12 @@ import { TransferModal } from "@/components/transfers/transfer-modal";
 import { CategoryBadge } from "@/components/category-badge";
 import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { Select } from "@/components/ui/select";
 import { UNCATEGORIZED_CATEGORY_ID } from "@/lib/constants";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 import { formatDate, formatEuros } from "@/lib/format";
@@ -73,7 +77,6 @@ export function TransactionList() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   // Modals
-  const [showTypePicker, setShowTypePicker] = useState(false);
   const [createKind, setCreateKind] = useState<"expense" | "income" | "transfer" | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [showApplyRules, setShowApplyRules] = useState(false);
@@ -171,49 +174,30 @@ export function TransactionList() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("transactions.list.title")}</h1>
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowApplyRules(true)}
-            className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            title={t("transactions.list.categorizeTitle")}
-          >
+          <Button variant="outline" onClick={() => setShowApplyRules(true)} title={t("transactions.list.categorizeTitle")}>
             {t("transactions.list.categorize")}
-          </button>
-          <button
-            onClick={() => setShowImport(true)}
-            className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
+          </Button>
+          <Button variant="outline" onClick={() => setShowImport(true)}>
             {t("transactions.list.import")}
-          </button>
-          <div className="relative">
-            <button
-              onClick={() => setShowTypePicker((v) => !v)}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-white dark:text-zinc-900"
-            >
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger className={buttonVariants({ variant: "default" })}>
               {t("transactions.list.add")}
-            </button>
-            {showTypePicker && (
-              <div className="absolute right-0 z-10 mt-1 w-44 rounded-md border border-zinc-200 bg-white py-1 text-sm shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-                {(["expense", "income", "transfer"] as const).map((k) => (
-                  <button
-                    key={k}
-                    onClick={() => {
-                      setCreateKind(k);
-                      setShowTypePicker(false);
-                    }}
-                    className="block w-full px-3 py-2 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                  >
-                    {t(`transactions.list.addType.${k}`)}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {(["expense", "income", "transfer"] as const).map((k) => (
+                <DropdownMenuItem key={k} onClick={() => setCreateKind(k)}>
+                  {t(`transactions.list.addType.${k}`)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
-        <div className="flex rounded-md border border-zinc-200 text-sm dark:border-zinc-700 overflow-hidden">
+      <Card className="flex-row flex-wrap items-center gap-3 p-3">
+        <div className="flex rounded-lg border border-border text-sm overflow-hidden">
           {(["all", "expense", "income", "transfer"] as const).map((tp) => (
             <button
               key={tp}
@@ -225,9 +209,7 @@ export function TransactionList() {
                 setCategorySelection("");
               }}
               className={`px-3 py-1.5 transition-colors ${
-                type === tp
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "hover:bg-zinc-50 text-zinc-500 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                type === tp ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
               }`}
             >
               {t(`transactions.list.type.${tp}`)}
@@ -235,58 +217,44 @@ export function TransactionList() {
           ))}
         </div>
 
-        <div className="relative inline-block">
-          <select
-            value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
-            className="appearance-none rounded-md border border-zinc-300 px-3 py-1.5 pr-8 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-          >
-            <option value="">{t("transactions.list.allAccounts")}</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />
-        </div>
+        <Select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="w-auto">
+          <option value="">{t("transactions.list.allAccounts")}</option>
+          {accounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </Select>
 
         {type !== "transfer" && (
-          <div className="relative inline-block">
-            <select
-              value={categorySelection}
-              onChange={(e) => setCategorySelection(e.target.value)}
-              className="appearance-none rounded-md border border-zinc-300 px-3 py-1.5 pr-8 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-            >
-              <option value="">{t("transactions.list.allCategories")}</option>
-              <option value={UNCATEGORIZED_CATEGORY_ID}>{t("transactions.list.uncategorizedOption")}</option>
-              {filterCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {resolveCategoryName(c, t)}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />
-          </div>
+          <Select value={categorySelection} onChange={(e) => setCategorySelection(e.target.value)} className="w-auto">
+            <option value="">{t("transactions.list.allCategories")}</option>
+            <option value={UNCATEGORIZED_CATEGORY_ID}>{t("transactions.list.uncategorizedOption")}</option>
+            {filterCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {resolveCategoryName(c, t)}
+              </option>
+            ))}
+          </Select>
         )}
 
-        <input
+        <Input
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
+          className="w-auto"
           title={t("transactions.list.dateFrom")}
         />
-        <input
+        <Input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-100"
+          className="w-auto"
           title={t("transactions.list.dateTo")}
         />
 
         <div className="flex gap-1">
-          <input
+          <Input
             type="text"
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
@@ -294,40 +262,37 @@ export function TransactionList() {
               if (e.key === "Enter") setQ(qInput);
             }}
             placeholder={t("transactions.list.searchPlaceholder")}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
+            className="w-auto"
           />
-          <button
-            onClick={() => setQ(qInput)}
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            aria-label={t("transactions.list.search")}
-          >
-            <Search className="h-4 w-4" />
-          </button>
+          <Button variant="outline" size="icon" onClick={() => setQ(qInput)} aria-label={t("transactions.list.search")}>
+            <Search />
+          </Button>
           {q && (
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => {
                 setQ("");
                 setQInput("");
               }}
-              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               aria-label={t("transactions.list.clearSearch")}
             >
-              <X className="h-4 w-4" />
-            </button>
+              <X />
+            </Button>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Table */}
-      <div className="rounded-lg bg-white shadow-sm overflow-x-auto dark:bg-zinc-900">
+      <div className="rounded-2xl border border-border bg-card shadow-sm ring-1 ring-foreground/10 overflow-x-auto">
         {isLoading ? (
-          <p className="p-6 text-sm text-zinc-500">{t("common.state.loading")}</p>
+          <p className="p-6 text-sm text-muted-foreground">{t("common.state.loading")}</p>
         ) : transactions.length === 0 ? (
-          <p className="p-6 text-sm text-zinc-400">{t("transactions.list.empty")}</p>
+          <p className="p-6 text-sm text-muted-foreground">{t("transactions.list.empty")}</p>
         ) : (
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 text-left text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="px-4 py-3">{t("transactions.list.date")}</th>
                 <th className="px-4 py-3">{t("transactions.list.description")}</th>
                 <th className="px-4 py-3">{t("transactions.list.category")}</th>
@@ -340,12 +305,14 @@ export function TransactionList() {
               {transactions.map((tx) => {
                 const isTransfer = !!tx.transfer_id;
                 return (
-                  <tr key={tx.id} className="border-b border-zinc-100 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
-                    <td className="px-4 py-3 whitespace-nowrap text-zinc-500 dark:text-zinc-400">{formatDate(tx.date)}</td>
+                  <tr key={tx.id} className="border-b border-border hover:bg-muted/50">
+                    <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{formatDate(tx.date)}</td>
                     <td className="px-4 py-3 max-w-xs truncate">
                       {tx.description}
                       {tx.is_imported && (
-                        <span className="ml-1 rounded bg-zinc-100 px-1 py-0.5 text-xs text-zinc-400">{t("transactions.list.imported")}</span>
+                        <span className="ml-1 rounded bg-muted px-1 py-0.5 text-xs text-muted-foreground">
+                          {t("transactions.list.imported")}
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -356,17 +323,17 @@ export function TransactionList() {
                       ) : tx.categories ? (
                         <CategoryBadge name={tx.categories.name} color={tx.categories.color} icon={tx.categories.icon} />
                       ) : (
-                        <span className="text-zinc-400">—</span>
+                        <span className="text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">{tx.accounts?.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{tx.accounts?.name ?? "—"}</td>
                     <td
                       className={`px-4 py-3 text-left font-medium whitespace-nowrap ${
                         isTransfer
                           ? "text-blue-600 dark:text-blue-400"
                           : tx.kind === "expense"
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-green-600 dark:text-green-400"
+                            ? "text-expense"
+                            : "text-income"
                       }`}
                     >
                       {!isTransfer && (tx.kind === "expense" ? "−" : "+")}

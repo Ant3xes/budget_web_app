@@ -8,6 +8,7 @@ import { CategoryModal } from "@/components/settings/category-modal";
 import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 import { CATEGORY_COLOR_FALLBACK } from "@/lib/constants";
 
@@ -70,10 +71,10 @@ export default function CategoriesPage() {
   const kindSection = (kind: "expense" | "income" | "transfer") => {
     const items = grouped[kind] ?? [];
     return (
-      <article key={kind} className="rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900">
+      <Card key={kind} className="px-(--card-spacing)">
         <h2 className="mb-3 text-base font-medium">{t(`categories.kind.${kind}`)}</h2>
         {items.length === 0 ? (
-          <p className="text-sm text-zinc-400">{t("settings.categories.emptyForKind")}</p>
+          <p className="text-sm text-muted-foreground">{t("settings.categories.emptyForKind")}</p>
         ) : (
           // auto-fill/minmax instead of viewport breakpoints (sm:/lg:) —
           // this grid sits inside a column that's already halved by the
@@ -86,18 +87,19 @@ export default function CategoriesPage() {
             {items.map((cat) => {
               const accentColor = cat.color ?? CATEGORY_COLOR_FALLBACK;
               return (
-                <div
+                <Card
                   key={cat.id}
+                  interactive
                   title={resolveCategoryName(cat, t)}
-                  className="group relative flex min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl border border-zinc-200 bg-white px-2 pb-3 pt-8 text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-950"
+                  className="group relative flex min-w-0 flex-col items-center gap-1 px-2.5 pb-4 pt-9 text-center"
                 >
                   {/* Bande d'accent colorée en haut de la card, clippée par overflow-hidden + rounded-2xl du conteneur */}
                   <span aria-hidden className="absolute inset-x-0 top-0 z-0 h-1.5" style={{ backgroundColor: accentColor }} />
                   {/* Halo doux derrière l'icône, teinté avec la couleur de la catégorie */}
                   <span
                     aria-hidden
-                    className="absolute left-1/2 top-6 z-0 h-9 w-9 -translate-x-1/2 rounded-full"
-                    style={{ backgroundColor: `color-mix(in srgb, ${accentColor} 18%, transparent)` }}
+                    className="absolute left-1/2 top-7 z-0 h-10 w-10 -translate-x-1/2 rounded-full"
+                    style={{ backgroundColor: `color-mix(in srgb, ${accentColor} 20%, transparent)` }}
                   />
                   <div className="absolute right-1 top-2.5 z-20 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                     <Button
@@ -125,12 +127,12 @@ export default function CategoriesPage() {
                     icon={cat.icon}
                     className="relative z-10 w-full min-w-0 flex-col break-words text-sm"
                   />
-                </div>
+                </Card>
               );
             })}
           </div>
         )}
-      </article>
+      </Card>
     );
   };
 
@@ -138,19 +140,18 @@ export default function CategoriesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("settings.categories.title")}</h1>
-        <button
+        <Button
           onClick={() => {
             setShowCreate(true);
             setEditingId(null);
           }}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm text-white"
         >
           {t("settings.categories.newButton")}
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-zinc-500">{t("common.state.loading")}</p>
+        <p className="text-sm text-muted-foreground">{t("common.state.loading")}</p>
       ) : (
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">

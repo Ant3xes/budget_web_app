@@ -2,6 +2,7 @@ import { InviteForm } from "@/components/invitations/invite-form";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { T } from "@/components/i18n/t";
 import { InvitationStatusLabel } from "@/components/invitations/invitation-status-label";
+import { Card } from "@/components/ui/card";
 
 export default async function InvitationsPage() {
   const supabase = await createServerSupabaseClient();
@@ -16,38 +17,38 @@ export default async function InvitationsPage() {
       <h1 className="text-2xl font-semibold">
         <T k="invitations.title" />
       </h1>
-      <article className="max-w-md rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
+      <Card className="max-w-md p-4">
         <h2 className="text-lg font-medium">
           <T k="invitations.invite.heading" />
         </h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-1 text-sm text-muted-foreground">
           <T k="invitations.invite.description" />
         </p>
         <div className="mt-3">
           <InviteForm />
         </div>
-      </article>
+      </Card>
 
-      <article className="rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
+      <Card className="p-4">
         <h2 className="text-lg font-medium">
           <T k="invitations.recent.heading" />
         </h2>
         <ul className="mt-3 space-y-2 text-sm">
           {(data ?? []).map((invite) => (
-            <li key={invite.id} className="flex items-center justify-between rounded-md border border-zinc-200 p-2 dark:border-zinc-700">
+            <li key={invite.id} className="flex items-center justify-between rounded-lg border border-border p-2">
               <span>{invite.invitee_email}</span>
-              <span className="capitalize text-zinc-600 dark:text-zinc-400">
+              <span className="capitalize text-muted-foreground">
                 <InvitationStatusLabel status={invite.status} />
               </span>
             </li>
           ))}
           {!data?.length ? (
-            <li className="text-zinc-500 dark:text-zinc-400">
+            <li className="text-muted-foreground">
               <T k="invitations.recent.empty" />
             </li>
           ) : null}
         </ul>
-      </article>
+      </Card>
     </section>
   );
 }

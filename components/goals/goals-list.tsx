@@ -1,11 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, PiggyBank } from "lucide-react";
 
 import { AddFundsModal } from "@/components/goals/add-funds-modal";
 import { GoalsModal } from "@/components/goals/goals-modal";
 import { useLocale } from "@/components/locale-provider";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatEuros } from "@/lib/format";
 
 type Goal = {
@@ -40,6 +44,8 @@ export function GoalsList() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [addFundsGoal, setAddFundsGoal] = useState<Goal | null>(null);
+  const [deletingGoal, setDeletingGoal] = useState<Goal | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadGoals = useCallback(async () => {
     setIsLoading(true);
@@ -56,64 +62,61 @@ export function GoalsList() {
     void loadGoals();
   }, [loadGoals]);
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(t("goals.deleteConfirm", { name }))) return;
-    const res = await fetch(`/api/savings-goals/${id}`, { method: "DELETE" });
-    if (res.ok) await loadGoals();
+  const handleDelete = async () => {
+    if (!deletingGoal) return;
+    setIsDeleting(true);
+    const res = await fetch(`/api/savings-goals/${deletingGoal.id}`, { method: "DELETE" });
+    setIsDeleting(false);
+    if (res.ok) {
+      setDeletingGoal(null);
+      await loadGoals();
+    }
   };
 
   if (isLoading) {
-    return <p className="py-8 text-center text-sm text-zinc-500">{t("common.state.loading")}</p>;
+    return <p className="py-8 text-center text-sm text-muted-foreground">{t("common.state.loading")}</p>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-muted-foreground">
           {t(goals.length === 1 ? "goals.countSingular" : "goals.countPlural", { count: goals.length })}
         </p>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          {t("goals.newGoal")}
-        </button>
+        <Button onClick={() => setShowCreate(true)}>{t("goals.newGoal")}</Button>
       </div>
 
       {goals.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-zinc-300 py-12 text-center text-sm text-zinc-500 dark:border-zinc-600">
-          {t("goals.empty")}
-        </div>
+        <EmptyState icon={PiggyBank} title={t("goals.empty")} />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {goals.map((goal) => {
             const pct = progressPercent(goal.current_amount_cents, goal.target_amount_cents);
             const isComplete = pct >= 100;
             return (
-              <div
-                key={goal.id}
-                className="flex flex-col rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
-              >
+              <Card key={goal.id} interactive className="flex flex-col p-5">
                 {/* Header */}
                 <div className="mb-3 flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
                     {goal.icon && <span className="text-xl">{goal.icon}</span>}
                     <div>
-                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{goal.name}</h3>
+                      <h3 className="text-sm font-semibold">{goal.name}</h3>
                       {goal.deadline && (
-                        <p className="text-xs text-zinc-500">{t("goals.deadlineLabel", { date: formatDeadline(goal.deadline) })}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("goals.deadlineLabel", { date: formatDeadline(goal.deadline) })}
+                        </p>
                       )}
                     </div>
                   </div>
                   {goal.linked_category_id && (
-                    <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                    <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
                       {t("goals.auto")}
                     </span>
                   )}
                 </div>
 
                 {/* Progress bar */}
-                <div className="mb-2 h-2.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-700">
+                <div className="mb-2 h-2.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
@@ -125,10 +128,8 @@ export function GoalsList() {
 
                 {/* Amounts */}
                 <div className="mb-4 flex items-baseline justify-between text-sm">
-                  <span className="font-medium text-zinc-800 dark:text-zinc-200">
-                    {formatEuros(goal.current_amount_cents)}
-                  </span>
-                  <span className="text-zinc-500 dark:text-zinc-400">
+                  <span className="font-medium">{formatEuros(goal.current_amount_cents)}</span>
+                  <span className="text-muted-foreground">
                     {pct}% · {formatEuros(goal.target_amount_cents)}
                   </span>
                 </div>
@@ -136,32 +137,23 @@ export function GoalsList() {
                 {/* Actions */}
                 <div className="mt-auto flex gap-2">
                   {!goal.linked_category_id && !isComplete && (
-                    <button
-                      onClick={() => setAddFundsGoal(goal)}
-                      className="flex-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
-                    >
+                    <Button size="sm" className="flex-1" onClick={() => setAddFundsGoal(goal)}>
                       {t("goals.addFunds")}
-                    </button>
+                    </Button>
                   )}
                   {isComplete && (
-                    <span className="flex flex-1 items-center justify-center gap-1 rounded-md bg-emerald-50 px-3 py-1.5 text-center text-xs font-medium text-emerald-700">
+                    <span className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-50 px-3 py-1.5 text-center text-xs font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
                       <CheckCircle2 className="h-3.5 w-3.5" /> {t("goals.goalReached")}
                     </span>
                   )}
-                  <button
-                    onClick={() => setEditingGoal(goal)}
-                    className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setEditingGoal(goal)}>
                     {t("common.actions.edit")}
-                  </button>
-                  <button
-                    onClick={() => void handleDelete(goal.id, goal.name)}
-                    className="rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:border-red-800/50 dark:text-red-400 dark:hover:bg-red-900/20"
-                  >
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => setDeletingGoal(goal)}>
                     {t("common.actions.delete")}
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -200,6 +192,16 @@ export function GoalsList() {
           onClose={() => setAddFundsGoal(null)}
         />
       )}
+
+      <AlertDialog
+        open={deletingGoal !== null}
+        onOpenChange={(open) => !open && setDeletingGoal(null)}
+        title={t("goals.deleteConfirm", { name: deletingGoal?.name ?? "" })}
+        onConfirm={() => void handleDelete()}
+        isConfirming={isDeleting}
+        confirmLabel={t("common.actions.delete")}
+        cancelLabel={t("common.actions.cancel")}
+      />
     </div>
   );
 }
