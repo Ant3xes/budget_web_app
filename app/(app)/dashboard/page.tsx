@@ -521,14 +521,16 @@ export default async function DashboardPage({
         <PeriodSelector current={period} basePath="/dashboard" accountsParam={accountsParam} />
       </div>
 
-      {/* Zone comptes — solde consolidé, bulles banques (elles-mêmes déjà
-          dans leur propre "grosse bulle", voir bank-bubbles.tsx) et
-          sélecteur de compte regroupés dans un seul panneau visuellement
-          distinct du reste du dashboard (grids de DashboardCard plus bas),
-          pour que cette zone de "vue d'ensemble des comptes" se distingue
-          d'un premier coup d'œil des widgets d'activité/période. */}
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-        <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+      {/* Zone comptes — solde consolidé + bulles banques (elles-mêmes déjà
+          dans leur propre "grosse bulle", voir bank-bubbles.tsx), seule
+          chose que ce panneau montre : une vue d'ensemble en lecture seule
+          du patrimoine, sans aucun contrôle interactif à l'intérieur. Le
+          sélecteur de comptes n'a rien à y faire — il filtre les widgets
+          *en dessous* (activité/période), pas ce panneau (toujours calculé
+          sur l'ensemble des comptes) — il vit donc désormais dans sa propre
+          barre, juste au-dessus de ce qu'il filtre réellement. */}
+      <div className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-foreground/10">
+        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
           <T k="dashboard.accountsOverview.heading" />
         </h2>
 
@@ -539,16 +541,20 @@ export default async function DashboardPage({
             <BankBubbles groups={bankGroups} />
           </div>
         </div>
+      </div>
 
-        {/* Sélecteur de comptes — sous les bulles, puisqu'il ne modifie pas leur affichage */}
-        <div className="mt-3">
-          <AccountSelector
-            accounts={courantAccounts}
-            selectedIds={selectedCourantIds}
-            basePath="/dashboard"
-            periodParam={periodParam}
-          />
-        </div>
+      {/* Barre de filtre — distincte du panneau "vue d'ensemble" ci-dessus,
+          collée à la grille de widgets qu'elle filtre effectivement. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">
+          <T k="dashboard.accountFilter.heading" />
+        </span>
+        <AccountSelector
+          accounts={courantAccounts}
+          selectedIds={selectedCourantIds}
+          basePath="/dashboard"
+          periodParam={periodParam}
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3 [&>*]:min-w-0">

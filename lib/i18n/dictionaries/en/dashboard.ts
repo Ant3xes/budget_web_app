@@ -7,6 +7,9 @@ export const dashboard = {
   accountsOverview: {
     heading: "Accounts overview",
   },
+  accountFilter: {
+    heading: "Filter the widgets below by account",
+  },
   remainingToLive: {
     label: "Left to live on — this month (before charges)",
     afterChargesLabel: "With upcoming charges",

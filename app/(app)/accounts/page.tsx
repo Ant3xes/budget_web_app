@@ -54,7 +54,7 @@ export default async function AccountsPage() {
   const groups = groupAccountsByBank(accountCards);
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-4">
       <AccountsList groups={groups} importButton={<AccountsImportButton />} />
     </section>
   );

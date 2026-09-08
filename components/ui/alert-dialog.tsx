@@ -49,15 +49,12 @@ export function AlertDialog({
         <AlertDialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/50" />
         <AlertDialogPrimitive.Popup
           className={cn(
-            "fixed top-1/2 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-lg border border-zinc-200 bg-white p-5 shadow-lg",
-            "dark:border-zinc-700 dark:bg-zinc-900",
+            "fixed top-1/2 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-card p-5 text-card-foreground shadow-lg ring-1 ring-foreground/10",
           )}
         >
-          <AlertDialogPrimitive.Title className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            {title}
-          </AlertDialogPrimitive.Title>
+          <AlertDialogPrimitive.Title className="text-sm font-semibold">{title}</AlertDialogPrimitive.Title>
           {description && (
-            <AlertDialogPrimitive.Description className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+            <AlertDialogPrimitive.Description className="mt-1.5 text-sm text-muted-foreground">
               {description}
             </AlertDialogPrimitive.Description>
           )}

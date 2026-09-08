@@ -17,7 +17,11 @@
  * disabled dark mode for the whole design-token system. Do not reorder.
  */
 :root {
-  --background: oklch(1 0 0);
+  /* Slightly off-white, distinct from --card (pure white) — gives cards a
+     "floating" surface above the page, the layered look most current SaaS
+     UIs share (Linear/Notion/Stripe). Dark mode already has this separation
+     (--background darker than --card below); light mode didn't until now. */
+  --background: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);

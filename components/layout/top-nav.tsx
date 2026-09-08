@@ -8,6 +8,7 @@ import { LogoutButtonLabel } from "@/components/layout/logout-button-label";
 import { LocaleToggle } from "@/components/locale-toggle";
 import { useLocale } from "@/components/locale-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
 import { NAV_ITEMS } from "@/lib/constants";
 import { NAV_ACCENTS, NAV_ICONS, navPillClass } from "@/lib/nav-icons";
 
@@ -51,12 +52,9 @@ export function TopNav({ userEmail }: { userEmail: string }) {
           <LocaleToggle />
           <ThemeToggle />
           <form action={logout}>
-            <button
-              type="submit"
-              className="rounded-full border border-zinc-300 px-3.5 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
+            <Button type="submit" variant="outline" size="sm" className="rounded-full">
               <LogoutButtonLabel />
-            </button>
+            </Button>
           </form>
         </div>
       </div>

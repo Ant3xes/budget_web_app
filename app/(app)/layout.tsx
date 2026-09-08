@@ -33,9 +33,13 @@ export default async function AppLayout({
   return (
     <div>
       <TopNav userEmail={user.email ?? ""} />
-      <main className="p-4">{children}</main>
-      <footer className="border-t border-zinc-200 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-        <Link href="/plan" className="underline underline-offset-2 hover:text-zinc-700 dark:hover:text-zinc-200">
+      {/* Single source of page padding — pages below only ever add
+          `space-y-4` for their own vertical rhythm, never their own p-*
+          (previously duplicated inconsistently: some added p-6 on top of
+          this, accounts used space-y-6 instead of space-y-4). */}
+      <main className="p-4 md:p-6">{children}</main>
+      <footer className="border-t border-border px-4 py-3 text-xs text-muted-foreground md:px-6">
+        <Link href="/plan" className="underline underline-offset-2 hover:text-foreground">
           Plan
         </Link>
       </footer>
