@@ -1,6 +1,6 @@
 ---
 name: budget-new-feature
-description: Scaffold a complete new feature for the budget_web_app covering all layers: DB migration, API route, Server Component page, Client Component list + modal, sidebar link, tests. Use when user asks to add a new module, page, or feature to the budget app.
+description: Scaffold a complete new feature for the budget_web_app covering all layers: DB migration, API route, Server Component page, Client Component list + modal, nav link, tests. Use when user asks to add a new module, page, or feature to the budget app.
 ---
 
 # budget-new-feature
@@ -11,7 +11,7 @@ description: Scaffold a complete new feature for the budget_web_app covering all
 2. **API route** → follow `budget-add-api-route` skill → `app/api/[resource]/route.ts`
 3. **Server Component page** → `app/(app)/[resource]/page.tsx`
 4. **Client Components** → `components/[resource]/[resource]-list.tsx` + `[resource]-modal.tsx`
-5. **Sidebar link** → `components/layout/sidebar.tsx`
+5. **Nav link** → `NAV_ITEMS` in `lib/constants.ts` (icon/accent mapping in `lib/nav-icons.tsx`), rendered by `components/layout/top-nav.tsx`
 6. **Tests** → follow `budget-write-tests` skill
 
 ## Server Component page

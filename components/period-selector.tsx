@@ -18,6 +18,13 @@ interface PeriodSelectorProps {
    * /dashboard, which has an account selector; /analytics doesn't pass this.
    */
   accountsParam?: string;
+  /**
+   * Current `?tab=` value, preserved on every preset link and forwarded to
+   * `PeriodSelectorCustom` — /analytics passes its active tab here so
+   * changing the period doesn't reset it back to "overview" (issue #42);
+   * /dashboard has no tabs and leaves this undefined.
+   */
+  tabParam?: string;
 }
 
 const DEFAULT_PRESETS: PeriodPreset[] = ["1m", "3m", "6m", "1a", "tout"];
@@ -44,7 +51,7 @@ const DEFAULT_PRESETS: PeriodPreset[] = ["1m", "3m", "6m", "1a", "tout"];
  * are scoped by it (each still floors to its own minimum window, same
  * pattern as the dashboard trend chart — see analytics/page.tsx).
  */
-export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS, accountsParam }: PeriodSelectorProps) {
+export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS, accountsParam, tabParam }: PeriodSelectorProps) {
   return (
     <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
       {presets.map((preset) => {
@@ -55,6 +62,7 @@ export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS, a
         const href = buildDashboardHref(basePath, {
           period: preset === "1m" ? undefined : preset,
           accounts: accountsParam,
+          tab: tabParam,
         });
 
         return (
@@ -68,7 +76,7 @@ export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS, a
           can't be the only thing marking it as a distinct control group
           while the user is still editing the two month inputs. */}
       <div aria-hidden className="mx-1 w-px self-stretch bg-zinc-200 dark:bg-zinc-700" />
-      <PeriodSelectorCustom current={current} basePath={basePath} accountsParam={accountsParam} />
+      <PeriodSelectorCustom current={current} basePath={basePath} accountsParam={accountsParam} tabParam={tabParam} />
     </div>
   );
 }

@@ -12,6 +12,8 @@ interface PeriodSelectorCustomProps {
   basePath: string;
   /** Current `?accounts=` value, preserved when applying the custom range. */
   accountsParam?: string;
+  /** Current `?tab=` value, preserved when applying the custom range (see period-selector.tsx). */
+  tabParam?: string;
 }
 
 /**
@@ -22,7 +24,7 @@ interface PeriodSelectorCustomProps {
  * chosen range as `?period=YYYY-MM:YYYY-MM` (see `parsePeriodParam`), so it
  * still fits the existing single `?period=` query key.
  */
-export function PeriodSelectorCustom({ current, basePath, accountsParam }: PeriodSelectorCustomProps) {
+export function PeriodSelectorCustom({ current, basePath, accountsParam, tabParam }: PeriodSelectorCustomProps) {
   const router = useRouter();
   const { t } = useLocale();
   const isActive = current.type === "range";
@@ -72,7 +74,7 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam }: Perio
       />
       <button
         type="button"
-        onClick={() => router.push(buildDashboardHref(basePath, { period: `${from}:${to}`, accounts: accountsParam }))}
+        onClick={() => router.push(buildDashboardHref(basePath, { period: `${from}:${to}`, accounts: accountsParam, tab: tabParam }))}
         className="rounded px-1.5 py-0.5 text-xs font-medium underline-offset-2 hover:underline"
       >
         {t("periodSelector.custom.apply")}
