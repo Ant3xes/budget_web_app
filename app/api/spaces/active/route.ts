@@ -4,7 +4,7 @@ import { z } from "zod";
 import { setActiveSpaceCookie } from "@/lib/spaces/active-cookie";
 import { withSpace } from "@/lib/spaces/with-space";
 
-const switchSchema = z.object({ spaceId: z.string().uuid() });
+const switchSchema = z.object({ spaceId: z.guid() });
 
 /** Switches the space the app is scoped to. Only spaces the caller belongs to are accepted. */
 export async function POST(request: Request) {

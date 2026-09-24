@@ -15,7 +15,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { id, userId } = await params;
-  const ids = z.object({ id: z.string().uuid(), userId: z.string().uuid() }).safeParse({ id, userId });
+  const ids = z.object({ id: z.guid(), userId: z.guid() }).safeParse({ id, userId });
   if (!ids.success) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }

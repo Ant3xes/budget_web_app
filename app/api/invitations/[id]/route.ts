@@ -11,7 +11,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  if (!z.string().uuid().safeParse(id).success) {
+  if (!z.guid().safeParse(id).success) {
     return NextResponse.json({ error: "Invalid invitation id" }, { status: 400 });
   }
 

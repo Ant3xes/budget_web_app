@@ -71,6 +71,22 @@ describe("POST /api/spaces/active", () => {
     expect(setActiveSpaceCookie).toHaveBeenCalledWith(SHARED.id);
   });
 
+  it("accepts ids that are not RFC v4 (the dev seed uses c0000000-0000-0000-0000-…)", async () => {
+    const seedSpace = { ...SHARED, id: "c0000000-0000-0000-0000-000000000001" };
+    vi.mocked(withSpace).mockResolvedValue({
+      supabase: buildSupabase(),
+      user: { id: USER_ID },
+      spaceId: PERSONAL.id,
+      space: PERSONAL,
+      spaces: [PERSONAL, seedSpace],
+    } as never);
+
+    const response = await switchSpace(json({ spaceId: seedSpace.id }));
+
+    expect(response.status).toBe(200);
+    expect(setActiveSpaceCookie).toHaveBeenCalledWith(seedSpace.id);
+  });
+
   it("refuses a space the caller is not a member of", async () => {
     mockAuth();
     const response = await switchSpace(json({ spaceId: "44444444-4444-4444-8444-444444444444" }));

@@ -37,7 +37,7 @@ export function SpaceSwitcher({
   const { t } = useLocale();
   const [pending, startTransition] = useTransition();
 
-  const label = (space: SpaceSummary) => (space.kind === "personal" ? t("spaces.personal") : space.name);
+  const label = (space: SpaceSummary) => (space.kind === "personal" ? t("nav.spaces.personal") : space.name);
   const active = spaces.find((space) => space.id === activeSpaceId) ?? spaces[0];
   if (!active) {
     return null;
@@ -60,7 +60,7 @@ export function SpaceSwitcher({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={t("spaces.switcher", { space: label(active) })}
+        aria-label={t("nav.spaces.switcher", { space: label(active) })}
         title={label(active)}
         disabled={pending}
         className={cn(
@@ -77,7 +77,7 @@ export function SpaceSwitcher({
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side={collapsed ? "right" : "bottom"} className="w-60">
-        <p className="px-2.5 pt-1.5 pb-1 text-xs font-medium text-muted-foreground">{t("spaces.heading")}</p>
+        <p className="px-2.5 pt-1.5 pb-1 text-xs font-medium text-muted-foreground">{t("nav.spaces.heading")}</p>
         {spaces.map((space) => (
           <DropdownMenuItem key={space.id} onClick={() => void select(space.id)}>
             <SpaceIcon kind={space.kind} className="size-4 shrink-0 text-muted-foreground" />
@@ -88,7 +88,7 @@ export function SpaceSwitcher({
         <div className="my-1 h-px bg-border" />
         <DropdownMenuItem render={<Link href="/invitations" />}>
           <Settings2 className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span>{t("spaces.manage")}</span>
+          <span>{t("nav.spaces.manage")}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
