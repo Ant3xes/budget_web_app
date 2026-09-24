@@ -50,7 +50,7 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam, tabPara
 
   return (
     <div
-      className={`flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors ${
+      className={`flex w-full flex-wrap items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors sm:w-auto sm:flex-nowrap sm:shrink-0 ${
         isActive
           ? "bg-foreground text-background"
           : "text-muted-foreground"
@@ -62,7 +62,7 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam, tabPara
         value={from}
         onChange={(e) => setFrom(e.target.value)}
         aria-label={t("periodSelector.custom.fromLabel")}
-        className="h-10 w-32 shrink-0 rounded border border-border bg-background px-1 text-xs text-foreground md:h-auto md:w-auto md:py-0.5"
+        className="h-9 min-w-0 flex-1 rounded border border-border bg-background px-1 text-xs text-foreground md:h-auto md:w-auto md:py-0.5"
       />
       <span aria-hidden>–</span>
       <input
@@ -70,7 +70,7 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam, tabPara
         value={to}
         onChange={(e) => setTo(e.target.value)}
         aria-label={t("periodSelector.custom.toLabel")}
-        className="h-10 w-32 shrink-0 rounded border border-border bg-background px-1 text-xs text-foreground md:h-auto md:w-auto md:py-0.5"
+        className="h-9 min-w-0 flex-1 rounded border border-border bg-background px-1 text-xs text-foreground md:h-auto md:w-auto md:py-0.5"
       />
       <button
         type="button"

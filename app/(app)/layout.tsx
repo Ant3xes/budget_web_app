@@ -1,7 +1,9 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { SIDEBAR_COOKIE } from "@/components/layout/nav-utils";
 import { Sidebar } from "@/components/layout/sidebar";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -31,10 +33,12 @@ export default async function AppLayout({
     redirect("/login");
   }
 
+  const sidebarCollapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "1";
+
   return (
     <div className="md:flex">
       {/* Desktop : sidebar sticky à gauche. Mobile : barre du haut (logo) + barre du bas fixe. */}
-      <Sidebar userEmail={user.email ?? ""} />
+      <Sidebar userEmail={user.email ?? ""} defaultCollapsed={sidebarCollapsed} />
       <BottomNav userEmail={user.email ?? ""} />
       <div className="min-w-0 flex-1">
         {/* Single source of page padding — pages below only ever add

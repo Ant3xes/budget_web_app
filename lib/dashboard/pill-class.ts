@@ -6,7 +6,7 @@
  * in sync by hand.
  */
 export function pillButtonClass(isActive: boolean): string {
-  return `inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-md px-3 py-1 text-sm transition-colors md:min-h-0 ${
+  return `inline-flex min-h-9 items-center whitespace-nowrap rounded-md px-2.5 py-1 text-[13px] transition-colors sm:px-3 sm:text-sm md:min-h-0 ${
     isActive
       ? "bg-foreground text-background"
       : "text-muted-foreground hover:bg-muted"

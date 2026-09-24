@@ -53,7 +53,7 @@ const DEFAULT_PRESETS: PeriodPreset[] = ["1m", "3m", "6m", "1a", "tout"];
  */
 export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS, accountsParam, tabParam }: PeriodSelectorProps) {
   return (
-    <div className="flex max-w-full items-center gap-1 no-scrollbar overflow-x-auto rounded-lg border border-border p-1 sm:inline-flex">
+    <div className="flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-border p-1 sm:inline-flex">
       {presets.map((preset) => {
         const isActive =
           preset === "1m"
@@ -75,7 +75,7 @@ export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS, a
           its own active/inverted color after "Appliquer" is clicked, so it
           can't be the only thing marking it as a distinct control group
           while the user is still editing the two month inputs. */}
-      <div aria-hidden className="mx-1 w-px shrink-0 self-stretch bg-border" />
+      <div aria-hidden className="mx-1 hidden w-px shrink-0 self-stretch bg-border sm:block" />
       <PeriodSelectorCustom current={current} basePath={basePath} accountsParam={accountsParam} tabParam={tabParam} />
     </div>
   );
