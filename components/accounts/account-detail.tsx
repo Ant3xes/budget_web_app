@@ -106,19 +106,56 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
       <div className="border-b border-border px-4 py-3">
         <h3 className="text-sm font-semibold">{title}</h3>
         {transactions.length > 0 && (
-          <p className="mt-0.5 text-xs text-zinc-400">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             {transactions.length} {operationLabel}
             {transactions.length > 1 ? "s" : ""}
           </p>
         )}
       </div>
       {transactions.length === 0 ? (
-        <div className="flex h-24 items-center justify-center text-xs text-zinc-400">{emptyLabel}</div>
+        <div className="flex h-24 items-center justify-center text-xs text-muted-foreground">{emptyLabel}</div>
       ) : (
-        <div className="overflow-x-auto">
+        <div>
+          {/* Cards (< md) */}
+          <ul className="space-y-2 p-3 md:hidden">
+            {pageItems.map((tx) => (
+              <li key={tx.id} className="rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 flex-1 break-words text-sm font-medium">{tx.description}</p>
+                  <p className={`shrink-0 text-sm font-semibold whitespace-nowrap ${amountColor(tx)}`}>
+                    {tx.amount_cents >= 0 ? "+" : "−"}
+                    {formatEuros(Math.abs(tx.amount_cents), tx.currency)}
+                  </p>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <span className="whitespace-nowrap">{formatDate(tx.date)}</span>
+                  {tx.categories && (
+                    <span className="flex min-w-0 items-center gap-1">
+                      {tx.categories.icon && <span className="text-sm">{tx.categories.icon}</span>}
+                      <span className="truncate">{tx.categories.name}</span>
+                    </span>
+                  )}
+                  {showSens && (
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 font-medium ${
+                        tx.kind === "transfer_credit"
+                          ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                          : "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400"
+                      }`}
+                    >
+                      {tx.kind === "transfer_credit" ? t("accounts.detail.incoming") : t("accounts.detail.outgoing")}
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Table (>= md) */}
+          <div className="hidden overflow-x-auto md:block">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-100 text-left text-xs text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
+              <tr className="border-b border-border text-left text-xs text-muted-foreground">
                 <th className="px-3 py-2">{t("accounts.table.date")}</th>
                 <th className="px-3 py-2">{t("accounts.table.description")}</th>
                 <th className="px-3 py-2">{t("accounts.table.category")}</th>
@@ -128,19 +165,19 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
             </thead>
             <tbody>
               {pageItems.map((tx) => (
-                <tr key={tx.id} className="border-b border-zinc-50 last:border-0 dark:border-zinc-800">
-                  <td className="px-3 py-2 text-xs text-zinc-500">{formatDate(tx.date)}</td>
+                <tr key={tx.id} className="border-b border-border/50 last:border-0">
+                  <td className="px-3 py-2 text-xs text-muted-foreground">{formatDate(tx.date)}</td>
                   <td className="max-w-[160px] truncate px-3 py-2 text-xs">{tx.description}</td>
                   <td className="px-3 py-2">
                     {tx.categories ? (
                       <span className="flex items-center gap-1">
                         {tx.categories.icon && <span className="text-sm">{tx.categories.icon}</span>}
-                        <span className="truncate text-xs text-zinc-500 dark:text-zinc-400">
+                        <span className="truncate text-xs text-muted-foreground">
                           {tx.categories.name}
                         </span>
                       </span>
                     ) : (
-                      <span className="text-xs text-zinc-300 dark:text-zinc-600">—</span>
+                      <span className="text-xs text-muted-foreground/50">—</span>
                     )}
                   </td>
                   {showSens && (
@@ -164,13 +201,14 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
               ))}
             </tbody>
           </table>
+          </div>
           <Pagination
             page={currentPage}
             totalPages={totalPages}
             total={transactions.length}
             onPageChange={setPage}
             itemLabel={operationLabel}
-            className="border-t border-zinc-100 px-4 py-2 dark:border-zinc-800"
+            className="border-t border-border px-4 py-2"
           />
         </div>
       )}
@@ -294,17 +332,17 @@ export function AccountDetail({
   return (
     <section className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">{account.name}</h1>
-          <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+          <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
             {(ACCOUNT_TYPES as readonly string[]).includes(account.type)
               ? t(`accounts.types.${account.type}`)
               : account.type}
           </span>
           <p
             className={`mt-3 text-3xl font-semibold tracking-tight ${
-              balanceCents >= 0 ? "text-zinc-900 dark:text-zinc-100" : "text-red-600"
+              balanceCents >= 0 ? "text-foreground" : "text-expense"
             }`}
           >
             {formatEuros(balanceCents, account.currency)}

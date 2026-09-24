@@ -37,7 +37,7 @@ function monthlyEquivalent(charge: FixedCharge): number {
 const STATUS_COLORS = {
   active: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   suspended: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  cancelled: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+  cancelled: "bg-muted text-muted-foreground",
 } as const;
 
 export function FixedChargesList() {
@@ -89,30 +89,139 @@ export function FixedChargesList() {
     }
   };
 
+  const renderMoreMenu = (charge: FixedCharge) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+        aria-label={t("fixedCharges.otherActions")}
+        title={t("fixedCharges.otherActions")}
+      >
+        <MoreVertical />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        {charge.status === "active" && (
+          <DropdownMenuItem
+            onClick={() => handleMarkPaid(charge.id)}
+            className="text-green-700 dark:text-green-400"
+          >
+            {t("fixedCharges.markPaid")}
+          </DropdownMenuItem>
+        )}
+        {charge.status === "active" && (
+          <DropdownMenuItem
+            onClick={() => handleStatusChange(charge.id, "suspended")}
+            className="text-yellow-700 dark:text-yellow-400"
+          >
+            {t("fixedCharges.suspend")}
+          </DropdownMenuItem>
+        )}
+        {charge.status === "suspended" && (
+          <DropdownMenuItem
+            onClick={() => handleStatusChange(charge.id, "active")}
+            className="text-green-700 dark:text-green-400"
+          >
+            {t("fixedCharges.reactivate")}
+          </DropdownMenuItem>
+        )}
+        {charge.status !== "cancelled" && (
+          <DropdownMenuItem onClick={() => handleStatusChange(charge.id, "cancelled")}>
+            {t("fixedCharges.markCancelled")}
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const activeCharges = charges.filter((c) => c.status === "active");
   const totalMonthly = activeCharges.reduce((sum, c) => sum + monthlyEquivalent(c), 0);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted-foreground">
             {t("fixedCharges.totalMonthlyEstimate")}{" "}
-            <span className="font-semibold text-zinc-800 dark:text-zinc-100">{formatEuros(totalMonthly)}</span>
+            <span className="font-semibold text-foreground">{formatEuros(totalMonthly)}</span>
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>{t("fixedCharges.newCharge")}</Button>
       </div>
 
       {isLoading ? (
-        <p className="py-8 text-center text-sm text-zinc-500">{t("common.state.loading")}</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">{t("common.state.loading")}</p>
       ) : charges.length === 0 ? (
         <EmptyState title={t("fixedCharges.empty")} />
       ) : (
-        <Card className="overflow-x-auto p-0">
+        <>
+        {/* Cards (< md) */}
+        <ul className="space-y-2 md:hidden">
+          {charges.map((charge) => {
+            const dueSoon = charge.status === "active" && isDueSoon(charge.next_due_date);
+            return (
+              <li
+                key={charge.id}
+                className={`rounded-2xl p-3 ring-1 ring-foreground/10 ${dueSoon ? "bg-red-50 dark:bg-red-900/20" : "bg-card"}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1.5 text-sm font-medium">
+                      {charge.categories?.icon && <span>{charge.categories.icon}</span>}
+                      <span className="min-w-0 break-words">{charge.name}</span>
+                    </p>
+                    {charge.notes && <p className="mt-0.5 truncate text-xs text-muted-foreground">{charge.notes}</p>}
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold whitespace-nowrap">{formatEuros(charge.amount_cents)}</p>
+                    {charge.frequency !== "monthly" && (
+                      <p className="text-xs whitespace-nowrap text-muted-foreground">
+                        {formatEuros(monthlyEquivalent(charge))} / {t("fixedCharges.table.monthlyEquivalent")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                    <span className={dueSoon ? "font-semibold text-red-700 dark:text-red-400" : ""}>
+                      {formatFixedChargeDate(charge.next_due_date)}
+                    </span>
+                    <span>{t(`fixedCharges.frequency.${charge.frequency}`)}</span>
+                    {charge.accounts?.name && <span className="truncate">{charge.accounts.name}</span>}
+                    <span className={`rounded-full px-2 py-0.5 font-medium ${STATUS_COLORS[charge.status]}`}>
+                      {t(`fixedCharges.status.${charge.status}`)}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setEditingCharge(charge)}
+                      aria-label={t("fixedCharges.editCharge")}
+                      title={t("common.actions.edit")}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon-sm"
+                      onClick={() => setDeletingCharge(charge)}
+                      aria-label={t("fixedCharges.deleteCharge")}
+                      title={t("common.actions.delete")}
+                    >
+                      <Trash2 />
+                    </Button>
+                    {renderMoreMenu(charge)}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Table (>= md) */}
+        <Card className="hidden overflow-x-auto p-0 md:block">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-100 text-left text-xs font-medium text-zinc-500 uppercase dark:border-zinc-700 dark:text-zinc-400">
+              <tr className="border-b border-border text-left text-xs font-medium text-muted-foreground uppercase">
                 <th className="px-4 py-3">{t("fixedCharges.table.name")}</th>
                 <th className="px-4 py-3 text-right">{t("fixedCharges.table.amount")}</th>
                 <th className="px-4 py-3 text-right">{t("fixedCharges.table.monthlyEquivalent")}</th>
@@ -129,7 +238,7 @@ export function FixedChargesList() {
                 return (
                   <tr
                     key={charge.id}
-                    className={`border-b border-zinc-50 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800 ${dueSoon ? "bg-red-50 dark:bg-red-900/20" : ""}`}
+                    className={`border-b border-border/50 hover:bg-muted/50 ${dueSoon ? "bg-red-50 dark:bg-red-900/20" : ""}`}
                   >
                     <td className="px-4 py-3 font-medium">
                       <span className="flex items-center gap-1.5">
@@ -137,11 +246,11 @@ export function FixedChargesList() {
                         {charge.name}
                       </span>
                       {charge.notes && (
-                        <p className="mt-0.5 text-xs text-zinc-400 truncate max-w-xs">{charge.notes}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground truncate max-w-xs">{charge.notes}</p>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">{formatEuros(charge.amount_cents)}</td>
-                    <td className="px-4 py-3 text-right text-zinc-500">
+                    <td className="px-4 py-3 text-right text-muted-foreground">
                       {charge.frequency !== "monthly" ? formatEuros(monthlyEquivalent(charge)) : "—"}
                     </td>
                     <td className="px-4 py-3">{t(`fixedCharges.frequency.${charge.frequency}`)}</td>
@@ -153,7 +262,7 @@ export function FixedChargesList() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-zinc-500">{charge.accounts?.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{charge.accounts?.name ?? "—"}</td>
                     <td className="px-4 py-3">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[charge.status]}`}>
                         {t(`fixedCharges.status.${charge.status}`)}
@@ -179,46 +288,7 @@ export function FixedChargesList() {
                         >
                           <Trash2 />
                         </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
-                            aria-label={t("fixedCharges.otherActions")}
-                            title={t("fixedCharges.otherActions")}
-                          >
-                            <MoreVertical />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            {charge.status === "active" && (
-                              <DropdownMenuItem
-                                onClick={() => handleMarkPaid(charge.id)}
-                                className="text-green-700 dark:text-green-400"
-                              >
-                                {t("fixedCharges.markPaid")}
-                              </DropdownMenuItem>
-                            )}
-                            {charge.status === "active" && (
-                              <DropdownMenuItem
-                                onClick={() => handleStatusChange(charge.id, "suspended")}
-                                className="text-yellow-700 dark:text-yellow-400"
-                              >
-                                {t("fixedCharges.suspend")}
-                              </DropdownMenuItem>
-                            )}
-                            {charge.status === "suspended" && (
-                              <DropdownMenuItem
-                                onClick={() => handleStatusChange(charge.id, "active")}
-                                className="text-green-700 dark:text-green-400"
-                              >
-                                {t("fixedCharges.reactivate")}
-                              </DropdownMenuItem>
-                            )}
-                            {charge.status !== "cancelled" && (
-                              <DropdownMenuItem onClick={() => handleStatusChange(charge.id, "cancelled")}>
-                                {t("fixedCharges.markCancelled")}
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {renderMoreMenu(charge)}
                       </div>
                     </td>
                   </tr>
@@ -227,6 +297,7 @@ export function FixedChargesList() {
             </tbody>
           </table>
         </Card>
+        </>
       )}
 
       {showCreate && (

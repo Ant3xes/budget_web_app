@@ -57,16 +57,16 @@ function StatusBadge({ status }: { status: "done" | "manual" }) {
 
 export default function PlanPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 text-zinc-900 dark:text-zinc-100">
+    <main className="mx-auto max-w-3xl px-4 py-10 text-foreground">
       <header className="mb-10 space-y-2">
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">Budget &amp; Comptes — v1.8</p>
+        <p className="text-sm text-muted-foreground">Budget &amp; Comptes — v1.8</p>
         <h1 className="text-3xl font-semibold tracking-tight">Roadmap</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           État d&apos;avancement du projet et décisions d&apos;architecture. Contenu statique, mis à
           jour au déploiement.{" "}
           <a
             href="https://github.com/Ant3xes/budget_web_app/blob/main/PRD.md"
-            className="underline underline-offset-2 hover:text-zinc-900 dark:hover:text-white"
+            className="underline underline-offset-2 hover:text-foreground"
             target="_blank"
             rel="noreferrer"
           >
@@ -81,11 +81,11 @@ export default function PlanPage() {
           {PHASES.map((phase) => (
             <li
               key={phase.name}
-              className="flex flex-col gap-1 border-b border-zinc-200 pb-3 dark:border-zinc-700 sm:flex-row sm:items-start sm:justify-between"
+              className="flex flex-col gap-1 border-b border-border pb-3 sm:flex-row sm:items-start sm:justify-between"
             >
               <div>
                 <p className="font-medium">{phase.name}</p>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">{phase.items}</p>
+                <p className="text-sm text-muted-foreground">{phase.items}</p>
               </div>
               <StatusBadge status="done" />
             </li>
@@ -95,10 +95,24 @@ export default function PlanPage() {
 
       <section className="mb-10">
         <h2 className="mb-4 text-xl font-medium">Features par module</h2>
-        <div className="overflow-x-auto">
+        <ul className="space-y-2 md:hidden">
+          {FEATURES.map((row) => (
+            <li
+              key={`${row.module}-${row.feature}`}
+              className="flex items-start justify-between gap-3 rounded-2xl bg-card p-3 ring-1 ring-foreground/10"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{row.module}</p>
+                <p className="text-sm text-muted-foreground">{row.feature}</p>
+              </div>
+              <StatusBadge status={row.status} />
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-zinc-700">
+              <tr className="border-b border-border">
                 <th className="py-2 pr-4 font-medium">Module</th>
                 <th className="py-2 pr-4 font-medium">Feature</th>
                 <th className="py-2 font-medium">Statut</th>
@@ -106,9 +120,9 @@ export default function PlanPage() {
             </thead>
             <tbody>
               {FEATURES.map((row) => (
-                <tr key={`${row.module}-${row.feature}`} className="border-b border-zinc-100 dark:border-zinc-800">
+                <tr key={`${row.module}-${row.feature}`} className="border-b border-border/50">
                   <td className="py-2 pr-4 whitespace-nowrap">{row.module}</td>
-                  <td className="py-2 pr-4 text-zinc-600 dark:text-zinc-400">{row.feature}</td>
+                  <td className="py-2 pr-4 text-muted-foreground">{row.feature}</td>
                   <td className="py-2">
                     <StatusBadge status={row.status} />
                   </td>
@@ -121,7 +135,7 @@ export default function PlanPage() {
 
       <section className="mb-10">
         <h2 className="mb-4 text-xl font-medium">Décisions techniques</h2>
-        <ul className="list-disc space-y-2 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
+        <ul className="list-disc space-y-2 pl-5 text-sm text-foreground/80">
           {DECISIONS.map((item) => (
             <li key={item}>{item}</li>
           ))}
@@ -133,9 +147,9 @@ export default function PlanPage() {
         <table className="w-full text-left text-sm">
           <tbody>
             {STACK.map((row) => (
-              <tr key={row.layer} className="border-b border-zinc-100 dark:border-zinc-800">
+              <tr key={row.layer} className="border-b border-border/50">
                 <td className="py-2 pr-4 font-medium whitespace-nowrap">{row.layer}</td>
-                <td className="py-2 text-zinc-600 dark:text-zinc-400">{row.tech}</td>
+                <td className="py-2 text-muted-foreground">{row.tech}</td>
               </tr>
             ))}
           </tbody>
@@ -144,13 +158,13 @@ export default function PlanPage() {
 
       <section className="mb-10">
         <h2 className="mb-4 text-xl font-medium">Déploiement</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           Le workflow CI (`.github/workflows/deploy.yml`) est en place. La configuration des secrets
           GitHub (`VERCEL_*`, `SUPABASE_*`, comptes E2E) reste manuelle — voir le README du repo.
         </p>
       </section>
 
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-sm text-muted-foreground">
         <Link href="/login" className="underline underline-offset-2">
           Connexion
         </Link>

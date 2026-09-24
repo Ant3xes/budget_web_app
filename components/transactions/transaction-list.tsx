@@ -168,12 +168,40 @@ export function TransactionList() {
   // whenever type changes so a stale choice never leaks across tabs).
   const filterCategories = categories.filter((c) => type === "all" || c.kind === type);
 
+  const amountClass = (tx: Transaction) =>
+    tx.transfer_id ? "text-blue-600 dark:text-blue-400" : tx.kind === "expense" ? "text-expense" : "text-income";
+  const amountText = (tx: Transaction) =>
+    `${tx.transfer_id ? "" : tx.kind === "expense" ? "−" : "+"}${formatEuros(Math.abs(tx.amount_cents), tx.currency)}`;
+
+  const renderActions = (tx: Transaction) => (
+    <div className="flex shrink-0 gap-1">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => setEditingTransaction(tx)}
+        aria-label={t("common.actions.edit")}
+        title={t("common.actions.edit")}
+      >
+        <Pencil />
+      </Button>
+      <Button
+        variant="destructive"
+        size="icon-sm"
+        onClick={() => setDeletingTransaction(tx)}
+        aria-label={t("common.actions.delete")}
+        title={t("common.actions.delete")}
+      >
+        <Trash2 />
+      </Button>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">{t("transactions.list.title")}</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setShowApplyRules(true)} title={t("transactions.list.categorizeTitle")}>
             {t("transactions.list.categorize")}
           </Button>
@@ -196,8 +224,8 @@ export function TransactionList() {
       </div>
 
       {/* Filters */}
-      <Card className="flex-row flex-wrap items-center gap-3 p-3">
-        <div className="flex rounded-lg border border-border text-sm overflow-hidden">
+      <Card className="grid grid-cols-2 gap-2 p-3 md:flex md:flex-row md:flex-wrap md:items-center md:gap-3">
+        <div className="col-span-2 flex overflow-hidden rounded-lg border border-border text-sm md:col-span-1">
           {(["all", "expense", "income", "transfer"] as const).map((tp) => (
             <button
               key={tp}
@@ -208,7 +236,7 @@ export function TransactionList() {
                 // a different tab instead of silently filtering by it.
                 setCategorySelection("");
               }}
-              className={`px-3 py-1.5 transition-colors ${
+              className={`flex-1 px-3 py-2.5 transition-colors md:flex-none md:py-1.5 ${
                 type === tp ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -217,7 +245,7 @@ export function TransactionList() {
           ))}
         </div>
 
-        <Select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="w-auto">
+        <Select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="w-full md:w-auto">
           <option value="">{t("transactions.list.allAccounts")}</option>
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>
@@ -227,7 +255,7 @@ export function TransactionList() {
         </Select>
 
         {type !== "transfer" && (
-          <Select value={categorySelection} onChange={(e) => setCategorySelection(e.target.value)} className="w-auto">
+          <Select value={categorySelection} onChange={(e) => setCategorySelection(e.target.value)} className="w-full md:w-auto">
             <option value="">{t("transactions.list.allCategories")}</option>
             <option value={UNCATEGORIZED_CATEGORY_ID}>{t("transactions.list.uncategorizedOption")}</option>
             {filterCategories.map((c) => (
@@ -242,18 +270,18 @@ export function TransactionList() {
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="w-auto"
+          className="w-full md:w-auto"
           title={t("transactions.list.dateFrom")}
         />
         <Input
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="w-auto"
+          className="w-full md:w-auto"
           title={t("transactions.list.dateTo")}
         />
 
-        <div className="flex gap-1">
+        <div className="col-span-2 flex gap-1 md:col-span-1">
           <Input
             type="text"
             value={qInput}
@@ -262,7 +290,7 @@ export function TransactionList() {
               if (e.key === "Enter") setQ(qInput);
             }}
             placeholder={t("transactions.list.searchPlaceholder")}
-            className="w-auto"
+            className="min-w-0 flex-1 md:w-auto md:flex-none"
           />
           <Button variant="outline" size="icon" onClick={() => setQ(qInput)} aria-label={t("transactions.list.search")}>
             <Search />
@@ -283,13 +311,58 @@ export function TransactionList() {
         </div>
       </Card>
 
-      {/* Table */}
-      <div className="rounded-2xl border border-border bg-card shadow-sm ring-1 ring-foreground/10 overflow-x-auto">
-        {isLoading ? (
-          <p className="p-6 text-sm text-muted-foreground">{t("common.state.loading")}</p>
-        ) : transactions.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground">{t("transactions.list.empty")}</p>
-        ) : (
+      {isLoading || transactions.length === 0 ? (
+        <div className="rounded-2xl border border-border bg-card shadow-sm ring-1 ring-foreground/10">
+          <p className="p-6 text-sm text-muted-foreground">
+            {isLoading ? t("common.state.loading") : t("transactions.list.empty")}
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Cards (< md) */}
+          <ul className="space-y-2 md:hidden">
+            {transactions.map((tx) => {
+              const isTransfer = !!tx.transfer_id;
+              return (
+                <li key={tx.id} className="rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 flex-1 break-words text-sm font-medium">
+                      {tx.description}
+                      {tx.is_imported && (
+                        <span className="ml-1 rounded bg-muted px-1 py-0.5 text-xs font-normal text-muted-foreground">
+                          {t("transactions.list.imported")}
+                        </span>
+                      )}
+                    </p>
+                    <p className={`shrink-0 text-sm font-semibold whitespace-nowrap ${amountClass(tx)}`}>
+                      {amountText(tx)}
+                    </p>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                      <span className="whitespace-nowrap">{formatDate(tx.date)}</span>
+                      {isTransfer ? (
+                        <span className="text-blue-700 dark:text-blue-300">
+                          {tx.accounts?.name ?? "—"} → {tx.to_account?.name ?? "—"}
+                        </span>
+                      ) : (
+                        <>
+                          {tx.categories && (
+                            <CategoryBadge name={tx.categories.name} color={tx.categories.color} icon={tx.categories.icon} />
+                          )}
+                          <span className="truncate">{tx.accounts?.name ?? "—"}</span>
+                        </>
+                      )}
+                    </div>
+                    {renderActions(tx)}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Table (>= md) */}
+          <div className="hidden overflow-x-auto rounded-2xl border border-border bg-card shadow-sm ring-1 ring-foreground/10 md:block">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground">
@@ -327,47 +400,20 @@ export function TransactionList() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{tx.accounts?.name ?? "—"}</td>
-                    <td
-                      className={`px-4 py-3 text-left font-medium whitespace-nowrap ${
-                        isTransfer
-                          ? "text-blue-600 dark:text-blue-400"
-                          : tx.kind === "expense"
-                            ? "text-expense"
-                            : "text-income"
-                      }`}
-                    >
-                      {!isTransfer && (tx.kind === "expense" ? "−" : "+")}
-                      {formatEuros(Math.abs(tx.amount_cents), tx.currency)}
+                    <td className={`px-4 py-3 text-left font-medium whitespace-nowrap ${amountClass(tx)}`}>
+                      {amountText(tx)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => setEditingTransaction(tx)}
-                          aria-label={t("common.actions.edit")}
-                          title={t("common.actions.edit")}
-                        >
-                          <Pencil />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon-sm"
-                          onClick={() => setDeletingTransaction(tx)}
-                          aria-label={t("common.actions.delete")}
-                          title={t("common.actions.delete")}
-                        >
-                          <Trash2 />
-                        </Button>
-                      </div>
+                      {renderActions(tx)}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
       <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
