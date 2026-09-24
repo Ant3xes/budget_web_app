@@ -69,6 +69,7 @@ interface AccountDetailProps {
   balanceTxs: BalanceSeriesTx[];
   incomeExpenseData: IncomeExpensePoint[];
   expenseHistory: ExpenseByCategoryTx[];
+  spaceKind?: "personal" | "shared";
 }
 
 const PRESET_ORDER: PeriodPreset[] = ["1m", "3m", "6m", "1a", "2a", "tout"];
@@ -226,6 +227,7 @@ export function AccountDetail({
   balanceTxs,
   incomeExpenseData,
   expenseHistory,
+  spaceKind = "personal",
 }: AccountDetailProps) {
   const router = useRouter();
   const { t } = useLocale();
@@ -535,6 +537,7 @@ export function AccountDetail({
       {importModalOpen && (
         <ImportModal
           defaultAccountId={account.id}
+          spaceKind={spaceKind}
           onClose={() => setImportModalOpen(false)}
           onSuccess={() => {
             setImportModalOpen(false);

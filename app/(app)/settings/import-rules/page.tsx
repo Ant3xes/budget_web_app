@@ -1,7 +1,10 @@
 import { ImportRulesList } from "@/components/settings/import-rules-list";
 import { T } from "@/components/i18n/t";
+import { requireSpaceContext } from "@/lib/spaces/context";
 
-export default function ImportRulesPage() {
+export default async function ImportRulesPage() {
+  const { space } = await requireSpaceContext();
+
   return (
     <div className="space-y-4">
       <div>
@@ -12,7 +15,7 @@ export default function ImportRulesPage() {
           <T k="importRules.description" />
         </p>
       </div>
-      <ImportRulesList />
+      <ImportRulesList spaceKind={space.kind} />
     </div>
   );
 }

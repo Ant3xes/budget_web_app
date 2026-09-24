@@ -532,3 +532,24 @@ insert into public.settlements (space_id, from_user, to_user, amount_cents, date
 values ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002',
         'a0000000-0000-0000-0000-000000000001', 30000, '2026-08-05 12:00:00+00',
         'a0000000-0000-0000-0000-000000000002');
+
+-- ============================================================
+-- 11. Règles d'import qui partagent (phase 4)
+--     Un import d'Alice dont le libellé contient « LOYER » ou « ASSURANCE »
+--     est proposé pré-coché « partagé » dans « Foyer » (catégorie commune
+--     « Logement », part du payeur = part par défaut de l'espace).
+-- ============================================================
+insert into public.csv_import_rules
+  (space_id, user_id, keyword, category_id, kind, share_space_id, share_category_id)
+select
+  public.personal_space_id('a0000000-0000-0000-0000-000000000001'),
+  'a0000000-0000-0000-0000-000000000001',
+  k.keyword,
+  (select c.id from public.categories c
+    where c.space_id = public.personal_space_id('a0000000-0000-0000-0000-000000000001')
+      and c.name = 'Logement' and c.kind = 'expense'),
+  'expense',
+  'c0000000-0000-0000-0000-000000000001',
+  (select c.id from public.categories c
+    where c.space_id = 'c0000000-0000-0000-0000-000000000001' and c.name = 'Logement' and c.kind = 'expense')
+from (values ('LOYER'), ('ASSURANCE')) as k(keyword);

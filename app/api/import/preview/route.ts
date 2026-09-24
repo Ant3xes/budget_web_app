@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 
 import { NextResponse } from "next/server";
 
-import { buildDefaultMatcher, buildHistoryMatcher, buildRuleMatcher, detectTransfer } from "@/lib/import/apply-rules";
+import { buildDefaultMatcher, buildHistoryMatcher, buildRuleMatcher, buildRuleShareMatcher, detectTransfer } from "@/lib/import/apply-rules";
 import { buildHash, findExistingHashes } from "@/lib/import/deduplicate";
 import { detectFormat } from "@/lib/import/detect-format";
 import { parseBnpXls } from "@/lib/import/parse-bnp";
@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { supabase, spaceId } = auth;
+  const isPersonal = auth.space.kind === "personal";
 
   const formData = await request.formData();
   const file = formData.get("file");
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
   const existingHashes = await findExistingHashes(supabase, spaceId, allHashes);
 
   // Build matchers for auto-categorization (rules > history > built-in defaults)
-  const [ruleMatcher, historyMatcher, categoriesData] = await Promise.all([
+  const [ruleMatcher, historyMatcher, categoriesData, shareMatcher] = await Promise.all([
     buildRuleMatcher(supabase, spaceId),
     buildHistoryMatcher(supabase, spaceId),
     supabase
@@ -85,10 +86,32 @@ export async function POST(request: Request) {
       .select("id, name, kind")
       .eq("space_id", spaceId)
       .is("deleted_at", null),
+    isPersonal ? buildRuleShareMatcher(supabase, spaceId) : Promise.resolve(null),
   ]);
 
   const categories = (categoriesData.data ?? []) as { id: string; name: string; kind: "expense" | "income" }[];
   const defaultMatcher = buildDefaultMatcher(categories);
+
+  // Sharing suggestions (personal space only): resolve the shared spaces the
+  // rules point to, in one query. A stale target (space left) yields no suggestion.
+  const sharedSpaceIds = new Set(auth.spaces.filter((space) => space.kind === "shared").map((space) => space.id));
+  const targets = new Map<string, { name: string; default_share_percent: number }>();
+  if (shareMatcher) {
+    const neededIds = new Set<string>();
+    for (const tx of hashed) {
+      const share = shareMatcher(tx.description, tx.amount_cents < 0 ? "expense" : "income");
+      if (share && sharedSpaceIds.has(share.space_id)) neededIds.add(share.space_id);
+    }
+    if (neededIds.size > 0) {
+      const { data } = await supabase
+        .from("spaces")
+        .select("id, name, default_share_percent")
+        .in("id", [...neededIds]);
+      for (const row of (data ?? []) as { id: string; name: string; default_share_percent: number }[]) {
+        targets.set(row.id, { name: row.name, default_share_percent: Number(row.default_share_percent) });
+      }
+    }
+  }
 
   // Determine kind from amount sign; flag transfer candidates separately
   // Track hashes seen within this file to mark intra-file duplicates
@@ -106,6 +129,25 @@ export async function POST(request: Request) {
         defaultMatcher(tx.description, kind) ??
         null);
 
+    let suggestedShare: {
+      space_id: string;
+      space_name: string;
+      category_id: string | null;
+      payer_share_percent: number;
+    } | null = null;
+    if (shareMatcher && kind === "expense" && !isDuplicate && !is_transfer_candidate) {
+      const share = shareMatcher(tx.description, kind);
+      const target = share ? targets.get(share.space_id) : undefined;
+      if (share && target && sharedSpaceIds.has(share.space_id)) {
+        suggestedShare = {
+          space_id: share.space_id,
+          space_name: target.name,
+          category_id: share.category_id,
+          payer_share_percent: share.payer_share_percent ?? target.default_share_percent,
+        };
+      }
+    }
+
     return {
       hash: tx.hash,
       date: tx.date,
@@ -115,6 +157,7 @@ export async function POST(request: Request) {
       suggested_category_id: suggestedCategoryId,
       is_transfer_candidate,
       is_duplicate: isDuplicate,
+      suggested_share: suggestedShare,
     };
   });
 

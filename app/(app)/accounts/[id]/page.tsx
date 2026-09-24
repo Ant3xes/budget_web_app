@@ -28,7 +28,7 @@ export default async function AccountDetailPage({
   // Support legacy ?month=YYYY-MM as well as ?period=
   const initialPeriod = periodToParam(parsePeriodParam(periodParam ?? monthParam));
 
-  const { supabase, spaceId } = await requireSpaceContext();
+  const { supabase, spaceId, space } = await requireSpaceContext();
   const { data: account } = await supabase
     .from("accounts")
     .select("id, name, type, bank, initial_balance_cents, currency")
@@ -100,6 +100,7 @@ export default async function AccountDetailPage({
         initial_balance_cents: account.initial_balance_cents,
       }}
       balanceCents={balanceCents}
+      spaceKind={space.kind}
       initialPeriod={initialPeriod}
       allTransactions={allTransactions}
       balanceTxs={transactions.map((t) => ({
