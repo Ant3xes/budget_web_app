@@ -2,6 +2,9 @@ export const nav = {
   appTitle: "Budget & Accounts",
   logout: "Log out",
   more: "More",
+  collapse: "Collapse menu",
+  expand: "Expand menu",
+  mainNav: "Main navigation",
   items: {
     dashboard: "Dashboard",
     analytics: "Analytics",

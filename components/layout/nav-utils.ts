@@ -1,5 +1,8 @@
 import { NAV_ITEMS } from "@/lib/constants";
 
+/** Cookie qui mémorise l'état replié de la sidebar desktop (lu côté serveur par le layout). */
+export const SIDEBAR_COOKIE = "sidebar_collapsed";
+
 export type NavItem = (typeof NAV_ITEMS)[number];
 
 /** Entrées toujours visibles dans la barre du bas mobile ; le reste passe par le sheet « Plus ». */

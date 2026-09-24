@@ -2,6 +2,9 @@ export const nav = {
   appTitle: "Budget & Comptes",
   logout: "Déconnexion",
   more: "Plus",
+  collapse: "Réduire le menu",
+  expand: "Développer le menu",
+  mainNav: "Navigation principale",
   items: {
     dashboard: "Tableau de bord",
     analytics: "Analyses",
