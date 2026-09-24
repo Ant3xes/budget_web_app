@@ -31,6 +31,11 @@ type ImportRule = {
   kind: "expense" | "income";
   priority: number;
   categories: { name: string; icon: string | null } | null;
+  share_space_id?: string | null;
+  share_category_id?: string | null;
+  share_payer_percent?: number | null;
+  share_space?: { name: string } | null;
+  share_category?: { name: string; icon: string | null } | null;
 };
 
 function SortableRow({
@@ -89,6 +94,12 @@ function SortableRow({
         {rule.categories?.name ?? "—"}
       </span>
 
+      {rule.share_space_id ? (
+        <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+          {t("importRules.sharedBadge", { space: rule.share_space?.name ?? "—" })}
+        </span>
+      ) : null}
+
       {/* Actions */}
       <div className="flex shrink-0 gap-1">
         <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label={t("importRules.editRule")} title={t("common.actions.edit")}>
@@ -102,7 +113,7 @@ function SortableRow({
   );
 }
 
-export function ImportRulesList() {
+export function ImportRulesList({ spaceKind = "personal" }: { spaceKind?: "personal" | "shared" }) {
   const { t } = useLocale();
   const [rules, setRules] = useState<ImportRule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -197,6 +208,7 @@ export function ImportRulesList() {
 
       {showCreate && (
         <ImportRulesModal
+          spaceKind={spaceKind}
           onSuccess={async () => {
             setShowCreate(false);
             await loadRules();
@@ -207,6 +219,7 @@ export function ImportRulesList() {
 
       {editingRule && (
         <ImportRulesModal
+          spaceKind={spaceKind}
           ruleId={editingRule.id}
           defaultValues={editingRule}
           onSuccess={async () => {

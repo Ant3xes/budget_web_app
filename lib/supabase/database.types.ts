@@ -220,6 +220,9 @@ export type Database = {
           keyword: string
           kind: string
           priority: number
+          share_category_id: string | null
+          share_payer_percent: number | null
+          share_space_id: string | null
           space_id: string
           updated_at: string
           user_id: string
@@ -231,6 +234,9 @@ export type Database = {
           keyword: string
           kind: string
           priority?: number
+          share_category_id?: string | null
+          share_payer_percent?: number | null
+          share_space_id?: string | null
           space_id: string
           updated_at?: string
           user_id: string
@@ -242,6 +248,9 @@ export type Database = {
           keyword?: string
           kind?: string
           priority?: number
+          share_category_id?: string | null
+          share_payer_percent?: number | null
+          share_space_id?: string | null
           space_id?: string
           updated_at?: string
           user_id?: string
@@ -252,6 +261,20 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csv_import_rules_share_category_id_fkey"
+            columns: ["share_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csv_import_rules_share_space_id_fkey"
+            columns: ["share_space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
             referencedColumns: ["id"]
           },
           {
@@ -845,6 +868,10 @@ export type Database = {
           space_name: string
           status: string
         }[]
+      }
+      import_transactions: {
+        Args: { p_rows: Json; p_shares?: Json }
+        Returns: number
       }
       is_space_member: { Args: { p_space_id: string }; Returns: boolean }
       is_space_owner: { Args: { p_space_id: string }; Returns: boolean }

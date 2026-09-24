@@ -7,6 +7,13 @@ import { useLocale } from "@/components/locale-provider";
 import { Modal } from "@/components/ui/modal";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 
+type ShareSuggestion = {
+  space_id: string;
+  space_name: string;
+  category_id: string | null;
+  payer_share_percent: number;
+};
+
 type PreviewRowRaw = {
   hash: string;
   date: string;
@@ -16,6 +23,7 @@ type PreviewRowRaw = {
   suggested_category_id: string | null;
   is_transfer_candidate: boolean;
   is_duplicate: boolean;
+  suggested_share?: ShareSuggestion | null;
 };
 
 type PreviewRow = PreviewRowRaw & { rowId: string };
@@ -32,6 +40,8 @@ type Account = { id: string; name: string };
 
 interface ImportModalProps {
   defaultAccountId?: string;
+  /** The shared column is only offered from a personal space. */
+  spaceKind?: "personal" | "shared";
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -54,7 +64,7 @@ const formatDate = (iso: string) =>
     year: "numeric",
   });
 
-export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModalProps) {
+export function ImportModal({ defaultAccountId, spaceKind = "personal", onSuccess, onClose }: ImportModalProps) {
   const { t } = useLocale();
   const [step, setStep] = useState<Step>("upload");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -69,6 +79,8 @@ export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModa
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importedCount, setImportedCount] = useState(0);
+  const [sharedCount, setSharedCount] = useState<number | null>(null);
+  const [shareMap, setShareMap] = useState<Record<string, ShareSuggestion | null>>({}); // rowId -> share
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -137,11 +149,16 @@ export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModa
     const initCats: Record<string, string> = {};
     const initChecked: Record<string, boolean> = {};
     const initTransfer: Record<string, boolean> = {};
+    const initShare: Record<string, ShareSuggestion | null> = {};
     for (const row of [...expenses, ...incomes]) {
       initCats[row.rowId] = row.suggested_category_id ?? "";
       initChecked[row.rowId] = !row.is_duplicate;
       initTransfer[row.rowId] = row.is_transfer_candidate;
+      if (row.kind === "expense") {
+        initShare[row.rowId] = spaceKind === "personal" ? (row.suggested_share ?? null) : null;
+      }
     }
+    setShareMap(initShare);
     setCategoryMap(initCats);
     setChecked(initChecked);
     setIsTransfer(initTransfer);
@@ -160,6 +177,17 @@ export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModa
     setError(null);
     setIsLoading(true);
 
+    const shareFor = (r: PreviewRow) => {
+      const share = shareMap[r.rowId];
+      if (spaceKind !== "personal" || !share) return undefined;
+      if (r.kind !== "expense" || r.is_duplicate || isTransfer[r.rowId]) return undefined;
+      return {
+        space_id: share.space_id,
+        category_id: share.category_id,
+        payer_share_percent: share.payer_share_percent,
+      };
+    };
+
     const transactions = selected.map((r) => ({
       hash: r.hash,
       date: r.date,
@@ -168,6 +196,7 @@ export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModa
       kind: isTransfer[r.rowId] ? "transfer" as const : r.kind,
       category_id: isTransfer[r.rowId] ? null : (categoryMap[r.rowId] || null),
       transfer_account_id: isTransfer[r.rowId] ? (transferAccountMap[r.rowId] || null) : undefined,
+      share: shareFor(r),
     }));
 
     const res = await fetch("/api/import/confirm", {
@@ -179,13 +208,14 @@ export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModa
     setIsLoading(false);
 
     if (!res.ok) {
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
       setError(data.error ?? t("transactions.importModal.importError"));
       return;
     }
 
-    const data = (await res.json()) as { imported: number };
+    const data = (await res.json()) as { imported: number; shared?: number };
     setImportedCount(data.imported);
+    setSharedCount(typeof data.shared === "number" ? data.shared : null);
     setStep("done");
   };
 
@@ -202,6 +232,12 @@ export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModa
     : step === "preview_transfer"
       ? transferRows
       : [];
+  // The shared column only appears on the expense step, when at least one row
+  // got a suggestion from a matching rule.
+  const showShareColumn =
+    spaceKind === "personal" &&
+    step === "preview_expense" &&
+    expensePreview.some((r) => !!r.suggested_share);
   const checkedInView = displayedPreview.filter((r) => !!checked[r.rowId]);
   const otherAccounts = accounts.filter((a) => a.id !== selectedAccountId);
   // Every row is either an expense/income or (once marked) a transfer, so
@@ -378,6 +414,7 @@ export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModa
                       <th className="px-3 py-2 text-right">{t("transactions.importModal.colAmount")}</th>
                       <th className="px-3 py-2">{t("transactions.importModal.colTransfer")}</th>
                       <th className="px-3 py-2 min-w-32">{t("transactions.importModal.categoryLabel")}</th>
+                      {showShareColumn && <th className="px-3 py-2">{t("transactions.importModal.colShared")}</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -448,6 +485,30 @@ export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModa
                             </select>
                           )}
                         </td>
+                        {showShareColumn && (
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            {row.suggested_share && !row.is_duplicate ? (
+                              <label className="flex items-center gap-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={!!shareMap[row.rowId]}
+                                  onChange={(e) =>
+                                    setShareMap((prev) => ({
+                                      ...prev,
+                                      [row.rowId]: e.target.checked ? row.suggested_share! : null,
+                                    }))
+                                  }
+                                />
+                                <span className={shareMap[row.rowId] ? "text-foreground" : "text-muted-foreground"}>
+                                  {t("transactions.importModal.sharedTarget", {
+                                    space: row.suggested_share.space_name,
+                                    percent: row.suggested_share.payer_share_percent,
+                                  })}
+                                </span>
+                              </label>
+                            ) : null}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -571,10 +632,16 @@ export function ImportModal({ defaultAccountId, onSuccess, onClose }: ImportModa
           <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
           <p className="text-lg font-semibold">{t("transactions.importModal.doneTitle")}</p>
           <p className="text-sm text-muted-foreground">
-            {t("transactions.importModal.doneDescription", {
-              count: importedCount,
-              plural: importedCount > 1 ? "s" : "",
-            })}
+            {sharedCount === null
+              ? t("transactions.importModal.doneDescription", {
+                  count: importedCount,
+                  plural: importedCount > 1 ? "s" : "",
+                })
+              : t("transactions.importModal.doneDescriptionShared", {
+                  count: importedCount,
+                  plural: importedCount > 1 ? "s" : "",
+                  shared: sharedCount,
+                })}
           </p>
         </div>
       )}

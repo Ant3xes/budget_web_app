@@ -17,17 +17,26 @@ const asAuth = (supabase: unknown) =>
     user: mockUser,
     spaceId: "space-test-id",
     space: { id: "space-test-id", name: "Personnel", kind: "personal", role: "owner" },
-    spaces: [],
+    spaces: [
+      { id: "space-test-id", name: "Personnel", kind: "personal", role: "owner" },
+      { id: SHARED_ID, name: "Colocation", kind: "shared", role: "member" },
+    ],
   }) as never;
+const SHARED_ID = "00000000-0000-4000-8000-0000000000aa";
+const OTHER_SHARED_ID = "00000000-0000-4000-8000-0000000000bb";
 const ACCOUNT_ID = "00000000-0000-4000-8000-000000000001";
 const CATEGORY_ID = "00000000-0000-4000-8000-000000000002";
 const COUNTERPART_ACCOUNT_ID = "00000000-0000-4000-8000-000000000003";
 
 function buildSupabaseMock(
-  insertResult: { error: null | { message: string } } = { error: null },
+  rpcResult: { data?: unknown; error: null | { message: string; code?: string } } = { data: 1, error: null },
   spaceAccountIds: string[] = [ACCOUNT_ID, COUNTERPART_ACCOUNT_ID],
 ) {
-  const queryBuilder = createChainableMock(insertResult as { data: unknown; error: unknown });
+  const queryBuilder = createChainableMock({ data: null, error: null });
+  const rpc = vi.fn().mockResolvedValue(rpcResult);
+  // Members / default split of the shared space, loaded when a line is shared.
+  const membersBuilder = createChainableMock({ data: [{ user_id: mockUser.id }, { user_id: "other-user" }], error: null });
+  const spacesBuilder = createChainableMock({ data: { default_share_percent: 50 }, error: null });
   // The route first checks the accounts it was given against the active space.
   const accountsBuilder = createChainableMock({ data: spaceAccountIds.map((id) => ({ id })), error: null });
   return {
@@ -35,12 +44,27 @@ function buildSupabaseMock(
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: mockUser }, error: null }),
       },
-      from: vi.fn((table: string) => (table === "accounts" ? accountsBuilder : queryBuilder)),
+      rpc,
+      from: vi.fn((table: string) =>
+        table === "accounts"
+          ? accountsBuilder
+          : table === "space_members"
+            ? membersBuilder
+            : table === "spaces"
+              ? spacesBuilder
+              : queryBuilder,
+      ),
     },
+    rpc,
     queryBuilder,
+    membersBuilder,
+    spacesBuilder,
     accountsBuilder,
   };
 }
+
+const rpcArgs = (rpc: ReturnType<typeof vi.fn>) =>
+  rpc.mock.calls[0]?.[1] as { p_rows: Record<string, unknown>[]; p_shares: Record<string, unknown>[] };
 
 function makeRequest(body: unknown) {
   return new Request("http://localhost/api/import/confirm", {
@@ -79,7 +103,7 @@ describe("POST /api/import/confirm — Zod validation", () => {
     const res = await POST(makeRequest({ account_id: "not-a-uuid", transactions: [] }));
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
-    expect(body.error).toMatch(/uuid/i);
+    expect(body.error).toMatch(/uuid|guid/i);
   });
 
   it("returns 400 when transactions array is empty", async () => {
@@ -139,8 +163,22 @@ describe("POST /api/import/confirm — Zod validation", () => {
 describe("POST /api/import/confirm — success paths", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("inserts 1 row for a valid expense and returns imported count", async () => {
-    const { supabase, queryBuilder } = buildSupabaseMock();
+  it("accepts an account id that is not RFC v4 (the dev seed uses b0000000-0000-0000-0000-…)", async () => {
+    const seedAccountId = "b0000000-0000-0000-0000-000000000001";
+    const { supabase, rpc } = buildSupabaseMock({ error: null }, [seedAccountId]);
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(makeRequest({
+      account_id: seedAccountId,
+      transactions: [{ hash: "h", date: "2026-01-15", description: "Netflix", amount_cents: -1599, kind: "expense" }],
+    }));
+
+    expect(res.status).toBe(200);
+    expect(rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends 1 row for a valid expense and returns imported count", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
@@ -161,7 +199,7 @@ describe("POST /api/import/confirm — success paths", () => {
     expect(body.imported).toBe(1);
 
     // Verify 1 row was inserted
-    const inserted = (queryBuilder.insert.mock.calls[0]?.[0] as unknown[]);
+    const inserted = rpcArgs(rpc).p_rows;
     expect(inserted).toHaveLength(1);
     expect((inserted[0] as Record<string, unknown>).kind).toBe("expense");
     expect((inserted[0] as Record<string, unknown>).is_imported).toBe(true);
@@ -169,8 +207,8 @@ describe("POST /api/import/confirm — success paths", () => {
     expect((inserted[0] as Record<string, unknown>).user_id).toBe("user-test-id");
   });
 
-  it("inserts 1 row for a valid income", async () => {
-    const { supabase, queryBuilder } = buildSupabaseMock();
+  it("sends 1 row for a valid income", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
@@ -186,14 +224,14 @@ describe("POST /api/import/confirm — success paths", () => {
     }));
 
     expect(res.status).toBe(200);
-    const inserted = (queryBuilder.insert.mock.calls[0]?.[0] as unknown[]);
+    const inserted = rpcArgs(rpc).p_rows;
     expect(inserted).toHaveLength(1);
     expect((inserted[0] as Record<string, unknown>).kind).toBe("income");
     expect((inserted[0] as Record<string, unknown>).amount_cents).toBe(250000);
   });
 
-  it("inserts 1 row for transfer WITHOUT counterpart account (no mirror)", async () => {
-    const { supabase, queryBuilder } = buildSupabaseMock();
+  it("sends 1 row for transfer WITHOUT counterpart account (no mirror)", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
@@ -209,14 +247,14 @@ describe("POST /api/import/confirm — success paths", () => {
     }));
 
     expect(res.status).toBe(200);
-    const inserted = (queryBuilder.insert.mock.calls[0]?.[0] as unknown[]);
+    const inserted = rpcArgs(rpc).p_rows;
     expect(inserted).toHaveLength(1);                              // no mirror
     expect((inserted[0] as Record<string, unknown>).kind).toBe("transfer_debit");
     expect((inserted[0] as Record<string, unknown>).transfer_id).toBeNull();
   });
 
-  it("inserts 2 rows for transfer WITH counterpart account (main + mirror)", async () => {
-    const { supabase, queryBuilder } = buildSupabaseMock();
+  it("sends 2 rows for transfer WITH counterpart account (main + mirror)", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
@@ -235,7 +273,7 @@ describe("POST /api/import/confirm — success paths", () => {
     const body = (await res.json()) as { ok: boolean; imported: number };
     expect(body.imported).toBe(1);                                 // only original counted
 
-    const inserted = (queryBuilder.insert.mock.calls[0]?.[0] as unknown[]);
+    const inserted = rpcArgs(rpc).p_rows;
     expect(inserted).toHaveLength(2);
 
     const main = inserted[0] as Record<string, unknown>;
@@ -257,7 +295,7 @@ describe("POST /api/import/confirm — success paths", () => {
   });
 
   it("deducts category_id for transfers (always null)", async () => {
-    const { supabase, queryBuilder } = buildSupabaseMock();
+    const { supabase, rpc } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     await POST(makeRequest({
@@ -273,12 +311,12 @@ describe("POST /api/import/confirm — success paths", () => {
       }],
     }));
 
-    const inserted = (queryBuilder.insert.mock.calls[0]?.[0] as unknown[]);
+    const inserted = rpcArgs(rpc).p_rows;
     expect((inserted[0] as Record<string, unknown>).category_id).toBeNull();
   });
 
   it("handles multiple transactions in one batch", async () => {
-    const { supabase, queryBuilder } = buildSupabaseMock();
+    const { supabase } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
@@ -299,7 +337,7 @@ describe("POST /api/import/confirm — success paths", () => {
 describe("POST /api/import/confirm — DB error", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns 400 when DB insert fails", async () => {
+  it("returns 400 when the rpc fails", async () => {
     const { supabase } = buildSupabaseMock({ error: { message: "violates foreign key constraint" } });
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
@@ -326,18 +364,18 @@ describe("POST /api/import/confirm — accounts must belong to the active space"
   const expense = { hash: "h1", date: "2026-01-15", description: "Netflix", amount_cents: -1599, kind: "expense" };
 
   it("returns 404 and inserts nothing when the target account is not in the space", async () => {
-    const { supabase, queryBuilder, accountsBuilder } = buildSupabaseMock({ error: null }, []);
+    const { supabase, rpc, accountsBuilder } = buildSupabaseMock({ data: 1, error: null }, []);
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({ account_id: ACCOUNT_ID, transactions: [expense] }));
 
     expect(res.status).toBe(404);
     expect(accountsBuilder.eq).toHaveBeenCalledWith("space_id", "space-test-id");
-    expect(queryBuilder.insert).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it("returns 404 when a transfer counterpart account is not in the space", async () => {
-    const { supabase, queryBuilder } = buildSupabaseMock({ error: null }, [ACCOUNT_ID]);
+    const { supabase, rpc } = buildSupabaseMock({ error: null }, [ACCOUNT_ID]);
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(
@@ -348,6 +386,167 @@ describe("POST /api/import/confirm — accounts must belong to the active space"
     );
 
     expect(res.status).toBe(404);
-    expect(queryBuilder.insert).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/import/confirm — atomic rpc", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const expense = { hash: "h1", date: "2026-01-15", description: "Netflix", amount_cents: -1599, kind: "expense" };
+
+  it("calls import_transactions once with rows and an empty p_shares", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(makeRequest({ account_id: ACCOUNT_ID, transactions: [expense] }));
+
+    expect(res.status).toBe(200);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc.mock.calls[0]?.[0]).toBe("import_transactions");
+    expect(rpcArgs(rpc).p_shares).toEqual([]);
+    expect(rpcArgs(rpc).p_rows[0]).not.toHaveProperty("id");
+    expect(await res.json()).toEqual({ ok: true, imported: 1, shared: 0 });
+  });
+
+  it("maps rpc errors: 23514 -> 400, 42501 -> 403, 23505 -> 409, other -> 400", async () => {
+    for (const [code, status] of [["23514", 400], ["42501", 403], ["23505", 409], [undefined, 400]] as const) {
+      const { supabase } = buildSupabaseMock({ error: { message: "boom", code } });
+      vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+      const res = await POST(makeRequest({ account_id: ACCOUNT_ID, transactions: [expense] }));
+      expect(res.status).toBe(status);
+      expect(((await res.json()) as { error: string }).error).toBe("boom");
+    }
+  });
+
+  it("creates the shared expense of a shared line, linked by a generated transaction id", async () => {
+    const { supabase, rpc, membersBuilder, spacesBuilder } = buildSupabaseMock();
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(
+      makeRequest({
+        account_id: ACCOUNT_ID,
+        transactions: [
+          { ...expense, share: { space_id: SHARED_ID, category_id: CATEGORY_ID, payer_share_percent: 70 } },
+          { ...expense, hash: "h2", description: "Lidl" },
+        ],
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, imported: 2, shared: 1 });
+    const { p_rows, p_shares } = rpcArgs(rpc);
+    expect(p_rows).toHaveLength(2);
+    expect(p_rows[0]?.id).toEqual(expect.any(String));
+    expect(p_rows[1]).not.toHaveProperty("id");
+    expect(p_shares).toEqual([
+      {
+        space_id: SHARED_ID,
+        source_transaction_id: p_rows[0]?.id,
+        category_id: CATEGORY_ID,
+        shares: { "user-test-id": 70, "other-user": 30 },
+      },
+    ]);
+    expect(membersBuilder.eq).toHaveBeenCalledWith("space_id", SHARED_ID);
+    expect(spacesBuilder.eq).toHaveBeenCalledWith("id", SHARED_ID);
+  });
+
+  it("falls back to the space default percent and loads each target space once", async () => {
+    const { supabase, rpc, membersBuilder } = buildSupabaseMock();
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    await POST(
+      makeRequest({
+        account_id: ACCOUNT_ID,
+        transactions: [
+          { ...expense, share: { space_id: SHARED_ID } },
+          { ...expense, hash: "h2", share: { space_id: SHARED_ID, category_id: null } },
+        ],
+      }),
+    );
+
+    const { p_shares } = rpcArgs(rpc);
+    expect(p_shares).toHaveLength(2);
+    expect(p_shares[0]).toMatchObject({ category_id: null, shares: { "user-test-id": 50, "other-user": 50 } });
+    expect(p_shares[0]?.source_transaction_id).not.toBe(p_shares[1]?.source_transaction_id);
+    expect(membersBuilder.select).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 400 when splitShares throws (caller not in the members list)", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
+    const otherMembers = createChainableMock({ data: [{ user_id: "someone-else" }], error: null });
+    const from = supabase.from.getMockImplementation()!;
+    supabase.from.mockImplementation((table: string) => (table === "space_members" ? otherMembers : from(table)));
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(
+      makeRequest({ account_id: ACCOUNT_ID, transactions: [{ ...expense, share: { space_id: SHARED_ID } }] }),
+    );
+    expect(res.status).toBe(400);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("refuses a share on a transfer or an income (400)", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    for (const kind of ["transfer", "income"]) {
+      const res = await POST(
+        makeRequest({ account_id: ACCOUNT_ID, transactions: [{ ...expense, kind, share: { space_id: SHARED_ID } }] }),
+      );
+      expect(res.status).toBe(400);
+    }
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("refuses a share when the active space is shared (400)", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
+    vi.mocked(withSpace).mockResolvedValue({
+      ...(asAuth(supabase) as object),
+      space: { id: "space-test-id", name: "Colocation", kind: "shared", role: "member" },
+    } as never);
+
+    const res = await POST(
+      makeRequest({ account_id: ACCOUNT_ID, transactions: [{ ...expense, share: { space_id: SHARED_ID } }] }),
+    );
+    expect(res.status).toBe(400);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("refuses a target space the caller is not a shared member of (403)", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(
+      makeRequest({ account_id: ACCOUNT_ID, transactions: [{ ...expense, share: { space_id: OTHER_SHARED_ID } }] }),
+    );
+    expect(res.status).toBe(403);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("refuses the personal space itself as a target (403)", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
+    const personalId = "00000000-0000-4000-8000-0000000000cc";
+    vi.mocked(withSpace).mockResolvedValue({
+      ...(asAuth(supabase) as object),
+      spaceId: personalId,
+      space: { id: personalId, name: "Personnel", kind: "personal", role: "owner" },
+      spaces: [{ id: personalId, name: "Personnel", kind: "personal", role: "owner" }],
+    } as never);
+
+    const res = await POST(
+      makeRequest({ account_id: ACCOUNT_ID, transactions: [{ ...expense, share: { space_id: personalId } }] }),
+    );
+    expect(res.status).toBe(403);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("accepts share: null as no share", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(makeRequest({ account_id: ACCOUNT_ID, transactions: [{ ...expense, share: null }] }));
+    expect(res.status).toBe(200);
+    expect(rpcArgs(rpc).p_shares).toEqual([]);
   });
 });

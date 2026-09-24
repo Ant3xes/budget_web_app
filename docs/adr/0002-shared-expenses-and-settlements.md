@@ -50,5 +50,23 @@ between them. The payer's account, notes and import data must stay private.
   (budget consumption today; dashboard and analytics later) must add
   `shared_expenses` explicitly — they are not `transactions`.
 - Access rules are covered by pgTAP (`supabase/tests/database/shared_expenses_rls.test.sql`).
-- Not done yet: shared-space dashboard/analytics, and import rules that share a
-  line automatically.
+- Import rules can share a line automatically (see below). Not done yet: applying
+  a sharing rule retroactively to transactions that are already imported (the
+  manual "Share" action stays available on each transaction).
+
+## Addendum — import rules that share (#56)
+
+- A rule of a **personal** space (kind `expense`) can carry `share_space_id`,
+  `share_category_id` and `share_payer_percent` (null = the space's default at
+  the time of use). A trigger validates them (target = a shared space its author
+  belongs to, common category in that space); it tolerates the `ON DELETE SET NULL`
+  foreign keys clearing a category/space, and re-checks only when the target changes.
+- The right to share is checked again **when the rule is used** (import preview and
+  confirm): a rule whose author left the space simply stops suggesting a share.
+- The import preview pre-checks matching lines (never a duplicate, a transfer, an
+  income, or anything from a shared space); the user can uncheck a line before
+  confirming.
+- Confirming calls `import_transactions(p_rows, p_shares)`, a SECURITY INVOKER
+  SQL function: transactions and shared expenses are created in **one SQL
+  transaction**, through the caller's RLS and the same triggers as separate inserts.
+  An invalid share rolls back the whole import — nothing is half-imported.

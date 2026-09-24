@@ -26,6 +26,7 @@ vi.mock("@/lib/import/apply-rules", async (importOriginal) => {
   return {
     ...actual,
     buildRuleMatcher: vi.fn().mockResolvedValue(() => null),
+    buildRuleShareMatcher: vi.fn().mockResolvedValue(() => null),
     buildHistoryMatcher: vi.fn().mockResolvedValue(() => null),
     buildDefaultMatcher: vi.fn().mockReturnValue(() => null),
   };
@@ -33,7 +34,7 @@ vi.mock("@/lib/import/apply-rules", async (importOriginal) => {
 
 import { POST as confirmPOST } from "@/app/api/import/confirm/route";
 import { POST as previewPOST } from "@/app/api/import/preview/route";
-import { detectTransfer } from "@/lib/import/apply-rules";
+import { buildRuleShareMatcher, detectTransfer } from "@/lib/import/apply-rules";
 import { parseBnpXls } from "@/lib/import/parse-bnp";
 import { parseN26Csv } from "@/lib/import/parse-n26";
 import { withSpace } from "@/lib/spaces/with-space";
@@ -48,6 +49,8 @@ const USER_ID = "user-test-id";
 const SPACE_ID = "space-test-id";
 const BNP_ACCOUNT = "00000000-0000-4000-8000-0000000000b1";
 const N26_ACCOUNT = "00000000-0000-4000-8000-0000000000c2";
+const SHARED_SPACE = "00000000-0000-4000-8000-0000000000d3";
+const PARTNER_ID = "user-partner-id";
 
 class FakeDb {
   transactions: Row[] = [];
@@ -56,22 +59,52 @@ class FakeDb {
   /** PostgREST plafonne à 1000 lignes par requête (max-rows) ; null = pas de plafond. */
   maxRows: number | null = 1000;
 
+  /** Dépenses partagées créées par import_transactions. */
+  sharedExpenses: Row[] = [];
+  spaces: Row[] = [{ id: SHARED_SPACE, name: "Colocation", default_share_percent: 50 }];
+  spaceMembers: Row[] = [
+    { space_id: SHARED_SPACE, user_id: USER_ID },
+    { space_id: SHARED_SPACE, user_id: PARTNER_ID },
+  ];
+  /** Erreur simulée de la fonction SQL (rollback complet). */
+  rpcError: { message: string; code?: string } | null = null;
+
   client() {
     return {
       from: (table: string) => this.builder(table),
+      rpc: (fn: string, args: { p_rows: Row[]; p_shares: Row[] }) => this.rpc(fn, args),
     };
   }
 
-  private builder(table: string) {
-    const source = () => (table === "transactions" ? this.transactions : table === "accounts" ? this.accounts : []);
-    const filters: Array<(r: Row) => boolean> = [];
-    let insertRows: Row[] | null = null;
+  /** import_transactions : une seule transaction SQL — tout ou rien. */
+  private rpc(fn: string, { p_rows, p_shares }: { p_rows: Row[]; p_shares: Row[] }) {
+    if (fn !== "import_transactions") return Promise.resolve({ data: null, error: { message: `unknown rpc ${fn}` } });
+    if (this.rpcError) return Promise.resolve({ data: null, error: this.rpcError });
+    const inserted: Row[] = p_rows.map((r, i) => ({ ...r, id: (r.id as string | undefined) ?? `tx-${this.transactions.length + i}` }));
+    const shared: Row[] = [];
+    for (const share of p_shares) {
+      const source = inserted.find((t) => t.id === share.source_transaction_id);
+      if (!source) return Promise.resolve({ data: null, error: { message: "unknown source", code: "23503" } });
+      shared.push({ ...share, paid_by: USER_ID, amount_cents: -(source.amount_cents as number) });
+    }
+    this.transactions.push(...inserted);
+    this.sharedExpenses.push(...shared);
+    return Promise.resolve({ data: inserted.length, error: null });
+  }
 
+  private builder(table: string) {
+    const source = () =>
+      table === "transactions"
+        ? this.transactions
+        : table === "accounts"
+          ? this.accounts
+          : table === "spaces"
+            ? this.spaces
+            : table === "space_members"
+              ? this.spaceMembers
+              : [];
+    const filters: Array<(r: Row) => boolean> = [];
     const run = () => {
-      if (insertRows) {
-        this.transactions.push(...insertRows.map((r, i) => ({ id: `tx-${this.transactions.length + i}`, ...r })));
-        return { data: null, error: null };
-      }
       let out = source().filter((r) => filters.every((f) => f(r)));
       if (this.maxRows !== null) out = out.slice(0, this.maxRows);
       return { data: out, error: null };
@@ -79,10 +112,6 @@ class FakeDb {
 
     const chain: Record<string, unknown> = {
       select: () => chain,
-      insert: (rows: Row[]) => {
-        insertRows = rows;
-        return chain;
-      },
       eq: (col: string, val: unknown) => {
         filters.push((r) => r[col] === val);
         return chain;
@@ -101,6 +130,7 @@ class FakeDb {
       },
       order: () => chain,
       limit: () => chain,
+      maybeSingle: () => Promise.resolve({ data: run().data[0] ?? null, error: null }),
     };
     Object.defineProperty(chain, "then", {
       get() {
@@ -164,6 +194,7 @@ type PreviewRow = {
   kind: "expense" | "income";
   is_transfer_candidate: boolean;
   is_duplicate: boolean;
+  suggested_share: { space_id: string; space_name: string; category_id: string | null; payer_share_percent: number } | null;
 };
 
 async function preview(file: File): Promise<PreviewRow[]> {
@@ -181,6 +212,8 @@ type ConfirmOpts = {
   uncheck?: string[];
   /** Cocher aussi les lignes marquées doublon. */
   includeDuplicates?: boolean;
+  /** Partager ces lignes (par description) vers l'espace commun — comme le fait la modale. */
+  share?: Record<string, { space_id: string; category_id?: string | null; payer_share_percent?: number }>;
 };
 
 function buildConfirmBody(accountId: string, rows: PreviewRow[], opts: ConfirmOpts = {}) {
@@ -199,6 +232,7 @@ function buildConfirmBody(accountId: string, rows: PreviewRow[], opts: ConfirmOp
         kind: counterpart ? ("transfer" as const) : r.kind,
         category_id: null,
         transfer_account_id: counterpart,
+        ...(opts.share?.[r.description] ? { share: opts.share[r.description] } : {}),
       };
     }),
   };
@@ -229,8 +263,12 @@ beforeEach(() => {
     user: { id: USER_ID, email: "test@budget.local" },
     spaceId: SPACE_ID,
     space: { id: SPACE_ID, name: "Personnel", kind: "personal", role: "owner" },
-    spaces: [],
+    spaces: [
+      { id: SPACE_ID, name: "Personnel", kind: "personal", role: "owner" },
+      { id: SHARED_SPACE, name: "Colocation", kind: "shared", role: "member" },
+    ],
   } as never);
+  vi.mocked(buildRuleShareMatcher).mockResolvedValue(() => null);
 });
 
 // ---------------------------------------------------------------------------
@@ -533,5 +571,179 @@ describe("parsing des montants", () => {
   it("N26 : les décimales flottantes sont arrondies au centime (pas de -1599.0000001)", () => {
     const csv = [N26_HEADER, `"2026-01-05","2026-01-05","Netflix","","","","N26","-15.99","","",""`].join("\n");
     expect(parseN26Csv(csv)[0]?.amount_cents).toBe(-1599);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Import avec règles de partage : transactions + dépenses partagées, atomiquement
+// ---------------------------------------------------------------------------
+
+describe("import avec partage (règles de partage)", () => {
+  const lignes: Line[] = [
+    { date: "2026-01-05", label: "Loyer Agence", amount: -600 },
+    { date: "2026-01-06", label: "Lidl", amount: -42.3 },
+    { date: "2026-01-10", label: "Employeur SA", amount: 2500 },
+  ];
+
+  /** Une règle « loyer » partage 40 % vers l'espace commun ; le reste ne partage pas. */
+  const ruleSharesLoyer = () =>
+    vi.mocked(buildRuleShareMatcher).mockResolvedValue((description, kind) =>
+      kind === "expense" && description.includes("Loyer")
+        ? { space_id: SHARED_SPACE, category_id: null, payer_share_percent: 40 }
+        : null,
+    );
+
+  const shareOf = (rows: PreviewRow[]) =>
+    Object.fromEntries(
+      rows
+        .filter((r) => r.suggested_share)
+        .map((r) => [
+          r.description,
+          {
+            space_id: r.suggested_share!.space_id,
+            category_id: r.suggested_share!.category_id,
+            payer_share_percent: r.suggested_share!.payer_share_percent,
+          },
+        ]),
+    );
+
+  it("le preview pré-marque la ligne de la règle ; le confirm crée transaction ET dépense partagée liées", async () => {
+    ruleSharesLoyer();
+    const rows = await preview(n26File(lignes));
+    expect(rows.find((r) => r.description === "Loyer Agence")?.suggested_share).toEqual({
+      space_id: SHARED_SPACE,
+      space_name: "Colocation",
+      category_id: null,
+      payer_share_percent: 40,
+    });
+    expect(rows.find((r) => r.description === "Lidl")?.suggested_share).toBeNull();
+
+    const res = await confirmBody(buildConfirmBody(N26_ACCOUNT, rows, { share: shareOf(rows) }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, imported: 3, shared: 1 });
+
+    expect(db.transactions).toHaveLength(3);
+    expect(db.sharedExpenses).toHaveLength(1);
+    const loyer = db.transactions.find((t) => t.description === "Loyer Agence")!;
+    expect(db.sharedExpenses[0]).toMatchObject({
+      space_id: SHARED_SPACE,
+      source_transaction_id: loyer.id,
+      paid_by: USER_ID,
+      shares: { [USER_ID]: 40, [PARTNER_ID]: 60 },
+    });
+  });
+
+  it("une ligne que l'utilisateur dé-partage reste une simple transaction", async () => {
+    ruleSharesLoyer();
+    const rows = await preview(n26File(lignes));
+    const share = shareOf(rows);
+    delete share["Loyer Agence"]; // décochée dans la modale : la ligne part sans `share`
+
+    const res = await confirmBody(buildConfirmBody(N26_ACCOUNT, rows, { share }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, imported: 3, shared: 0 });
+    expect(db.sharedExpenses).toHaveLength(0);
+    expect(db.transactions).toHaveLength(3);
+  });
+
+  it("l'utilisateur peut aussi partager à la main une ligne sans règle, avec le pourcentage par défaut", async () => {
+    const rows = await preview(n26File(lignes));
+    const res = await confirmBody(buildConfirmBody(N26_ACCOUNT, rows, { share: { Lidl: { space_id: SHARED_SPACE } } }));
+    expect(res.status).toBe(200);
+    expect(db.sharedExpenses[0]?.shares).toEqual({ [USER_ID]: 50, [PARTNER_ID]: 50 });
+  });
+
+  it("un doublon n'est jamais pré-marqué à partager", async () => {
+    ruleSharesLoyer();
+    await importFile(N26_ACCOUNT, n26File(lignes));
+    const rows = await preview(n26File(lignes));
+    expect(rows.every((r) => r.is_duplicate && r.suggested_share === null)).toBe(true);
+  });
+
+  it("un virement présumé et un revenu ne sont jamais pré-marqués", async () => {
+    vi.mocked(buildRuleShareMatcher).mockResolvedValue(() => ({
+      space_id: SHARED_SPACE,
+      category_id: null,
+      payer_share_percent: null,
+    }));
+    const rows = await preview(
+      n26File([
+        { date: "2026-01-05", label: "Virement SEPA loyer", amount: -600 },
+        { date: "2026-01-10", label: "Employeur SA", amount: 2500 },
+        { date: "2026-01-11", label: "Lidl", amount: -10 },
+      ]),
+    );
+    expect(rows.find((r) => r.description === "Virement SEPA loyer")?.suggested_share).toBeNull();
+    expect(rows.find((r) => r.description === "Employeur SA")?.suggested_share).toBeNull();
+    expect(rows.find((r) => r.description === "Lidl")?.suggested_share).not.toBeNull();
+  });
+
+  it("le confirm refuse de partager un revenu ou un virement (400), rien n'est inséré", async () => {
+    const rows = await preview(n26File(lignes));
+    const revenu = await confirmBody(
+      buildConfirmBody(N26_ACCOUNT, rows, { share: { "Employeur SA": { space_id: SHARED_SPACE } } }),
+    );
+    expect(revenu.status).toBe(400);
+
+    const virement = await confirmBody(
+      buildConfirmBody(N26_ACCOUNT, rows, {
+        counterpart: { Lidl: BNP_ACCOUNT },
+        share: { Lidl: { space_id: SHARED_SPACE } },
+      }),
+    );
+    expect(virement.status).toBe(400);
+    expect(db.transactions).toHaveLength(0);
+    expect(db.sharedExpenses).toHaveLength(0);
+  });
+
+  it("un espace commun actif refuse tout partage (400) et ne suggère rien", async () => {
+    vi.mocked(withSpace).mockResolvedValue({
+      supabase: db.client(),
+      user: { id: USER_ID, email: "test@budget.local" },
+      spaceId: SPACE_ID,
+      space: { id: SPACE_ID, name: "Colocation", kind: "shared", role: "member" },
+      spaces: [{ id: SHARED_SPACE, name: "Colocation", kind: "shared", role: "member" }],
+    } as never);
+    ruleSharesLoyer();
+
+    const rows = await preview(n26File(lignes));
+    expect(rows.every((r) => r.suggested_share === null)).toBe(true);
+
+    const res = await confirmBody(
+      buildConfirmBody(N26_ACCOUNT, rows, { share: { Lidl: { space_id: SHARED_SPACE } } }),
+    );
+    expect(res.status).toBe(400);
+    expect(db.transactions).toHaveLength(0);
+  });
+
+  it("un espace commun dont on n'est pas membre est refusé (403)", async () => {
+    const rows = await preview(n26File(lignes));
+    const res = await confirmBody(
+      buildConfirmBody(N26_ACCOUNT, rows, { share: { Lidl: { space_id: "00000000-0000-4000-8000-0000000000f4" } } }),
+    );
+    expect(res.status).toBe(403);
+    expect(db.transactions).toHaveLength(0);
+  });
+
+  it("une règle périmée (espace quitté) ne suggère rien, sans erreur", async () => {
+    ruleSharesLoyer();
+    vi.mocked(withSpace).mockResolvedValue({
+      supabase: db.client(),
+      user: { id: USER_ID, email: "test@budget.local" },
+      spaceId: SPACE_ID,
+      space: { id: SPACE_ID, name: "Personnel", kind: "personal", role: "owner" },
+      spaces: [{ id: SPACE_ID, name: "Personnel", kind: "personal", role: "owner" }],
+    } as never);
+    const rows = await preview(n26File(lignes));
+    expect(rows.every((r) => r.suggested_share === null)).toBe(true);
+  });
+
+  it("atomicité : si la base refuse le partage, aucune transaction n'est créée", async () => {
+    const rows = await preview(n26File(lignes));
+    db.rpcError = { message: "shared expense refused", code: "23514" };
+    const res = await confirmBody(buildConfirmBody(N26_ACCOUNT, rows, { share: { Lidl: { space_id: SHARED_SPACE } } }));
+    expect(res.status).toBe(400);
+    expect(db.transactions).toHaveLength(0);
+    expect(db.sharedExpenses).toHaveLength(0);
   });
 });

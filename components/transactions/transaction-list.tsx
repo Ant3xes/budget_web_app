@@ -576,6 +576,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
 
       {showImport && (
         <ImportModal
+          spaceKind={spaceKind}
           onSuccess={() => {
             setShowImport(false);
             void load(1);

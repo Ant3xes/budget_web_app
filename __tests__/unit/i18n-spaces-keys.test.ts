@@ -41,6 +41,10 @@ const FILES = [
   "components/balance/shared-expense-list.tsx",
   // Phase 3: shared spaces' dashboard and analytics.
   "app/(app)/analytics/page.tsx",
+  // Phase 4: import rules that share.
+  "components/settings/import-rules-modal.tsx",
+  "components/settings/import-rules-list.tsx",
+  "components/import/import-modal.tsx",
 ];
 
 const usedKeys = (file: string) => {
@@ -74,7 +78,7 @@ describe("i18n keys of the spaces feature", () => {
     expect(usedKeys("components/layout/space-switcher.tsx")).toContain("nav.spaces.personal");
   });
 
-  it.each(["nav", "invitations", "sharedExpenses", "balance", "dashboard", "analytics"] as const)("%s has the same keys in fr and en", (section) => {
+  it.each(["nav", "invitations", "sharedExpenses", "balance", "dashboard", "analytics", "importRules", "transactions"] as const)("%s has the same keys in fr and en", (section) => {
     expect(leafKeys(fr[section]).sort()).toEqual(leafKeys(en[section]).sort());
   });
 });

@@ -8,6 +8,7 @@ vi.mock("@/lib/spaces/with-space", () => ({ withSpace: vi.fn() }));
 // Mock all import library modules to isolate the route logic
 vi.mock("@/lib/import/apply-rules", () => ({
   buildRuleMatcher: vi.fn().mockResolvedValue(() => null),
+  buildRuleShareMatcher: vi.fn().mockResolvedValue(() => null),
   buildHistoryMatcher: vi.fn().mockResolvedValue(() => null),
   buildDefaultMatcher: vi.fn().mockReturnValue(() => null),
   detectTransfer: vi.fn().mockReturnValue(false),
@@ -20,7 +21,7 @@ vi.mock("@/lib/import/deduplicate", () => ({
 }));
 
 import { withSpace } from "@/lib/spaces/with-space";
-import { buildRuleMatcher, detectTransfer } from "@/lib/import/apply-rules";
+import { buildRuleMatcher, buildRuleShareMatcher, detectTransfer } from "@/lib/import/apply-rules";
 import { findExistingHashes } from "@/lib/import/deduplicate";
 import { POST } from "@/app/api/import/preview/route";
 import { createChainableMock } from "@/__tests__/mocks/supabase";
@@ -77,6 +78,7 @@ function buildAuthMock(user: typeof mockUser | null = mockUser) {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(buildRuleMatcher).mockResolvedValue(() => null);
+  vi.mocked(buildRuleShareMatcher).mockResolvedValue(() => null);
   vi.mocked(findExistingHashes).mockResolvedValue(new Set<string>());
   vi.mocked(detectTransfer).mockReturnValue(false);
 });
@@ -266,5 +268,119 @@ describe("POST /api/import/preview — preview content", () => {
 
     const netflix = body.preview.find((r) => r.description === "Netflix");
     expect(netflix?.suggested_category_id).toBe("cat-streaming");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// suggested_share
+// ---------------------------------------------------------------------------
+
+describe("POST /api/import/preview — suggested_share", () => {
+  const SHARED_ID = "space-shared-id";
+  const sharedSpaces = [
+    { id: "space-test-id", name: "Personnel", kind: "personal", role: "owner" },
+    { id: SHARED_ID, name: "Colocation", kind: "shared", role: "member" },
+  ];
+
+  function setup(opts: { kind?: "personal" | "shared"; spaces?: unknown[]; spacesRows?: unknown[] } = {}) {
+    const spacesBuilder = createChainableMock({
+      data: opts.spacesRows ?? [{ id: SHARED_ID, name: "Colocation", default_share_percent: 50 }],
+      error: null,
+    });
+    const otherBuilder = createChainableMock({ data: [], error: null });
+    const supabase = {
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: mockUser }, error: null }) },
+      from: vi.fn((table: string) => (table === "spaces" ? spacesBuilder : otherBuilder)),
+    };
+    const kind = opts.kind ?? "personal";
+    vi.mocked(withSpace).mockResolvedValue({
+      supabase,
+      user: mockUser,
+      spaceId: "space-test-id",
+      space: { id: "space-test-id", name: "Espace", kind, role: "owner" },
+      spaces: opts.spaces ?? sharedSpaces,
+    } as never);
+    return { supabase, spacesBuilder };
+  }
+
+  const shareNetflix = (percent: number | null = null) =>
+    vi.mocked(buildRuleShareMatcher).mockResolvedValue((desc: string, kind: string) =>
+      desc === "Netflix" && kind === "expense"
+        ? { space_id: SHARED_ID, category_id: "cat-common", payer_share_percent: percent }
+        : null,
+    );
+
+  type Row = Record<string, unknown>;
+  const run = async () => ((await (await POST(makeRequest(makeFormData(makeN26File())))).json()) as { preview: Row[] }).preview;
+
+  it("suggests the share of the matching rule, with the space default percent", async () => {
+    const { spacesBuilder } = setup({ spacesRows: [{ id: SHARED_ID, name: "Colocation", default_share_percent: 60 }] });
+    shareNetflix();
+    const preview = await run();
+    expect(preview.find((r) => r.description === "Netflix")?.suggested_share).toEqual({
+      space_id: SHARED_ID,
+      space_name: "Colocation",
+      category_id: "cat-common",
+      payer_share_percent: 60,
+    });
+    expect(preview.find((r) => r.description === "Lidl")?.suggested_share).toBeNull();
+    expect(spacesBuilder.in).toHaveBeenCalledWith("id", [SHARED_ID]);
+  });
+
+  it("uses the rule payer percent over the space default", async () => {
+    setup();
+    shareNetflix(30);
+    const preview = await run();
+    expect((preview.find((r) => r.description === "Netflix")?.suggested_share as Row).payer_share_percent).toBe(30);
+  });
+
+  it("does not query spaces when no rule shares", async () => {
+    const { supabase } = setup();
+    await run();
+    expect(supabase.from).not.toHaveBeenCalledWith("spaces");
+  });
+
+  it("gives null for every row in a shared active space, without building the matcher", async () => {
+    setup({ kind: "shared" });
+    shareNetflix();
+    const preview = await run();
+    expect(preview.every((r) => r.suggested_share === null)).toBe(true);
+    expect(buildRuleShareMatcher).not.toHaveBeenCalled();
+  });
+
+  it("gives null for a stale rule (space the caller left), without error", async () => {
+    const { supabase } = setup({ spaces: [sharedSpaces[0]] });
+    shareNetflix();
+    const preview = await run();
+    expect(preview.every((r) => r.suggested_share === null)).toBe(true);
+    expect(supabase.from).not.toHaveBeenCalledWith("spaces");
+  });
+
+  it("gives null for income rows", async () => {
+    setup();
+    vi.mocked(buildRuleShareMatcher).mockResolvedValue(() => ({
+      space_id: SHARED_ID,
+      category_id: null,
+      payer_share_percent: null,
+    }));
+    const preview = await run();
+    expect(preview.find((r) => r.description === "Employeur SA")?.suggested_share).toBeNull();
+    expect(preview.find((r) => r.description === "Lidl")?.suggested_share).not.toBeNull();
+  });
+
+  it("gives null for duplicates", async () => {
+    setup();
+    shareNetflix();
+    vi.mocked(findExistingHashes).mockImplementation(async (_sb, _sid, hashes) => new Set(hashes));
+    const preview = await run();
+    expect(preview.every((r) => r.suggested_share === null)).toBe(true);
+  });
+
+  it("gives null for transfer candidates", async () => {
+    setup();
+    shareNetflix();
+    vi.mocked(detectTransfer).mockReturnValue(true);
+    const preview = await run();
+    expect(preview.every((r) => r.suggested_share === null)).toBe(true);
   });
 });

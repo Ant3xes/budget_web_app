@@ -15,7 +15,7 @@ type AccountWithTransactions = {
 
 export default async function AccountsPage({ searchParams }: { searchParams: Promise<{ bank?: string }> }) {
   const { bank: selectedBank } = await searchParams;
-  const { supabase, spaceId } = await requireSpaceContext();
+  const { supabase, spaceId, space } = await requireSpaceContext();
   const { data } = await supabase
     .from("accounts")
     .select("id, name, type, currency, bank, initial_balance_cents, transactions(amount_cents, deleted_at, kind, date)")
@@ -57,7 +57,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
 
   return (
     <section className="space-y-4">
-      <AccountsList groups={groups} selectedBank={selectedBank}importButton={<AccountsImportButton />} />
+      <AccountsList groups={groups} selectedBank={selectedBank}importButton={<AccountsImportButton spaceKind={space.kind} />} />
     </section>
   );
 }

@@ -231,6 +231,55 @@ export async function buildRuleMatcher(
   };
 }
 
+export type RuleShare = {
+  space_id: string;
+  category_id: string | null;
+  payer_share_percent: number | null;
+};
+
+type CsvImportShareRule = {
+  keyword: string;
+  kind: "expense" | "income";
+  priority: number;
+  share_space_id: string | null;
+  share_category_id: string | null;
+  share_payer_percent: number | null;
+};
+
+/**
+ * Same first-match-by-priority semantics as buildRuleMatcher, but returns the
+ * sharing setting of the matching rule. A matching rule WITHOUT a share stops
+ * the search and yields null (the rule the user sees applied wins).
+ */
+export async function buildRuleShareMatcher(
+  supabase: SupabaseClient,
+  spaceId: string,
+): Promise<(description: string, kind: "expense" | "income") => RuleShare | null> {
+  const { data } = await supabase
+    .from("csv_import_rules")
+    .select("keyword, kind, priority, share_space_id, share_category_id, share_payer_percent")
+    .eq("space_id", spaceId)
+    .order("priority", { ascending: true });
+
+  const rules = (data ?? []) as CsvImportShareRule[];
+
+  return (description, kind) => {
+    const lower = description.toLowerCase();
+    for (const rule of rules) {
+      if (rule.kind === kind && lower.includes(rule.keyword.toLowerCase())) {
+        return rule.share_space_id
+          ? {
+              space_id: rule.share_space_id,
+              category_id: rule.share_category_id ?? null,
+              payer_share_percent: rule.share_payer_percent ?? null,
+            }
+          : null;
+      }
+    }
+    return null;
+  };
+}
+
 /**
  * Builds a matcher from the space's past categorized transactions.
  * For each (description, kind) pair, picks the most frequently assigned category_id.
