@@ -5,6 +5,7 @@
  * Transactions / Comparaisons.
  */
 export const analytics = {
+  sharedNote: "Inclut les dépenses partagées par les membres.",
   tabs: {
     overview: "Vue d'ensemble",
     categories: "Catégories",

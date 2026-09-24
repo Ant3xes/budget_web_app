@@ -50,4 +50,58 @@ describe("resolveEarliestTransactionDate", () => {
     expect(result).toBeNull();
     expect(supabase.from).not.toHaveBeenCalled();
   });
+
+  describe("with shared expenses (shared space)", () => {
+    /** One chain per table, so each query can answer differently. */
+    function makeSupabaseByTable(byTable: Record<string, { date: string } | null>) {
+      const chains: Record<string, ReturnType<typeof makeChain>> = {};
+      const from = vi.fn((table: string) => (chains[table] ??= makeChain({ data: byTable[table] ?? null, error: null })));
+      return { from, chains };
+    }
+
+    it("returns the shared expense date when it is earlier than any transaction", async () => {
+      const supabase = makeSupabaseByTable({
+        transactions: { date: "2026-09-10" },
+        shared_expenses: { date: "2026-07-01T00:00:00+00:00" },
+      });
+      const result = await resolveEarliestTransactionDate(supabase as never, "space-1", ["acc-1"], {
+        includeSharedExpenses: true,
+      });
+      expect(result).toBe("2026-07-01T00:00:00+00:00");
+      expect(supabase.chains.shared_expenses!.eq).toHaveBeenCalledWith("space_id", "space-1");
+    });
+
+    it("keeps the transaction date when it is the earliest", async () => {
+      const supabase = makeSupabaseByTable({
+        transactions: { date: "2026-01-05" },
+        shared_expenses: { date: "2026-07-01T00:00:00+00:00" },
+      });
+      const result = await resolveEarliestTransactionDate(supabase as never, "space-1", undefined, {
+        includeSharedExpenses: true,
+      });
+      expect(result).toBe("2026-01-05");
+    });
+
+    it("still answers with the shared expense date when the space has no account at all", async () => {
+      const supabase = makeSupabaseByTable({ shared_expenses: { date: "2026-07-01T00:00:00+00:00" } });
+      const result = await resolveEarliestTransactionDate(supabase as never, "space-1", [], {
+        includeSharedExpenses: true,
+      });
+      expect(result).toBe("2026-07-01T00:00:00+00:00");
+      expect(supabase.from).not.toHaveBeenCalledWith("transactions");
+    });
+
+    it("never queries shared expenses unless asked (personal spaces are untouched)", async () => {
+      const supabase = makeSupabaseByTable({ transactions: { date: "2026-01-05" } });
+      await resolveEarliestTransactionDate(supabase as never, "space-1", ["acc-1"]);
+      expect(supabase.from).not.toHaveBeenCalledWith("shared_expenses");
+    });
+
+    it("is null when there is nothing anywhere", async () => {
+      const supabase = makeSupabaseByTable({});
+      expect(
+        await resolveEarliestTransactionDate(supabase as never, "space-1", ["acc-1"], { includeSharedExpenses: true }),
+      ).toBeNull();
+    });
+  });
 });

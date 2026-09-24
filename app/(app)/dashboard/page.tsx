@@ -27,6 +27,7 @@ import {
   todayISO,
 } from "@/lib/dates/period";
 import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-transaction-date";
+import { fetchSharedExpenseActivity, type ActivityRange, type ActivityRow } from "@/lib/shared-expenses/activity-rows";
 
 /** A transaction row shaped for the click-to-open overlays (donut + budget chart). */
 interface OverlayCandidate {
@@ -59,7 +60,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ period?: string; accounts?: string }>;
 }) {
-  const { supabase, spaceId } = await requireSpaceContext();
+  const { supabase, spaceId, space } = await requireSpaceContext();
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -134,6 +135,15 @@ export default async function DashboardPage({
   // only ever narrow the selection, never smuggle in a non-courant account.
   const requestedAccountIdSet =
     accountsParam !== undefined ? new Set(accountsParam.split(",").filter(Boolean)) : null;
+  // Shared spaces: the expenses members shared in (paid from their personal
+  // accounts) count in every *activity* figure below — KPI, donut, trend, budget
+  // consumption — but never in a balance (they sit on no account of this
+  // space). They belong to no account, so they only show with the selector on
+  // "Tous les comptes" (no `?accounts=`): any account filter, even an empty
+  // one, excludes them. Personal spaces never run these queries.
+  const includeShared = space.kind === "shared" && accountsParam === undefined;
+  const sharedActivity = (range: ActivityRange): Promise<ActivityRow[]> =>
+    includeShared ? fetchSharedExpenseActivity(supabase, spaceId, range) : Promise.resolve([]);
   const selectedCourantIds = requestedAccountIdSet
     ? courantAccountIds.filter((id) => requestedAccountIdSet.has(id))
     : courantAccountIds;
@@ -144,7 +154,9 @@ export default async function DashboardPage({
   const period = parsePeriodParam(periodParam, now);
   const earliestDate =
     period.type === "preset" && period.value === "tout"
-      ? await resolveEarliestTransactionDate(supabase, spaceId, selectedCourantIds)
+      ? await resolveEarliestTransactionDate(supabase, spaceId, selectedCourantIds, {
+          includeSharedExpenses: includeShared,
+        })
       : null;
   const {
     from: periodFrom,
@@ -176,7 +188,18 @@ export default async function DashboardPage({
     now,
     periodToMonth,
   );
-  const [periodTxRes, monthTxRes, recentTxRes, trendTxRes, budgetsRes, goalsRes, fixedChargesRes, paidFixedChargesRes] = await Promise.all([
+  const [
+    periodTxRes,
+    monthTxRes,
+    recentTxRes,
+    trendTxRes,
+    budgetsRes,
+    goalsRes,
+    fixedChargesRes,
+    paidFixedChargesRes,
+    sharedPeriodRows,
+    sharedTrendRows,
+  ] = await Promise.all([
     // 1. Selected-period transactions for donut + KPIs. `id`/`date`/
     // `description` (beyond kind/amount/category) feed the donut's
     // click-to-open overlay (see groupByCategoryId below) — previously a
@@ -305,6 +328,13 @@ export default async function DashboardPage({
       .lte("last_paid_date", todayStr)
       .is("deleted_at", null)
       .order("last_paid_date", { ascending: false }),
+
+    // 9-10. Shared expenses over the KPI/donut window and over the trend
+    // window (see `includeShared`). Outside `runScopedQuery` on purpose: it
+    // short-circuits without courant accounts, and a shared space may have
+    // shared expenses but no account.
+    sharedActivity({ from: periodFrom, to: periodTo }),
+    sharedActivity({ from: trendFrom, to: periodTo }),
   ]);
 
   // ── Per-account / per-category running totals ────────────────────────────
@@ -316,7 +346,7 @@ export default async function DashboardPage({
   const goals = goalsRes.data ?? [];
   const linkedCategoryIds = goals.map((g) => g.linked_category_id).filter((id): id is string => Boolean(id));
 
-  const [accountTxRes, budgetConsumptionRes, goalTxRes] = await Promise.all([
+  const [accountTxRes, budgetConsumptionRes, goalTxRes, sharedBudgetRows] = await Promise.all([
     runScopedQuery<{ account_id: string; amount_cents: number }>([accountIds], () =>
       supabase
         .from("transactions")
@@ -352,6 +382,10 @@ export default async function DashboardPage({
         .in("category_id", linkedCategoryIds)
         .is("deleted_at", null),
     ),
+
+    // Shared expenses of this month in the budgeted categories. Goals
+    // (`goalTxRes`) are a savings snapshot, not a spending flow: unchanged.
+    sharedActivity({ from: monthStart, to: nextMonthStart, toInclusive: false, categoryIds: budgetCatIds }),
   ]);
 
   // ── Per-account balances (correct: initial + own transactions) ───────────
@@ -416,7 +450,7 @@ export default async function DashboardPage({
   const savingsThisMonthCents = (monthTxRes.data ?? []).reduce((sum, tx) => sum + tx.amount_cents, 0);
 
   // ── Period KPIs ───────────────────────────────────────────────────────────
-  const periodTx = periodTxRes.data ?? [];
+  const periodTx = [...(periodTxRes.data ?? []), ...sharedPeriodRows];
   const periodExpense = periodTx
     .filter((t) => t.kind === "expense")
     .reduce((s, t) => s + Math.abs(t.amount_cents), 0);
@@ -470,10 +504,15 @@ export default async function DashboardPage({
   }
 
   // ── Income/expense trend chart (same period) ─────────────────────────────
-  const barData = computeIncomeExpenseSeries(trendTxRes.data ?? [], trendMonthCount, now, periodToMonth);
+  const barData = computeIncomeExpenseSeries(
+    [...(trendTxRes.data ?? []), ...sharedTrendRows],
+    trendMonthCount,
+    now,
+    periodToMonth,
+  );
 
   // ── Budget utilization + its click-to-open overlay's source data ────────
-  const budgetConsumptionTx = budgetConsumptionRes.data ?? [];
+  const budgetConsumptionTx = [...(budgetConsumptionRes.data ?? []), ...sharedBudgetRows];
   const budgetConsumption = sumAbsByCategoryId(budgetConsumptionTx);
   const budgetTransactionsByCategory = groupByCategoryId(budgetConsumptionTx);
 
@@ -532,6 +571,11 @@ export default async function DashboardPage({
         </h1>
         <PeriodSelector current={period} basePath="/dashboard" accountsParam={accountsParam} />
       </div>
+      {space.kind === "shared" ? (
+        <p className="-mt-2 text-sm text-muted-foreground">
+          <T k={includeShared ? "dashboard.sharedNote" : "dashboard.sharedNoteFiltered"} />
+        </p>
+      ) : null}
 
       {/* Zone comptes — solde consolidé + bulles banques (elles-mêmes déjà
           dans leur propre "grosse bulle", voir bank-tiles.tsx), seule

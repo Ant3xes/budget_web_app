@@ -1,4 +1,6 @@
 export const dashboard = {
+  sharedNote: "Includes the expenses shared by members.",
+  sharedNoteFiltered: "Account filter on: shared expenses (which come from no account) are excluded.",
   title: "Dashboard",
   consolidatedBalance: "Consolidated balance",
   consolidatedBalanceFooter: "All accounts combined",

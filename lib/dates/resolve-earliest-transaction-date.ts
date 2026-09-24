@@ -17,17 +17,45 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * any data for. An empty (non-null) `accountIds` means "no active accounts"
  * — short-circuits to null without querying, consistent with every other
  * account-scoped query on these pages.
+ *
+ * `options.includeSharedExpenses` (shared spaces only) also considers the
+ * space's shared expenses and returns the earliest of the two.
  */
 export async function resolveEarliestTransactionDate(
   supabase: SupabaseClient,
   spaceId: string,
   accountIds?: string[],
+  options: { includeSharedExpenses?: boolean } = {},
 ): Promise<string | null> {
-  if (accountIds && accountIds.length === 0) return null;
+  const transactionDate = async () => {
+    if (accountIds && accountIds.length === 0) return null;
 
-  let query = supabase.from("transactions").select("date").eq("space_id", spaceId).is("deleted_at", null);
-  if (accountIds) query = query.in("account_id", accountIds);
+    let query = supabase.from("transactions").select("date").eq("space_id", spaceId).is("deleted_at", null);
+    if (accountIds) query = query.in("account_id", accountIds);
 
-  const { data } = await query.order("date", { ascending: true }).limit(1).maybeSingle();
-  return data?.date ?? null;
+    const { data } = await query.order("date", { ascending: true }).limit(1).maybeSingle();
+    return (data?.date as string | undefined) ?? null;
+  };
+
+  // Shared expenses sit on no account, so the account scoping above never
+  // applies to them; a shared space that has only shared expenses (or no
+  // courant account) must still get a real "tout" start date.
+  const sharedExpenseDate = async () => {
+    if (!options.includeSharedExpenses) return null;
+
+    const { data } = await supabase
+      .from("shared_expenses")
+      .select("date")
+      .eq("space_id", spaceId)
+      .order("date", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return (data?.date as string | undefined) ?? null;
+  };
+
+  const [fromTransactions, fromSharedExpenses] = await Promise.all([transactionDate(), sharedExpenseDate()]);
+  if (!fromTransactions || !fromSharedExpenses) return fromTransactions ?? fromSharedExpenses;
+
+  // Both are ISO strings but not always the same shape (date vs timestamptz).
+  return Date.parse(fromSharedExpenses) < Date.parse(fromTransactions) ? fromSharedExpenses : fromTransactions;
 }

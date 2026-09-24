@@ -495,3 +495,40 @@ values
   ('a0000000-0000-0000-0000-000000000001', 'c0000000-0000-0000-0000-000000000001',
    'carol@example.com', 'test-invite-token-carol', 'pending')
 on conflict do nothing;
+
+-- ============================================================
+-- 10. Dépenses partagées (phase 2) dans « Foyer »
+--     Alice partage des dépenses de son compte perso : le loyer et les
+--     courses (mai → sept. 2026) avec des catégories communes, pour que le
+--     solde, le budget commun, le dashboard et les analyses de l'espace
+--     commun aient de quoi afficher. Loyer 50/50, courses 60/40 (Alice/Bob).
+-- ============================================================
+insert into public.shared_expenses (space_id, source_transaction_id, paid_by, category_id, shares)
+select
+  'c0000000-0000-0000-0000-000000000001',
+  t.id,
+  'a0000000-0000-0000-0000-000000000001',
+  (select c.id from public.categories c
+    where c.space_id = 'c0000000-0000-0000-0000-000000000001'
+      and c.kind = 'expense'
+      and c.name = case when t.description ilike 'Loyer%' then 'Logement' else 'Alimentation' end),
+  case
+    when t.description ilike 'Loyer%'
+      then jsonb_build_object('a0000000-0000-0000-0000-000000000001', 50, 'a0000000-0000-0000-0000-000000000002', 50)
+    else jsonb_build_object('a0000000-0000-0000-0000-000000000001', 60, 'a0000000-0000-0000-0000-000000000002', 40)
+  end
+from public.transactions t
+where t.user_id = 'a0000000-0000-0000-0000-000000000001'
+  and t.space_id = public.personal_space_id('a0000000-0000-0000-0000-000000000001')
+  and t.kind = 'expense'
+  and t.transfer_id is null
+  and t.deleted_at is null
+  and (t.description ilike 'Loyer%' or t.description ilike 'Courses%')
+  and t.date >= '2026-05-01'
+on conflict (source_transaction_id) do nothing;
+
+-- Bob a déjà remboursé une partie (saisie manuelle).
+insert into public.settlements (space_id, from_user, to_user, amount_cents, date, created_by)
+values ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002',
+        'a0000000-0000-0000-0000-000000000001', 30000, '2026-08-05 12:00:00+00',
+        'a0000000-0000-0000-0000-000000000002');
