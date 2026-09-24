@@ -16,8 +16,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useState } from "react";
-import { GripVertical, Pencil, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Share2, Trash2 } from "lucide-react";
 
+import { ApplyRuleShareModal } from "@/components/settings/apply-rule-share-modal";
 import { ImportRulesModal } from "@/components/settings/import-rules-modal";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -42,10 +43,12 @@ function SortableRow({
   rule,
   onEdit,
   onDelete,
+  onApplyShare,
 }: {
   rule: ImportRule;
   onEdit: () => void;
   onDelete: () => void;
+  onApplyShare: () => void;
 }) {
   const { t } = useLocale();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -102,6 +105,17 @@ function SortableRow({
 
       {/* Actions */}
       <div className="flex shrink-0 gap-1">
+        {rule.share_space_id ? (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onApplyShare}
+            aria-label={t("importRules.apply.action")}
+            title={t("importRules.apply.action")}
+          >
+            <Share2 />
+          </Button>
+        ) : null}
         <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label={t("importRules.editRule")} title={t("common.actions.edit")}>
           <Pencil />
         </Button>
@@ -120,6 +134,7 @@ export function ImportRulesList({ spaceKind = "personal" }: { spaceKind?: "perso
   const [showCreate, setShowCreate] = useState(false);
   const [editingRule, setEditingRule] = useState<ImportRule | null>(null);
   const [deletingRule, setDeletingRule] = useState<ImportRule | null>(null);
+  const [applyingRule, setApplyingRule] = useState<ImportRule | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor));
@@ -199,6 +214,7 @@ export function ImportRulesList({ spaceKind = "personal" }: { spaceKind?: "perso
                   rule={rule}
                   onEdit={() => setEditingRule(rule)}
                   onDelete={() => setDeletingRule(rule)}
+                  onApplyShare={() => setApplyingRule(rule)}
                 />
               ))}
             </div>
@@ -227,6 +243,15 @@ export function ImportRulesList({ spaceKind = "personal" }: { spaceKind?: "perso
             await loadRules();
           }}
           onClose={() => setEditingRule(null)}
+        />
+      )}
+
+      {applyingRule && (
+        <ApplyRuleShareModal
+          ruleId={applyingRule.id}
+          keyword={applyingRule.keyword}
+          onDone={() => setApplyingRule(null)}
+          onClose={() => setApplyingRule(null)}
         />
       )}
 

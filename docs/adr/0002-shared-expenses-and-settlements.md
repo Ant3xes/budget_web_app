@@ -70,3 +70,21 @@ between them. The payer's account, notes and import data must stay private.
   SQL function: transactions and shared expenses are created in **one SQL
   transaction**, through the caller's RLS and the same triggers as separate inserts.
   An invalid share rolls back the whole import — nothing is half-imported.
+
+## Addendum — retroactive application of a rule (#58)
+
+- A rule that shares can be applied to **already-imported** expenses:
+  `GET /api/import-rules/[id]/apply-share` previews (read-only), `POST` shares.
+- Candidates: expenses of the personal space, not deleted, not transfers, not
+  already shared, since a date (default: the day the user joined the shared
+  space). The **first matching rule by priority** must be the targeted one, exactly
+  as at import (`findMatchingRule`, shared with the import matchers).
+- The POST **recomputes the candidates server-side** and keeps only the ids the
+  client kept; it never trusts the client's list. One application shares at most
+  500 lines; re-running is idempotent (shared lines leave the candidates).
+- Creation goes through `share_transactions(p_shares)`, a SECURITY INVOKER SQL
+  function like `import_transactions`: all-or-nothing, same RLS and triggers.
+- The split is frozen at application time (the rule's percent, else the space's
+  default of the moment), not the split that applied when the expense was made. A
+  shared expense keeps its date, so past balances and analytics change: the modal
+  says so, and the start date filter exists to avoid reopening settled history.

@@ -18,6 +18,22 @@ export const importRules = {
   deleteConfirmTitle: "Delete this rule?",
   deleteConfirmDescription: "The rule “{keyword}” will be deleted.",
   sharedBadge: "Shared · {space}",
+  apply: {
+    action: "Apply to existing transactions",
+    title: "Share the \"{keyword}\" transactions",
+    description: "Expenses already imported that match this rule and are not shared yet.",
+    since: "Since",
+    warning:
+      "A shared expense keeps its date: the balance and analytics of past months will change. The split applied is today's.",
+    target: "Shared into \"{space}\" — your share: {percent}%",
+    empty: "No transaction to share since this date.",
+    truncated: "Only the 500 most recent are shown: run the action again to share the rest.",
+    total: "{count} transaction(s) selected · {amount}",
+    confirm: "Share {count} transaction(s)",
+    done: "{count} transaction(s) shared.",
+    loadError: "Unable to load the preview",
+    shareError: "Unable to share",
+  },
   form: {
     keywordLabel: "Keyword",
     keywordPlaceholder: "e.g. Netflix, Lidl, Rent…",
