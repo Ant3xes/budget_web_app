@@ -24,7 +24,7 @@ const FEATURES = [
 const DECISIONS = [
   "Montants en centimes entiers (jamais de float)",
   "Soft delete via deleted_at sur transactions, comptes, charges, etc.",
-  "Isolation utilisateur via RLS Supabase (user_id = auth.uid())",
+  "Isolation par espace (perso / partagé) via RLS Supabase (is_space_member(space_id))",
   "transactions.kind : expense | income | transfer_debit | transfer_credit",
   "Clients Supabase distincts : SSR (createServerSupabaseClient) vs browser",
   "Fixed Charges = référentiel indépendant (pas de lien auto avec les transactions)",

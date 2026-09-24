@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 
 const categorySchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -10,17 +10,8 @@ const categorySchema = z.object({
   icon: z.string().trim().max(10).optional().nullable(),
 });
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
-
 export async function GET() {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -28,7 +19,7 @@ export async function GET() {
   const { data, error } = await auth.supabase
     .from("categories")
     .select("id, name, kind, color, icon, is_default, translation_key")
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null)
     .order("kind")
     .order("name");
@@ -41,7 +32,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -52,6 +43,7 @@ export async function POST(request: Request) {
   }
 
   const { error } = await auth.supabase.from("categories").insert({
+    space_id: auth.spaceId,
     user_id: auth.user.id,
     name: payload.data.name,
     kind: payload.data.kind,

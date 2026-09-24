@@ -7,17 +7,14 @@ import { buildHash, findExistingHashes } from "@/lib/import/deduplicate";
 import { detectFormat } from "@/lib/import/detect-format";
 import { parseBnpXls } from "@/lib/import/parse-bnp";
 import { parseN26Csv } from "@/lib/import/parse-n26";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const auth = await withSpace();
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const { supabase, spaceId } = auth;
 
   const formData = await request.formData();
   const file = formData.get("file");
@@ -77,16 +74,16 @@ export async function POST(request: Request) {
   // Build hashes and find duplicates
   const hashed = parsed.map((tx) => ({ ...tx, hash: buildHash(tx) }));
   const allHashes = hashed.map((tx) => tx.hash);
-  const existingHashes = await findExistingHashes(supabase, user.id, allHashes);
+  const existingHashes = await findExistingHashes(supabase, spaceId, allHashes);
 
   // Build matchers for auto-categorization (rules > history > built-in defaults)
   const [ruleMatcher, historyMatcher, categoriesData] = await Promise.all([
-    buildRuleMatcher(supabase, user.id),
-    buildHistoryMatcher(supabase, user.id),
+    buildRuleMatcher(supabase, spaceId),
+    buildHistoryMatcher(supabase, spaceId),
     supabase
       .from("categories")
       .select("id, name, kind")
-      .eq("user_id", user.id)
+      .eq("space_id", spaceId)
       .is("deleted_at", null),
   ]);
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 import { fetchTransferCounterparts } from "@/lib/transactions/transfer-counterparts";
 import { uuidSchema } from "@/lib/validation/uuid";
 
@@ -35,17 +35,8 @@ const querySchema = z.object({
   per_page: z.coerce.number().int().min(1).max(100).default(25),
 });
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
-
 export async function GET(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -80,7 +71,7 @@ export async function GET(request: Request) {
       "id, kind, amount_cents, currency, date, description, notes, is_imported, transfer_id, account_id, category_id, accounts(name), categories(name, color, icon)",
       { count: "exact" },
     )
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null)
     .in("kind", dbKinds)
     .order("date", { ascending: false })
@@ -107,7 +98,7 @@ export async function GET(request: Request) {
     .filter((t) => t.kind === "transfer_debit" && t.transfer_id)
     .map((t) => t.transfer_id as string);
 
-  const toAccountByTransferId = await fetchTransferCounterparts(auth.supabase, auth.user.id, transferIds);
+  const toAccountByTransferId = await fetchTransferCounterparts(auth.supabase, auth.spaceId, transferIds);
 
   const withToAccount = transactions.map((t) => ({
     ...t,
@@ -118,7 +109,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -129,6 +120,7 @@ export async function POST(request: Request) {
   }
 
   const { error } = await auth.supabase.from("transactions").insert({
+    space_id: auth.spaceId,
     user_id: auth.user.id,
     account_id: payload.data.account_id,
     kind: payload.data.kind,

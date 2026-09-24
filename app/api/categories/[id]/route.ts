@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 
 const categoryUpdateSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
@@ -10,17 +10,8 @@ const categoryUpdateSchema = z.object({
   icon: z.string().trim().max(10).optional().nullable(),
 });
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
-
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -48,7 +39,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .from("categories")
       .select("name, is_default")
       .eq("id", id)
-      .eq("user_id", auth.user.id)
+      .eq("space_id", auth.spaceId)
       .single();
     if (existing?.is_default && existing.name !== payload.data.name) {
       updateData = { ...payload.data, is_default: false, translation_key: null };
@@ -59,7 +50,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .from("categories")
     .update(updateData)
     .eq("id", id)
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
   if (error) {
@@ -70,7 +61,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -84,7 +75,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .from("categories")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
   if (error) {

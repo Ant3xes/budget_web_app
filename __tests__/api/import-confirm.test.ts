@@ -3,15 +3,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/headers", () => ({
   cookies: vi.fn(() => Promise.resolve({ getAll: () => [], set: vi.fn() })),
 }));
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(),
-}));
+vi.mock("@/lib/spaces/with-space", () => ({ withSpace: vi.fn() }));
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 import { POST } from "@/app/api/import/confirm/route";
 import { createChainableMock } from "@/__tests__/mocks/supabase";
 
 const mockUser = { id: "user-test-id", email: "test@budget.local" };
+
+const asAuth = (supabase: unknown) =>
+  ({
+    supabase,
+    user: mockUser,
+    spaceId: "space-test-id",
+    space: { id: "space-test-id", name: "Personnel", kind: "personal", role: "owner" },
+    spaces: [],
+  }) as never;
 const ACCOUNT_ID = "00000000-0000-4000-8000-000000000001";
 const CATEGORY_ID = "00000000-0000-4000-8000-000000000002";
 const COUNTERPART_ACCOUNT_ID = "00000000-0000-4000-8000-000000000003";
@@ -41,10 +48,7 @@ describe("POST /api/import/confirm — auth", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when not authenticated", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
-      from: vi.fn(),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>);
+    vi.mocked(withSpace).mockResolvedValue(null);
 
     const res = await POST(makeRequest({}));
     expect(res.status).toBe(401);
@@ -57,9 +61,7 @@ describe("POST /api/import/confirm — Zod validation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const { supabase } = buildSupabaseMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
   });
 
   it("returns 400 when account_id is missing", async () => {
@@ -133,9 +135,7 @@ describe("POST /api/import/confirm — success paths", () => {
 
   it("inserts 1 row for a valid expense and returns imported count", async () => {
     const { supabase, queryBuilder } = buildSupabaseMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
       account_id: ACCOUNT_ID,
@@ -159,13 +159,13 @@ describe("POST /api/import/confirm — success paths", () => {
     expect(inserted).toHaveLength(1);
     expect((inserted[0] as Record<string, unknown>).kind).toBe("expense");
     expect((inserted[0] as Record<string, unknown>).is_imported).toBe(true);
+    expect((inserted[0] as Record<string, unknown>).space_id).toBe("space-test-id");
+    expect((inserted[0] as Record<string, unknown>).user_id).toBe("user-test-id");
   });
 
   it("inserts 1 row for a valid income", async () => {
     const { supabase, queryBuilder } = buildSupabaseMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
       account_id: ACCOUNT_ID,
@@ -188,9 +188,7 @@ describe("POST /api/import/confirm — success paths", () => {
 
   it("inserts 1 row for transfer WITHOUT counterpart account (no mirror)", async () => {
     const { supabase, queryBuilder } = buildSupabaseMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
       account_id: ACCOUNT_ID,
@@ -213,9 +211,7 @@ describe("POST /api/import/confirm — success paths", () => {
 
   it("inserts 2 rows for transfer WITH counterpart account (main + mirror)", async () => {
     const { supabase, queryBuilder } = buildSupabaseMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
       account_id: ACCOUNT_ID,
@@ -237,6 +233,8 @@ describe("POST /api/import/confirm — success paths", () => {
     expect(inserted).toHaveLength(2);
 
     const main = inserted[0] as Record<string, unknown>;
+    expect(main.space_id).toBe("space-test-id");
+    expect((inserted[1] as Record<string, unknown>).space_id).toBe("space-test-id");
     const mirror = inserted[1] as Record<string, unknown>;
 
     expect(main.kind).toBe("transfer_debit");
@@ -254,9 +252,7 @@ describe("POST /api/import/confirm — success paths", () => {
 
   it("deducts category_id for transfers (always null)", async () => {
     const { supabase, queryBuilder } = buildSupabaseMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     await POST(makeRequest({
       account_id: ACCOUNT_ID,
@@ -277,9 +273,7 @@ describe("POST /api/import/confirm — success paths", () => {
 
   it("handles multiple transactions in one batch", async () => {
     const { supabase, queryBuilder } = buildSupabaseMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
       account_id: ACCOUNT_ID,
@@ -301,9 +295,7 @@ describe("POST /api/import/confirm — DB error", () => {
 
   it("returns 400 when DB insert fails", async () => {
     const { supabase } = buildSupabaseMock({ error: { message: "violates foreign key constraint" } });
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await POST(makeRequest({
       account_id: ACCOUNT_ID,

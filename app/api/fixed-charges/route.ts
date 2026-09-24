@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { advanceWhile } from "@/lib/fixed-charges/due-date";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 import { uuidSchema } from "@/lib/validation/uuid";
 
 const fixedChargeSchema = z.object({
@@ -21,17 +21,8 @@ function advanceDueDate(dateStr: string, frequency: "monthly" | "quarterly" | "y
   return advanceWhile(dateStr, frequency, (d) => d < today);
 }
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
-
 export async function GET() {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Auto-advance: fetch active charges with past due dates
@@ -39,7 +30,7 @@ export async function GET() {
   const { data: overdueCharges } = await auth.supabase
     .from("fixed_charges")
     .select("id, next_due_date, frequency")
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .eq("status", "active")
     .lt("next_due_date", today)
     .is("deleted_at", null);
@@ -55,7 +46,7 @@ export async function GET() {
           .from("fixed_charges")
           .update({ next_due_date: newDate })
           .eq("id", charge.id)
-          .eq("user_id", auth.user.id);
+          .eq("space_id", auth.spaceId);
       }),
     );
   }
@@ -66,7 +57,7 @@ export async function GET() {
     .select(
       "id, name, amount_cents, currency, frequency, next_due_date, status, notes, account_id, category_id, accounts(name), categories(name, color, icon)",
     )
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null)
     .order("next_due_date", { ascending: true });
 
@@ -76,7 +67,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const payload = fixedChargeSchema.safeParse(await request.json());
@@ -87,6 +78,7 @@ export async function POST(request: Request) {
   const { name, amount_cents, frequency, next_due_date, account_id, category_id, notes, status } = payload.data;
 
   const { error } = await auth.supabase.from("fixed_charges").insert({
+    space_id: auth.spaceId,
     user_id: auth.user.id,
     name,
     amount_cents,

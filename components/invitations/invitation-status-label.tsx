@@ -13,5 +13,6 @@ export function InvitationStatusLabel({ status }: { status: string }) {
   const { t } = useLocale();
   if (status === "pending") return <>{t("invitations.status.pending")}</>;
   if (status === "accepted") return <>{t("invitations.status.accepted")}</>;
+  if (status === "revoked") return <>{t("invitations.status.revoked")}</>;
   return <>{status}</>;
 }

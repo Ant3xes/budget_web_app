@@ -3,9 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/headers", () => ({
   cookies: vi.fn(() => Promise.resolve({ getAll: () => [], set: vi.fn() })),
 }));
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(),
-}));
+vi.mock("@/lib/spaces/with-space", () => ({ withSpace: vi.fn() }));
 
 // Mock all import library modules to isolate the route logic
 vi.mock("@/lib/import/apply-rules", () => ({
@@ -21,13 +19,22 @@ vi.mock("@/lib/import/deduplicate", () => ({
   findExistingHashes: vi.fn().mockResolvedValue(new Set<string>()),
 }));
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 import { buildRuleMatcher, detectTransfer } from "@/lib/import/apply-rules";
 import { findExistingHashes } from "@/lib/import/deduplicate";
 import { POST } from "@/app/api/import/preview/route";
 import { createChainableMock } from "@/__tests__/mocks/supabase";
 
 const mockUser = { id: "user-test-id", email: "test@budget.local" };
+
+const asAuth = (supabase: unknown) =>
+  ({
+    supabase,
+    user: mockUser,
+    spaceId: "space-test-id",
+    space: { id: "space-test-id", name: "Personnel", kind: "personal", role: "owner" },
+    spaces: [],
+  }) as never;
 
 // N26 CSV sample
 const N26_CSV = [
@@ -80,10 +87,7 @@ beforeEach(() => {
 
 describe("POST /api/import/preview — auth", () => {
   it("returns 401 when not authenticated", async () => {
-    const { supabase } = buildAuthMock(null);
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(null);
 
     const res = await POST(makeRequest(makeFormData(makeN26File())));
     expect(res.status).toBe(401);
@@ -99,9 +103,7 @@ describe("POST /api/import/preview — auth", () => {
 describe("POST /api/import/preview — file validation", () => {
   beforeEach(() => {
     const { supabase } = buildAuthMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
   });
 
   it("returns 400 when no file is provided", async () => {
@@ -146,9 +148,7 @@ describe("POST /api/import/preview — file validation", () => {
 describe("POST /api/import/preview — preview content", () => {
   beforeEach(() => {
     const { supabase } = buildAuthMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
   });
 
   it("returns 200 with correct preview shape for N26 CSV", async () => {
@@ -170,6 +170,12 @@ describe("POST /api/import/preview — preview content", () => {
     });
   });
 
+  it("scopes dedup and matchers by the active space", async () => {
+    await POST(makeRequest(makeFormData(makeN26File())));
+    expect(vi.mocked(findExistingHashes).mock.calls[0]?.[1]).toBe("space-test-id");
+    expect(vi.mocked(buildRuleMatcher).mock.calls[0]?.[1]).toBe("space-test-id");
+  });
+
   it("classifies positive amounts as income", async () => {
     const res = await POST(makeRequest(makeFormData(makeN26File())));
     const body = (await res.json()) as { preview: Record<string, unknown>[] };
@@ -181,7 +187,7 @@ describe("POST /api/import/preview — preview content", () => {
 
   it("marks rows as is_duplicate when hash already in DB", async () => {
     // Override findExistingHashes to return all hashes as existing
-    vi.mocked(findExistingHashes).mockImplementation(async (_sb, _uid, hashes) =>
+    vi.mocked(findExistingHashes).mockImplementation(async (_sb, _sid, hashes) =>
       new Set(hashes),
     );
 
@@ -239,7 +245,7 @@ describe("POST /api/import/preview — preview content", () => {
   });
 
   it("does NOT set suggested_category_id for duplicates", async () => {
-    vi.mocked(findExistingHashes).mockImplementation(async (_sb, _uid, hashes) =>
+    vi.mocked(findExistingHashes).mockImplementation(async (_sb, _sid, hashes) =>
       new Set(hashes),
     );
     vi.mocked(buildRuleMatcher).mockResolvedValue(() => "cat-id-from-rule");

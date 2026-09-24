@@ -3,16 +3,7 @@ import { z } from "zod";
 
 import { buildHistoryMatcher, buildRuleMatcher } from "@/lib/import/apply-rules";
 import { insertImportRules } from "@/lib/import/rules";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
+import { withSpace } from "@/lib/spaces/with-space";
 
 type RawTransaction = {
   id: string;
@@ -32,26 +23,26 @@ type CategoryRow = {
  * based on import rules (priority) and history matching (fallback).
  */
 export async function GET() {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { supabase, user } = auth;
+  const { supabase, user, spaceId } = auth;
 
   const [txResult, catResult, ruleMatcher, historyMatcher] = await Promise.all([
     supabase
       .from("transactions")
       .select("id, description, kind")
-      .eq("user_id", user.id)
+      .eq("space_id", spaceId)
       .is("category_id", null)
       .is("deleted_at", null)
       .in("kind", ["expense", "income"]),
     supabase
       .from("categories")
       .select("id, name, icon")
-      .eq("user_id", user.id)
+      .eq("space_id", spaceId)
       .is("deleted_at", null),
-    buildRuleMatcher(supabase, user.id),
-    buildHistoryMatcher(supabase, user.id),
+    buildRuleMatcher(supabase, spaceId),
+    buildHistoryMatcher(supabase, spaceId),
   ]);
 
   const transactions = (txResult.data ?? []) as RawTransaction[];
@@ -135,10 +126,10 @@ const applyRulesSchema = z.object({
  * Body: { updates: Array<{ id, category_id }>, new_rules?: Array<{ keyword, category_id, kind }> }
  */
 export async function POST(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { supabase, user } = auth;
+  const { supabase, user, spaceId } = auth;
 
   const payload = applyRulesSchema.safeParse(await request.json());
   if (!payload.success) {
@@ -151,14 +142,14 @@ export async function POST(request: Request) {
   const { updates, new_rules } = payload.data;
   let applied = 0;
 
-  // Apply each update individually to ensure RLS (user_id check) is respected
+  // Apply each update individually to ensure the active-space scope is respected
   const results = await Promise.all(
     updates.map(({ id, category_id }) =>
       supabase
         .from("transactions")
         .update({ category_id })
         .eq("id", id)
-        .eq("user_id", user.id)
+        .eq("space_id", spaceId)
         .is("category_id", null)
         .is("deleted_at", null),
     ),
@@ -170,7 +161,7 @@ export async function POST(request: Request) {
 
   let rulesCreated = 0;
   if (new_rules && new_rules.length > 0) {
-    const result = await insertImportRules(supabase, user.id, new_rules);
+    const result = await insertImportRules(supabase, spaceId, user.id, new_rules);
     rulesCreated = result.inserted;
   }
 

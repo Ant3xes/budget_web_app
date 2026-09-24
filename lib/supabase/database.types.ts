@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -23,6 +43,7 @@ export type Database = {
           id: string
           initial_balance_cents: number
           name: string
+          space_id: string
           type: string
           updated_at: string
           user_id: string
@@ -35,6 +56,7 @@ export type Database = {
           id?: string
           initial_balance_cents?: number
           name: string
+          space_id: string
           type: string
           updated_at?: string
           user_id: string
@@ -47,11 +69,19 @@ export type Database = {
           id?: string
           initial_balance_cents?: number
           name?: string
+          space_id?: string
           type?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "accounts_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "accounts_user_id_fkey"
             columns: ["user_id"]
@@ -70,6 +100,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           month: string
+          space_id: string
           updated_at: string
           user_id: string
         }
@@ -81,6 +112,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           month: string
+          space_id: string
           updated_at?: string
           user_id: string
         }
@@ -92,6 +124,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           month?: string
+          space_id?: string
           updated_at?: string
           user_id?: string
         }
@@ -101,6 +134,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
             referencedColumns: ["id"]
           },
           {
@@ -122,6 +162,7 @@ export type Database = {
           is_default: boolean
           kind: string
           name: string
+          space_id: string
           translation_key: string | null
           updated_at: string
           user_id: string
@@ -135,6 +176,7 @@ export type Database = {
           is_default?: boolean
           kind: string
           name: string
+          space_id: string
           translation_key?: string | null
           updated_at?: string
           user_id: string
@@ -148,11 +190,19 @@ export type Database = {
           is_default?: boolean
           kind?: string
           name?: string
+          space_id?: string
           translation_key?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "categories_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "categories_user_id_fkey"
             columns: ["user_id"]
@@ -170,6 +220,7 @@ export type Database = {
           keyword: string
           kind: string
           priority: number
+          space_id: string
           updated_at: string
           user_id: string
         }
@@ -180,6 +231,7 @@ export type Database = {
           keyword: string
           kind: string
           priority?: number
+          space_id: string
           updated_at?: string
           user_id: string
         }
@@ -190,6 +242,7 @@ export type Database = {
           keyword?: string
           kind?: string
           priority?: number
+          space_id?: string
           updated_at?: string
           user_id?: string
         }
@@ -199,6 +252,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csv_import_rules_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
             referencedColumns: ["id"]
           },
           {
@@ -224,6 +284,7 @@ export type Database = {
           name: string
           next_due_date: string
           notes: string | null
+          space_id: string
           status: string
           updated_at: string
           user_id: string
@@ -241,6 +302,7 @@ export type Database = {
           name: string
           next_due_date: string
           notes?: string | null
+          space_id: string
           status?: string
           updated_at?: string
           user_id: string
@@ -258,6 +320,7 @@ export type Database = {
           name?: string
           next_due_date?: string
           notes?: string | null
+          space_id?: string
           status?: string
           updated_at?: string
           user_id?: string
@@ -278,6 +341,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fixed_charges_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fixed_charges_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -291,9 +361,11 @@ export type Database = {
           accepted_at: string | null
           accepted_by_user_id: string | null
           created_at: string
+          expires_at: string
           id: string
           invitee_email: string
           inviter_user_id: string
+          space_id: string | null
           status: string
           token: string
           updated_at: string
@@ -302,9 +374,11 @@ export type Database = {
           accepted_at?: string | null
           accepted_by_user_id?: string | null
           created_at?: string
+          expires_at?: string
           id?: string
           invitee_email: string
           inviter_user_id: string
+          space_id?: string | null
           status?: string
           token: string
           updated_at?: string
@@ -313,9 +387,11 @@ export type Database = {
           accepted_at?: string | null
           accepted_by_user_id?: string | null
           created_at?: string
+          expires_at?: string
           id?: string
           invitee_email?: string
           inviter_user_id?: string
+          space_id?: string | null
           status?: string
           token?: string
           updated_at?: string
@@ -333,6 +409,13 @@ export type Database = {
             columns: ["inviter_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
             referencedColumns: ["id"]
           },
         ]
@@ -373,6 +456,7 @@ export type Database = {
           id: string
           linked_category_id: string | null
           name: string
+          space_id: string
           target_amount_cents: number
           updated_at: string
           user_id: string
@@ -388,6 +472,7 @@ export type Database = {
           id?: string
           linked_category_id?: string | null
           name: string
+          space_id: string
           target_amount_cents: number
           updated_at?: string
           user_id: string
@@ -403,6 +488,7 @@ export type Database = {
           id?: string
           linked_category_id?: string | null
           name?: string
+          space_id?: string
           target_amount_cents?: number
           updated_at?: string
           user_id?: string
@@ -416,8 +502,86 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "savings_goals_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "savings_goals_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_members: {
+        Row: {
+          joined_at: string
+          role: string
+          space_id: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          role?: string
+          space_id: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          role?: string
+          space_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_members_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spaces: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          kind: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          kind: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spaces_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -439,6 +603,7 @@ export type Database = {
           kind: string
           notes: string | null
           raw_import_data: Json | null
+          space_id: string
           transfer_id: string | null
           updated_at: string
           user_id: string
@@ -457,6 +622,7 @@ export type Database = {
           kind: string
           notes?: string | null
           raw_import_data?: Json | null
+          space_id: string
           transfer_id?: string | null
           updated_at?: string
           user_id: string
@@ -475,6 +641,7 @@ export type Database = {
           kind?: string
           notes?: string | null
           raw_import_data?: Json | null
+          space_id?: string
           transfer_id?: string | null
           updated_at?: string
           user_id?: string
@@ -495,6 +662,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "transactions_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transactions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -508,10 +682,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_space_invitation: { Args: { p_token: string }; Returns: string }
+      create_shared_space: { Args: { p_name: string }; Returns: string }
+      get_space_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          expired: boolean
+          inviter_name: string
+          space_name: string
+          status: string
+        }[]
+      }
+      is_space_member: { Args: { p_space_id: string }; Returns: boolean }
+      is_space_owner: { Args: { p_space_id: string }; Returns: boolean }
+      personal_space_id: { Args: { p_user_id: string }; Returns: string }
       seed_default_categories: {
-        Args: { p_user_id: string }
+        Args: { p_space_id: string; p_user_id: string }
         Returns: undefined
       }
+      shares_space_with: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
@@ -530,12 +719,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -559,11 +748,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -584,11 +773,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -609,11 +798,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -626,11 +815,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -640,7 +829,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
 } as const
+

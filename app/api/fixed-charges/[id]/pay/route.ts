@@ -2,16 +2,7 @@ import { NextResponse } from "next/server";
 
 import { todayISO } from "@/lib/dates/period";
 import { advanceOnePeriod, advanceWhile } from "@/lib/fixed-charges/due-date";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
+import { withSpace } from "@/lib/spaces/with-space";
 
 /**
  * POST /api/fixed-charges/:id/pay
@@ -27,7 +18,7 @@ const withUser = async () => {
  * one period, so it doesn't stay overdue right after being paid.
  */
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
@@ -37,7 +28,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     .from("fixed_charges")
     .select("next_due_date, frequency")
     .eq("id", id)
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null)
     .single();
 
@@ -59,7 +50,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     .from("fixed_charges")
     .update({ next_due_date: nextDueDate, last_paid_date: todayStr })
     .eq("id", id)
-    .eq("user_id", auth.user.id);
+    .eq("space_id", auth.spaceId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 

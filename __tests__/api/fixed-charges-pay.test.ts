@@ -3,22 +3,31 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/headers", () => ({
   cookies: vi.fn(() => Promise.resolve({ getAll: () => [], set: vi.fn() })),
 }));
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(),
-}));
+vi.mock("@/lib/spaces/with-space", () => ({ withSpace: vi.fn() }));
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 import { POST } from "@/app/api/fixed-charges/[id]/pay/route";
 import { createChainableMock } from "@/__tests__/mocks/supabase";
 import { todayISO } from "@/lib/dates/period";
 
 const mockUser = { id: "user-test-id", email: "test@budget.local" };
+const mockSpace = { id: "space-test-id", name: "Personnel", kind: "personal", role: "owner" };
+
+function mockAuth(supabase: unknown) {
+  vi.mocked(withSpace).mockResolvedValue({
+    supabase,
+    user: mockUser,
+    spaceId: "space-test-id",
+    space: mockSpace,
+    spaces: [],
+  } as never);
+}
 
 function makeSupabase(charge: { next_due_date: string; frequency: string } | null) {
   const queryBuilder = createChainableMock({ data: charge, error: charge ? null : { message: "not found" } });
   return {
-    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: mockUser }, error: null }) },
     from: vi.fn(() => queryBuilder),
+    _queryBuilder: queryBuilder,
   };
 }
 
@@ -30,19 +39,14 @@ describe("POST /api/fixed-charges/:id/pay", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns 401 when not authenticated", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
-      from: vi.fn(),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>);
+    vi.mocked(withSpace).mockResolvedValue(null);
 
     const res = await POST(makeRequest(), { params: Promise.resolve({ id: "charge-1" }) });
     expect(res.status).toBe(401);
   });
 
   it("returns 404 when the charge doesn't exist (or isn't the user's)", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      makeSupabase(null) as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    mockAuth(makeSupabase(null));
 
     const res = await POST(makeRequest(), { params: Promise.resolve({ id: "charge-1" }) });
     expect(res.status).toBe(404);
@@ -53,14 +57,14 @@ describe("POST /api/fixed-charges/:id/pay", () => {
     future.setDate(future.getDate() + 10);
     const futureStr = future.toISOString().slice(0, 10);
 
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      makeSupabase({ next_due_date: futureStr, frequency: "monthly" }) as unknown as Awaited<
-        ReturnType<typeof createServerSupabaseClient>
-      >,
-    );
+    const supabase = makeSupabase({ next_due_date: futureStr, frequency: "monthly" });
+    mockAuth(supabase);
 
     const res = await POST(makeRequest(), { params: Promise.resolve({ id: "charge-1" }) });
     expect(res.status).toBe(200);
+    // Lookup and update are both scoped by the active space.
+    expect(supabase._queryBuilder.eq).toHaveBeenCalledWith("space_id", "space-test-id");
+    expect(supabase._queryBuilder.eq).not.toHaveBeenCalledWith("user_id", expect.anything());
     const body = (await res.json()) as { next_due_date: string; last_paid_date: string };
     // Local-calendar-date, matching the dashboard's own query window — not a
     // UTC date, which could disagree with it near a day boundary.
@@ -73,11 +77,7 @@ describe("POST /api/fixed-charges/:id/pay", () => {
     const now = new Date();
     const wayOverdue = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 3, 1)).toISOString().slice(0, 10);
 
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      makeSupabase({ next_due_date: wayOverdue, frequency: "monthly" }) as unknown as Awaited<
-        ReturnType<typeof createServerSupabaseClient>
-      >,
-    );
+    mockAuth(makeSupabase({ next_due_date: wayOverdue, frequency: "monthly" }));
 
     const res = await POST(makeRequest(), { params: Promise.resolve({ id: "charge-1" }) });
     expect(res.status).toBe(200);

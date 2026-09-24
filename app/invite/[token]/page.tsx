@@ -1,53 +1,86 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { acceptInvitation } from "@/app/invite/[token]/actions";
 import { LogoMark } from "@/components/brand/logo";
 import { T } from "@/components/i18n/t";
+import { Button } from "@/components/ui/button";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+const shellClass =
+  "mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-4 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]";
+const cardClass = "rounded-md border border-border bg-card p-4 text-card-foreground shadow-sm";
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className={shellClass}>
+      <div className="flex items-center justify-center gap-2.5">
+        <LogoMark />
+        <span className="text-base font-semibold tracking-tight">
+          <T k="nav.appTitle" />
+        </span>
+      </div>
+      {children}
+    </main>
+  );
+}
 
 export default async function InvitationAcceptPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { token } = await params;
+  const { error } = await searchParams;
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: invitation } = await supabase
-    .from("invitations")
-    .select("id, status")
-    .eq("token", token)
-    .maybeSingle();
+  const { data } = await supabase.rpc("get_space_invitation", { p_token: token });
+  const invitation = data?.[0];
 
   if (!invitation) {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-4 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-      <div className="flex items-center justify-center gap-2.5">
-        <LogoMark />
-        <span className="text-base font-semibold tracking-tight">
-          <T k="nav.appTitle" />
-        </span>
-      </div>
-        <p className="rounded-md border border-border bg-card p-4 text-card-foreground shadow-sm">
+      <Shell>
+        <p className={cardClass}>
           <T k="invitations.accept.notFound" />
         </p>
-      </main>
+      </Shell>
     );
   }
 
+  if (invitation.status !== "pending" || invitation.expired) {
+    return (
+      <Shell>
+        <p className={cardClass}>
+          <T k="invitations.accept.unavailable" />
+        </p>
+        <Link
+          href="/dashboard"
+          className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-4 text-sm text-primary-foreground md:h-9"
+        >
+          <T k="invitations.accept.goToDashboard" />
+        </Link>
+      </Shell>
+    );
+  }
+
+  const summary = (
+    <p className={cardClass}>
+      <T
+        k="invitations.accept.summary"
+        vars={{ inviter: invitation.inviter_name ?? "?", space: invitation.space_name }}
+      />
+    </p>
+  );
+
   if (!user) {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-4 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-      <div className="flex items-center justify-center gap-2.5">
-        <LogoMark />
-        <span className="text-base font-semibold tracking-tight">
-          <T k="nav.appTitle" />
-        </span>
-      </div>
-        <p className="rounded-md border border-border bg-card p-4 text-card-foreground shadow-sm">
+      <Shell>
+        {summary}
+        <p className={cardClass}>
           <T k="invitations.accept.signInPrompt" />
         </p>
         <div className="flex gap-3">
@@ -58,33 +91,23 @@ export default async function InvitationAcceptPage({
             <T k="invitations.accept.signUp" />
           </Link>
         </div>
-      </main>
+      </Shell>
     );
   }
 
-  if (invitation.status === "accepted") {
-    redirect("/dashboard");
-  }
-
-  await supabase
-    .from("invitations")
-    .update({ status: "accepted", accepted_by_user_id: user.id, accepted_at: new Date().toISOString() })
-    .eq("id", invitation.id);
-
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-4 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
-      <div className="flex items-center justify-center gap-2.5">
-        <LogoMark />
-        <span className="text-base font-semibold tracking-tight">
-          <T k="nav.appTitle" />
-        </span>
-      </div>
-      <p className="rounded-md border border-border bg-card p-4 text-card-foreground shadow-sm">
-        <T k="invitations.accept.success" />
-      </p>
-      <Link href="/dashboard" className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-4 text-sm text-primary-foreground md:h-9">
-        <T k="invitations.accept.goToDashboard" />
-      </Link>
-    </main>
+    <Shell>
+      {summary}
+      {error ? (
+        <p className="text-sm text-red-600">
+          <T k="invitations.accept.error" />
+        </p>
+      ) : null}
+      <form action={acceptInvitation.bind(null, token)}>
+        <Button type="submit" className="h-11 w-full md:h-9">
+          <T k="invitations.accept.join" />
+        </Button>
+      </form>
+    </Shell>
   );
 }

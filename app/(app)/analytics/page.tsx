@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSpaceContext } from "@/lib/spaces/context";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { PeriodSelector } from "@/components/period-selector";
 import { T } from "@/components/i18n/t";
@@ -90,7 +90,7 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<{ period?: string; tab?: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
+  const { supabase, spaceId } = await requireSpaceContext();
   const now = new Date();
 
   const { period: periodParam, tab: tabParam } = await searchParams;
@@ -100,6 +100,7 @@ export default async function AnalyticsPage({
   const accountsRes = await supabase
     .from("accounts")
     .select("id, name, type, bank, initial_balance_cents")
+    .eq("space_id", spaceId)
     .is("deleted_at", null);
   const accounts = accountsRes.data ?? [];
   const accountIds = accounts.map((a) => a.id);
@@ -121,7 +122,7 @@ export default async function AnalyticsPage({
   const period = parsePeriodParam(periodParam ?? "6m", now);
   const earliestDate =
     period.type === "preset" && period.value === "tout" && tab !== "accounts"
-      ? await resolveEarliestTransactionDate(supabase, accountIds)
+      ? await resolveEarliestTransactionDate(supabase, spaceId, accountIds)
       : null;
   const { from: windowFrom, to: windowTo, monthCount: windowMonthCount } = periodBounds(period, { now, earliestDate });
   const windowLabel = resolvePeriodLabel(period, now);
@@ -132,12 +133,13 @@ export default async function AnalyticsPage({
   if (tab === "overview") {
     const [allTxRes, windowTxRes, transferTxRes] = await Promise.all([
       runScopedQuery<{ amount_cents: number; date: string }>([accountIds], () =>
-        supabase.from("transactions").select("amount_cents, date").in("account_id", accountIds).is("deleted_at", null),
+        supabase.from("transactions").select("amount_cents, date").eq("space_id", spaceId).in("account_id", accountIds).is("deleted_at", null),
       ),
       runScopedQuery<{ kind: string; amount_cents: number; date: string }>([accountIds], () =>
         supabase
           .from("transactions")
           .select("kind, amount_cents, date")
+          .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .in("kind", ["expense", "income"])
           .is("deleted_at", null)
@@ -148,6 +150,7 @@ export default async function AnalyticsPage({
         supabase
           .from("transactions")
           .select("amount_cents, date")
+          .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .eq("kind", "transfer_debit")
           .is("deleted_at", null)
@@ -199,6 +202,7 @@ export default async function AnalyticsPage({
         supabase
           .from("transactions")
           .select("date, description, amount_cents, category_id, categories(name, color, icon, is_default, translation_key)")
+          .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .eq("kind", "expense")
           .is("deleted_at", null)
@@ -208,6 +212,7 @@ export default async function AnalyticsPage({
       supabase
         .from("budgets")
         .select("id, category_id, amount_cents, categories(name, color, icon, is_default, translation_key)")
+        .eq("space_id", spaceId)
         .eq("month", currentMonthStart)
         .is("deleted_at", null),
       // Year-to-date expense transactions — feeds both the "cumul annuel"
@@ -219,6 +224,7 @@ export default async function AnalyticsPage({
           supabase
             .from("transactions")
             .select("amount_cents, date, category_id, categories(name, color, icon, is_default, translation_key)")
+            .eq("space_id", spaceId)
             .in("account_id", accountIds)
             .eq("kind", "expense")
             .is("deleted_at", null)
@@ -357,7 +363,7 @@ export default async function AnalyticsPage({
       // selected period ends in the past, rather than a second, mostly
       // redundant query bounded to todayStr on its own).
       runScopedQuery<{ account_id: string; date: string; amount_cents: number }>([accountIds], () =>
-        supabase.from("transactions").select("account_id, date, amount_cents").in("account_id", accountIds).is("deleted_at", null).lte("date", todayStr),
+        supabase.from("transactions").select("account_id, date, amount_cents").eq("space_id", spaceId).in("account_id", accountIds).is("deleted_at", null).lte("date", todayStr),
       ),
       // Unchanged: upcoming fixed charges stay bounded to the current
       // calendar month regardless of the selected period — "reste-à-vivre"
@@ -365,6 +371,7 @@ export default async function AnalyticsPage({
       supabase
         .from("fixed_charges")
         .select("amount_cents")
+        .eq("space_id", spaceId)
         .eq("status", "active")
         .gte("next_due_date", todayStr)
         .lte("next_due_date", currentMonthEnd)
@@ -426,6 +433,7 @@ export default async function AnalyticsPage({
       supabase
         .from("transactions")
         .select("date, amount_cents")
+        .eq("space_id", spaceId)
         .in("account_id", accountIds)
         .eq("kind", "expense")
         .is("deleted_at", null)
@@ -485,6 +493,7 @@ export default async function AnalyticsPage({
         supabase
           .from("transactions")
           .select("date, kind, amount_cents")
+          .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .in("kind", ["expense", "income"])
           .is("deleted_at", null)
@@ -494,6 +503,7 @@ export default async function AnalyticsPage({
       supabase
         .from("savings_goals")
         .select("id, name, target_amount_cents, current_amount_cents, color, linked_category_id")
+        .eq("space_id", spaceId)
         .is("deleted_at", null)
         .order("created_at", { ascending: true }),
     ]);
@@ -509,6 +519,7 @@ export default async function AnalyticsPage({
         supabase
           .from("transactions")
           .select("date, category_id, amount_cents")
+          .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .in("category_id", linkedCategoryIds)
           .is("deleted_at", null),

@@ -9,6 +9,7 @@ import { logout } from "@/app/(auth)/actions";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { LogoutButtonLabel } from "@/components/layout/logout-button-label";
 import { isNavActive, SIDEBAR_COOKIE } from "@/components/layout/nav-utils";
+import { SpaceSwitcher } from "@/components/layout/space-switcher";
 import { LocaleToggle } from "@/components/locale-toggle";
 import { useLocale } from "@/components/locale-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { NAV_ITEMS } from "@/lib/constants";
 import { NAV_ICONS } from "@/lib/nav-icons";
+import type { SpaceSummary } from "@/lib/spaces/context";
 import { cn } from "@/lib/utils";
 
 /**
@@ -25,7 +27,17 @@ import { cn } from "@/lib/utils";
  * Compte + préférences + déconnexion vivent dans un menu déroulant en bas.
  * Sous `md`, c'est `BottomNav` qui prend le relais.
  */
-export function Sidebar({ userEmail, defaultCollapsed }: { userEmail: string; defaultCollapsed: boolean }) {
+export function Sidebar({
+  userEmail,
+  defaultCollapsed,
+  spaces,
+  activeSpaceId,
+}: {
+  userEmail: string;
+  defaultCollapsed: boolean;
+  spaces: SpaceSummary[];
+  activeSpaceId: string;
+}) {
   const pathname = usePathname();
   const { t } = useLocale();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
@@ -52,6 +64,10 @@ export function Sidebar({ userEmail, defaultCollapsed }: { userEmail: string; de
       >
         {collapsed ? <LogoMark className="size-7" /> : <Logo title={t("nav.appTitle")} />}
       </Link>
+
+      <div className="border-b border-border p-2">
+        <SpaceSwitcher spaces={spaces} activeSpaceId={activeSpaceId} collapsed={collapsed} />
+      </div>
 
       <nav aria-label={t("nav.mainNav")} className="flex flex-1 flex-col gap-0.5 p-2">
         {NAV_ITEMS.map((item) => {

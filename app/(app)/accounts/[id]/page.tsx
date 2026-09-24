@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { AccountDetail } from "@/components/accounts/account-detail";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { periodToParam, parsePeriodParam } from "@/lib/dates/period";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSpaceContext } from "@/lib/spaces/context";
 
 type TxRow = {
   id: string;
@@ -28,11 +28,12 @@ export default async function AccountDetailPage({
   // Support legacy ?month=YYYY-MM as well as ?period=
   const initialPeriod = periodToParam(parsePeriodParam(periodParam ?? monthParam));
 
-  const supabase = await createServerSupabaseClient();
+  const { supabase, spaceId } = await requireSpaceContext();
   const { data: account } = await supabase
     .from("accounts")
     .select("id, name, type, bank, initial_balance_cents, currency")
     .eq("id", id)
+    .eq("space_id", spaceId)
     .is("deleted_at", null)
     .single();
 
@@ -46,6 +47,7 @@ export default async function AccountDetailPage({
       "id, kind, amount_cents, currency, date, description, notes, categories(name, color, icon)",
     )
     .eq("account_id", id)
+    .eq("space_id", spaceId)
     .is("deleted_at", null)
     .order("date", { ascending: true });
 

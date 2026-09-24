@@ -13,8 +13,14 @@ export const nav = {
     budget: "Budget",
     fixedCharges: "Charges fixes",
     goals: "Objectifs",
-    invitations: "Invitations",
+    invitations: "Partage",
     settings: "Paramètres",
+  },
+  spaces: {
+    heading: "Espaces",
+    personal: "Personnel",
+    switcher: "Espace actif : {space}. Changer d'espace",
+    manage: "Gérer le partage",
   },
   settingsNav: {
     title: "Paramètres",

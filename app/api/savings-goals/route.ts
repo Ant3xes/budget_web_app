@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amount";
 
 const goalSchema = z.object({
@@ -18,23 +18,14 @@ const goalSchema = z.object({
   linked_category_id: z.string().uuid().optional().nullable(),
 });
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
-
 export async function GET() {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: goals, error } = await auth.supabase
     .from("savings_goals")
     .select("id, name, target_amount_cents, current_amount_cents, deadline, color, icon, linked_category_id, created_at")
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
@@ -51,7 +42,7 @@ export async function GET() {
     const { data: txData, error: txError } = await auth.supabase
       .from("transactions")
       .select("category_id, amount_cents")
-      .eq("user_id", auth.user.id)
+      .eq("space_id", auth.spaceId)
       .in("category_id", linkedIds)
       .is("deleted_at", null);
 
@@ -74,7 +65,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const payload = goalSchema.safeParse(await request.json());
@@ -84,7 +75,7 @@ export async function POST(request: Request) {
 
   const { data, error } = await auth.supabase
     .from("savings_goals")
-    .insert({ ...payload.data, user_id: auth.user.id })
+    .insert({ ...payload.data, space_id: auth.spaceId, user_id: auth.user.id })
     .select("id")
     .single();
 

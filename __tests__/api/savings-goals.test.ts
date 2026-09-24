@@ -12,14 +12,23 @@ vi.mock("next/headers", () => ({
 }));
 
 // Mock the Supabase server client
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(),
-}));
+vi.mock("@/lib/spaces/with-space", () => ({ withSpace: vi.fn() }));
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 import { GET, POST } from "@/app/api/savings-goals/route";
 
 const mockUser = { id: "user-test-id", email: "test@budget.local" };
+const mockSpace = { id: "space-test-id", name: "Personnel", kind: "personal", role: "owner" };
+
+function mockAuth(supabase: unknown) {
+  vi.mocked(withSpace).mockResolvedValue({
+    supabase,
+    user: mockUser,
+    spaceId: "space-test-id",
+    space: mockSpace,
+    spaces: [],
+  } as never);
+}
 
 function buildSupabaseMock(overrides: Record<string, unknown> = {}) {
   const queryChain = {
@@ -57,12 +66,7 @@ describe("GET /api/savings-goals", () => {
   });
 
   it("returns 401 when not authenticated", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-      },
-      from: vi.fn(),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>);
+    vi.mocked(withSpace).mockResolvedValue(null);
 
     const res = await GET();
     expect(res.status).toBe(401);
@@ -86,12 +90,11 @@ describe("GET /api/savings-goals", () => {
     ];
 
     const supabase = buildSupabaseMock({ result: { data: goals, error: null } });
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    mockAuth(supabase);
 
     const res = await GET();
     expect(res.status).toBe(200);
+    expect(supabase._queryChain.eq).toHaveBeenCalledWith("space_id", "space-test-id");
   });
 });
 
@@ -101,12 +104,7 @@ describe("POST /api/savings-goals", () => {
   });
 
   it("returns 401 when not authenticated", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-      },
-      from: vi.fn(),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>);
+    vi.mocked(withSpace).mockResolvedValue(null);
 
     const req = new Request("http://localhost/api/savings-goals", {
       method: "POST",
@@ -119,9 +117,7 @@ describe("POST /api/savings-goals", () => {
 
   it("returns 400 for invalid payload", async () => {
     const supabase = buildSupabaseMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    mockAuth(supabase);
 
     const req = new Request("http://localhost/api/savings-goals", {
       method: "POST",
@@ -157,9 +153,7 @@ describe("POST /api/savings-goals", () => {
       from: vi.fn(() => queryChain),
     };
 
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    mockAuth(supabase);
 
     const req = new Request("http://localhost/api/savings-goals", {
       method: "POST",
@@ -168,5 +162,8 @@ describe("POST /api/savings-goals", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(201);
+    expect(queryChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ space_id: "space-test-id", user_id: "user-test-id" }),
+    );
   });
 });

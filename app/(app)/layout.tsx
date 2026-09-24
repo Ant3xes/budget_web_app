@@ -6,7 +6,7 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { SIDEBAR_COOKIE } from "@/components/layout/nav-utils";
 import { Sidebar } from "@/components/layout/sidebar";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getSpaceContext } from "@/lib/spaces/context";
 
 export default async function AppLayout({
   children,
@@ -24,22 +24,21 @@ export default async function AppLayout({
     );
   }
 
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getSpaceContext();
 
-  if (!user) {
+  if (!context) {
     redirect("/login");
   }
+
+  const { user, spaces, spaceId } = context;
 
   const sidebarCollapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "1";
 
   return (
     <div className="md:flex">
       {/* Desktop : sidebar sticky à gauche. Mobile : barre du haut (logo) + barre du bas fixe. */}
-      <Sidebar userEmail={user.email ?? ""} defaultCollapsed={sidebarCollapsed} />
-      <BottomNav userEmail={user.email ?? ""} />
+      <Sidebar userEmail={user.email ?? ""} defaultCollapsed={sidebarCollapsed} spaces={spaces} activeSpaceId={spaceId} />
+      <BottomNav userEmail={user.email ?? ""} spaces={spaces} activeSpaceId={spaceId} />
       <div className="min-w-0 flex-1">
         {/* Single source of page padding — pages below only ever add
             `space-y-4` for their own vertical rhythm, never their own p-*.

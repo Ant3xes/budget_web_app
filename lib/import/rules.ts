@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Computes the next csv_import_rule priority for a user (max existing + 1,
+ * Computes the next csv_import_rule priority for a space (max existing + 1,
  * or 0 if they have none) — shared by insertImportRule below and
  * app/api/import-rules/route.ts's POST, so the two places that create a
  * csv_import_rule can't drift on how priority is assigned. Callers should
@@ -10,11 +10,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * callers that create several rules in one request should await them
  * sequentially rather than via Promise.all.
  */
-export async function nextRulePriority(supabase: SupabaseClient, userId: string): Promise<number> {
+export async function nextRulePriority(supabase: SupabaseClient, spaceId: string): Promise<number> {
   const { data: maxData } = await supabase
     .from("csv_import_rules")
     .select("priority")
-    .eq("user_id", userId)
+    .eq("space_id", spaceId)
     .order("priority", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -47,6 +47,7 @@ export async function nextRulePriority(supabase: SupabaseClient, userId: string)
  */
 export async function insertImportRules(
   supabase: SupabaseClient,
+  spaceId: string,
   userId: string,
   rules: Array<{ keyword: string; category_id: string; kind: "expense" | "income" }>,
 ): Promise<{ inserted: number }> {
@@ -55,20 +56,20 @@ export async function insertImportRules(
   const { data: existing } = await supabase
     .from("csv_import_rules")
     .select("keyword, kind, priority")
-    .eq("user_id", userId);
+    .eq("space_id", spaceId);
 
   const existingRows = (existing ?? []) as { keyword: string; kind: string; priority: number }[];
   const seen = new Set(existingRows.map((r) => `${r.kind}|${r.keyword.trim().toLowerCase()}`));
   let priority = existingRows.length > 0 ? Math.max(...existingRows.map((r) => r.priority)) + 1 : 0;
 
-  const toInsert: { keyword: string; category_id: string; kind: "expense" | "income"; user_id: string; priority: number }[] = [];
+  const toInsert: { keyword: string; category_id: string; kind: "expense" | "income"; space_id: string; user_id: string; priority: number }[] = [];
   for (const rule of rules) {
     const keyword = rule.keyword.trim();
     if (!keyword) continue;
     const dedupeKey = `${rule.kind}|${keyword.toLowerCase()}`;
     if (seen.has(dedupeKey)) continue;
     seen.add(dedupeKey);
-    toInsert.push({ keyword, category_id: rule.category_id, kind: rule.kind, user_id: userId, priority: priority++ });
+    toInsert.push({ keyword, category_id: rule.category_id, kind: rule.kind, space_id: spaceId, user_id: userId, priority: priority++ });
   }
 
   if (toInsert.length === 0) return { inserted: 0 };

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { ACCOUNT_TYPES } from "@/lib/constants";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 
 const accountSchema = z.object({
   id: z.string().uuid().optional(),
@@ -15,21 +15,8 @@ const accountSchema = z.object({
 
 const deleteSchema = z.object({ id: z.string().uuid() });
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return null;
-  }
-
-  return { supabase, user };
-};
-
 export async function GET() {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -37,7 +24,7 @@ export async function GET() {
   const { data, error } = await auth.supabase
     .from("accounts")
     .select("id, name, type, bank, currency, initial_balance_cents")
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -49,7 +36,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -60,6 +47,7 @@ export async function POST(request: Request) {
   }
 
   const { error } = await auth.supabase.from("accounts").insert({
+    space_id: auth.spaceId,
     user_id: auth.user.id,
     name: payload.data.name,
     type: payload.data.type,
@@ -76,7 +64,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -96,7 +84,7 @@ export async function PATCH(request: Request) {
       currency: payload.data.currency.toUpperCase(),
     })
     .eq("id", payload.data.id)
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
   if (error) {
@@ -107,7 +95,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -121,7 +109,7 @@ export async function DELETE(request: Request) {
     .from("accounts")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", payload.data.id)
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
   if (error) {
