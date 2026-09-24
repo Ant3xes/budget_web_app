@@ -29,6 +29,16 @@ const FILES = [
   "components/invitations/invitation-status-label.tsx",
   "app/(app)/invitations/page.tsx",
   "app/invite/[token]/page.tsx",
+  // Phase 2: shared expenses and settlements.
+  "components/spaces/default-share-form.tsx",
+  "components/transactions/share-transaction-modal.tsx",
+  "components/transactions/transaction-list.tsx",
+  "app/(app)/balance/page.tsx",
+  "components/balance/balance-card.tsx",
+  "components/balance/balance-delete-button.tsx",
+  "components/balance/settlement-list.tsx",
+  "components/balance/settlement-modal.tsx",
+  "components/balance/shared-expense-list.tsx",
 ];
 
 const usedKeys = (file: string) => {
@@ -54,7 +64,7 @@ describe("i18n keys of the spaces feature", () => {
     expect(usedKeys("components/layout/space-switcher.tsx")).toContain("nav.spaces.personal");
   });
 
-  it.each(["nav", "invitations"] as const)("%s has the same keys in fr and en", (section) => {
+  it.each(["nav", "invitations", "sharedExpenses", "balance"] as const)("%s has the same keys in fr and en", (section) => {
     expect(leafKeys(fr[section]).sort()).toEqual(leafKeys(en[section]).sort());
   });
 });

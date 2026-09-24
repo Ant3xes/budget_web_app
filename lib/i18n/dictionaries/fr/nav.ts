@@ -10,6 +10,7 @@ export const nav = {
     analytics: "Analyses",
     accounts: "Comptes",
     transactions: "Transactions",
+    balance: "Solde",
     budget: "Budget",
     fixedCharges: "Charges fixes",
     goals: "Objectifs",

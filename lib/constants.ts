@@ -25,17 +25,26 @@ export const ACCOUNT_TYPE_LABELS: Record<(typeof ACCOUNT_TYPES)[number], string>
  * fallback for any non-translated consumer, `TopNav` itself renders
  * `t(`nav.items.${item.key}`)` instead.
  */
+export type NavItemDef = {
+  href: string;
+  key: string;
+  label: string;
+  /** Only shown while a shared space is active (hidden in the personal space). */
+  sharedOnly?: boolean;
+};
+
 export const NAV_ITEMS = [
   { href: "/dashboard", key: "dashboard", label: "Tableau de bord" },
   { href: "/analytics", key: "analytics", label: "Analyses" },
   { href: "/accounts", key: "accounts", label: "Comptes" },
   { href: "/transactions", key: "transactions", label: "Transactions" },
+  { href: "/balance", key: "balance", label: "Solde", sharedOnly: true },
   { href: "/budget", key: "budget", label: "Budget" },
   { href: "/fixed-charges", key: "fixedCharges", label: "Charges fixes" },
   { href: "/goals", key: "goals", label: "Objectifs" },
   { href: "/invitations", key: "invitations", label: "Invitations" },
   { href: "/settings", key: "settings", label: "Paramètres" },
-] as const;
+] as const satisfies readonly NavItemDef[];
 
 export const PROTECTED_PATHS = NAV_ITEMS.map((item) => item.href);
 

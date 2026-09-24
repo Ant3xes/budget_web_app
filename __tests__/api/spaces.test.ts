@@ -5,10 +5,11 @@ vi.mock("@/lib/spaces/active-cookie", () => ({ setActiveSpaceCookie: vi.fn() }))
 
 import { DELETE as deleteInvitation } from "@/app/api/invitations/[id]/route";
 import { POST as createInvitation } from "@/app/api/invitations/route";
-import { DELETE as deleteSpace } from "@/app/api/spaces/[id]/route";
+import { GET as listCategories } from "@/app/api/spaces/[id]/categories/route";
+import { DELETE as deleteSpace, PATCH as patchSpace } from "@/app/api/spaces/[id]/route";
 import { DELETE as removeMember } from "@/app/api/spaces/[id]/members/[userId]/route";
 import { POST as switchSpace } from "@/app/api/spaces/active/route";
-import { POST as createSpace } from "@/app/api/spaces/route";
+import { GET as listSpaces, POST as createSpace } from "@/app/api/spaces/route";
 import { setActiveSpaceCookie } from "@/lib/spaces/active-cookie";
 import { withSpace } from "@/lib/spaces/with-space";
 
@@ -21,7 +22,7 @@ const json = (body: unknown) => new Request("http://test", { method: "POST", bod
 /** Supabase double whose chain resolves to `result` and records the calls made on it. */
 function buildSupabase(result: { data?: unknown; error?: unknown; count?: number } = { data: [], error: null }) {
   const chain: Record<string, unknown> = {};
-  for (const method of ["select", "insert", "update", "delete", "eq"]) {
+  for (const method of ["select", "insert", "update", "delete", "eq", "in", "is", "order"]) {
     chain[method] = vi.fn(() => chain);
   }
   Object.defineProperty(chain, "then", {
@@ -170,5 +171,84 @@ describe("silent RLS refusals", () => {
   it("DELETE invitation is 404 when nothing pending matched", async () => {
     mockAuth(SHARED, buildSupabase({ data: [], error: null }));
     expect((await deleteInvitation(json({}), { params: params() })).status).toBe(404);
+  });
+});
+
+describe("PATCH /api/spaces/[id]", () => {
+  const params = (id = SHARED.id) => ({ params: Promise.resolve({ id }) });
+
+  it("answers 401 when unauthenticated", async () => {
+    vi.mocked(withSpace).mockResolvedValue(null);
+    expect((await patchSpace(json({ default_share_percent: 50 }), params())).status).toBe(401);
+  });
+
+  it("rejects a bad id or an out-of-range percent", async () => {
+    mockAuth();
+    expect((await patchSpace(json({ default_share_percent: 50 }), params("nope"))).status).toBe(400);
+    expect((await patchSpace(json({ default_share_percent: 101 }), params())).status).toBe(400);
+    expect((await patchSpace(json({ default_share_percent: 50.5 }), params())).status).toBe(400);
+  });
+
+  it("is 403 when RLS matched no row (not the owner)", async () => {
+    mockAuth(SHARED, buildSupabase({ data: [], error: null }));
+    expect((await patchSpace(json({ default_share_percent: 40 }), params())).status).toBe(403);
+  });
+
+  it("updates the default share for the owner", async () => {
+    const supabase = buildSupabase({ data: [{ id: SHARED.id }], error: null });
+    mockAuth(SHARED, supabase);
+    expect((await patchSpace(json({ default_share_percent: 40 }), params())).status).toBe(200);
+    expect(supabase.chain.update).toHaveBeenCalledWith({ default_share_percent: 40 });
+  });
+});
+
+describe("GET /api/spaces", () => {
+  it("answers 401 when unauthenticated", async () => {
+    vi.mocked(withSpace).mockResolvedValue(null);
+    expect((await listSpaces()).status).toBe(401);
+  });
+
+  it("returns spaces with default share and member count", async () => {
+    const results: Record<string, unknown> = {
+      spaces: { data: [{ id: SHARED.id, default_share_percent: 60 }, { id: PERSONAL.id, default_share_percent: 50 }], error: null },
+      space_members: { data: [{ space_id: SHARED.id }, { space_id: SHARED.id }, { space_id: PERSONAL.id }], error: null },
+    };
+    const supabase = { from: vi.fn((table: string) => buildSupabase(results[table] as never).chain) };
+    mockAuth(SHARED, supabase);
+
+    const body = (await (await listSpaces()).json()) as { spaces: Array<Record<string, unknown>> };
+
+    expect(body.spaces).toEqual([
+      { ...PERSONAL, default_share_percent: 50, member_count: 1 },
+      { ...SHARED, default_share_percent: 60, member_count: 2 },
+    ]);
+  });
+});
+
+describe("GET /api/spaces/[id]/categories", () => {
+  const params = (id = SHARED.id) => ({ params: Promise.resolve({ id }) });
+  const request = new Request("http://test");
+
+  it("answers 401 when unauthenticated", async () => {
+    vi.mocked(withSpace).mockResolvedValue(null);
+    expect((await listCategories(request, params())).status).toBe(401);
+  });
+
+  it("rejects a malformed id and a foreign space", async () => {
+    mockAuth();
+    expect((await listCategories(request, params("nope"))).status).toBe(400);
+    expect((await listCategories(request, params("44444444-4444-4444-8444-444444444444"))).status).toBe(403);
+  });
+
+  it("lists the categories of a member space", async () => {
+    const categories = [{ id: "c1", name: "Courses" }];
+    const supabase = buildSupabase({ data: categories, error: null });
+    mockAuth(PERSONAL, supabase);
+
+    const response = await listCategories(request, params());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ categories });
+    expect(supabase.chain.eq).toHaveBeenCalledWith("space_id", SHARED.id);
   });
 });

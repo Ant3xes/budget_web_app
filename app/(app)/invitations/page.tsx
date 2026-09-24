@@ -2,6 +2,7 @@ import { T } from "@/components/i18n/t";
 import { InvitationStatusLabel } from "@/components/invitations/invitation-status-label";
 import { InviteForm } from "@/components/invitations/invite-form";
 import { CreateSpaceForm } from "@/components/spaces/create-space-form";
+import { DefaultShareForm } from "@/components/spaces/default-share-form";
 import { RevokeInvitationButton } from "@/components/spaces/revoke-invitation-button";
 import { SpaceActionButton } from "@/components/spaces/space-action-button";
 import { Card } from "@/components/ui/card";
@@ -28,6 +29,13 @@ export default async function SharingPage() {
           .order("created_at", { ascending: false }),
       ])
     : [{ data: [] }, { data: [] }];
+
+  let defaultSharePercent = 50;
+  if (isShared) {
+    const { data: spaceRow } = await supabase.from("spaces").select("default_share_percent").eq("id", spaceId).single();
+    const value = (spaceRow as { default_share_percent?: number | null } | null)?.default_share_percent;
+    if (typeof value === "number") defaultSharePercent = value;
+  }
 
   const members = ((memberRows ?? []) as MemberRow[]).map((row) => {
     const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
@@ -102,6 +110,18 @@ export default async function SharingPage() {
                 </li>
               ))}
             </ul>
+          </Card>
+
+          <Card className="max-w-md p-4">
+            <h2 className="text-lg font-medium">
+              <T k="sharedExpenses.defaultSplit.heading" />
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              <T k="sharedExpenses.defaultSplit.description" />
+            </p>
+            <div className="mt-3">
+              <DefaultShareForm spaceId={spaceId} initialPercent={defaultSharePercent} canEdit={isOwner} />
+            </div>
           </Card>
 
           <Card className="max-w-md p-4">

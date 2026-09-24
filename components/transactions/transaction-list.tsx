@@ -2,10 +2,11 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Pencil, Search, Trash2, X } from "lucide-react";
+import { Pencil, Search, Split, Trash2, X } from "lucide-react";
 
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
 import { ImportModal } from "@/components/import/import-modal";
+import { ShareTransactionModal } from "@/components/transactions/share-transaction-modal";
 import { TransactionModal } from "@/components/transactions/transaction-modal";
 import { TransferModal } from "@/components/transfers/transfer-modal";
 import { CategoryBadge } from "@/components/category-badge";
@@ -36,6 +37,23 @@ type Transaction = {
   accounts: { name: string } | null;
   categories: { name: string; color: string | null; icon: string | null } | null;
   to_account: { name: string } | null;
+  // PostgREST returns an object (1:1) or an array depending on the relation
+  // cardinality; normalised by getShare().
+  shared_expenses?: SharedRef | SharedRef[] | null;
+};
+
+type SharedRef = {
+  id: string;
+  space_id: string;
+  category_id: string | null;
+  paid_by?: string;
+  shares?: Record<string, number>;
+};
+
+const getShare = (tx: Transaction): SharedRef | null => {
+  const raw = tx.shared_expenses;
+  if (!raw) return null;
+  return (Array.isArray(raw) ? raw[0] : raw) ?? null;
 };
 
 type Account = { id: string; name: string };
@@ -48,7 +66,7 @@ type TypeFilter = "all" | "expense" | "income" | "transfer";
 
 const PER_PAGE = 25;
 
-export function TransactionList() {
+export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "personal" | "shared" }) {
   const { t } = useLocale();
   // Pre-filter from a drill-down link (e.g. the dashboard's "voir tout"
   // buttons), read once on mount via useSearchParams rather than a page-level
@@ -82,6 +100,8 @@ export function TransactionList() {
   const [showApplyRules, setShowApplyRules] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
+  const [sharingTransaction, setSharingTransaction] = useState<Transaction | null>(null);
+  const [spaceNames, setSpaceNames] = useState<Record<string, string>>({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -99,6 +119,19 @@ export function TransactionList() {
       setCategories(d.categories ?? []);
     }
   }, []);
+
+  const canShare = spaceKind === "personal";
+
+  useEffect(() => {
+    if (!canShare) return;
+    const loadSpaces = async () => {
+      const res = await fetch("/api/spaces");
+      if (!res.ok) return;
+      const d = (await res.json()) as { spaces: { id: string; name: string }[] };
+      setSpaceNames(Object.fromEntries((d.spaces ?? []).map((s) => [s.id, s.name])));
+    };
+    void loadSpaces();
+  }, [canShare]);
 
   const load = useCallback(
     async (p = page) => {
@@ -173,8 +206,34 @@ export function TransactionList() {
   const amountText = (tx: Transaction) =>
     `${tx.transfer_id ? "" : tx.kind === "expense" ? "−" : "+"}${formatEuros(Math.abs(tx.amount_cents), tx.currency)}`;
 
-  const renderActions = (tx: Transaction) => (
+  const shareBadge = (tx: Transaction) => {
+    const share = canShare ? getShare(tx) : null;
+    if (!share) return null;
+    const name = spaceNames[share.space_id];
+    return (
+      <span className="ml-1 rounded bg-primary/10 px-1 py-0.5 text-xs font-normal text-primary">
+        {name ? t("sharedExpenses.row.badgeIn", { space: name }) : t("sharedExpenses.row.badge")}
+      </span>
+    );
+  };
+
+  const renderActions = (tx: Transaction) => {
+    const canShareRow = canShare && tx.kind === "expense" && !tx.transfer_id;
+    const shared = canShareRow && getShare(tx) !== null;
+    const shareLabel = t(shared ? "sharedExpenses.row.manage" : "sharedExpenses.row.share");
+    return (
     <div className="flex shrink-0 gap-1">
+      {canShareRow && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setSharingTransaction(tx)}
+          aria-label={shareLabel}
+          title={shareLabel}
+        >
+          <Split />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon-sm"
@@ -194,7 +253,8 @@ export function TransactionList() {
         <Trash2 />
       </Button>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -333,6 +393,7 @@ export function TransactionList() {
                           {t("transactions.list.imported")}
                         </span>
                       )}
+                      {shareBadge(tx)}
                     </p>
                     <p className={`shrink-0 text-sm font-semibold whitespace-nowrap ${amountClass(tx)}`}>
                       {amountText(tx)}
@@ -387,6 +448,7 @@ export function TransactionList() {
                           {t("transactions.list.imported")}
                         </span>
                       )}
+                      {shareBadge(tx)}
                     </td>
                     <td className="px-4 py-3">
                       {isTransfer ? (
@@ -473,6 +535,31 @@ export function TransactionList() {
             void load(page);
           }}
           onClose={() => setEditingTransaction(null)}
+        />
+      )}
+
+      {sharingTransaction && (
+        <ShareTransactionModal
+          transactionId={sharingTransaction.id}
+          amountCents={sharingTransaction.amount_cents}
+          currency={sharingTransaction.currency}
+          existing={(() => {
+            const share = getShare(sharingTransaction);
+            return share
+              ? {
+                  id: share.id,
+                  spaceId: share.space_id,
+                  categoryId: share.category_id,
+                  // The payer's saved share, so editing starts from it and not from the space default.
+                  payerSharePercent: share.paid_by ? share.shares?.[share.paid_by] : undefined,
+                }
+              : undefined;
+          })()}
+          onSuccess={() => {
+            setSharingTransaction(null);
+            void load(page);
+          }}
+          onClose={() => setSharingTransaction(null)}
         />
       )}
 

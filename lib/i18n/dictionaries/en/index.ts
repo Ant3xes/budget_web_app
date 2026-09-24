@@ -1,6 +1,7 @@
 import { accounts } from "./accounts";
 import { analytics } from "./analytics";
 import { auth } from "./auth";
+import { balance } from "./balance";
 import { budget } from "./budget";
 import { categories } from "./categories";
 import { common } from "./common";
@@ -13,6 +14,7 @@ import { nav } from "./nav";
 import { periodSelector } from "./period-selector";
 import { profile } from "./profile";
 import { settings } from "./settings";
+import { sharedExpenses } from "./sharedExpenses";
 import { transactions } from "./transactions";
 
 /** English counterpart of `../fr/index.ts` — see its docstring. */
@@ -29,6 +31,8 @@ export const en = {
   fixedCharges,
   goals,
   invitations,
+  sharedExpenses,
+  balance,
   auth,
   profile,
   importRules,
