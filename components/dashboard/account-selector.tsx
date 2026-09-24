@@ -61,7 +61,7 @@ export function AccountSelector({ accounts, selectedIds, basePath, periodParam }
   };
 
   return (
-    <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border p-1 sm:inline-flex">
+    <div className="flex max-w-full items-center gap-1 no-scrollbar overflow-x-auto rounded-lg border border-border p-1 sm:inline-flex">
       <button type="button" onClick={() => navigate(undefined)} className={pillButtonClass(allSelected)}>
         {t("dashboard.allAccounts")}
       </button>

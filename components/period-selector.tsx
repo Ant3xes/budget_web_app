@@ -53,7 +53,7 @@ const DEFAULT_PRESETS: PeriodPreset[] = ["1m", "3m", "6m", "1a", "tout"];
  */
 export function PeriodSelector({ current, basePath, presets = DEFAULT_PRESETS, accountsParam, tabParam }: PeriodSelectorProps) {
   return (
-    <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border p-1 sm:inline-flex">
+    <div className="flex max-w-full items-center gap-1 no-scrollbar overflow-x-auto rounded-lg border border-border p-1 sm:inline-flex">
       {presets.map((preset) => {
         const isActive =
           preset === "1m"

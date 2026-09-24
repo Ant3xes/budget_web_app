@@ -21,7 +21,7 @@ interface AnalyticsTabsProps {
  */
 export function AnalyticsTabs({ current, periodParam }: AnalyticsTabsProps) {
   return (
-    <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border p-1 sm:inline-flex">
+    <div className="flex max-w-full items-center gap-1 no-scrollbar overflow-x-auto rounded-lg border border-border p-1 sm:inline-flex">
       {ANALYTICS_TABS.map((tab) => {
         const isActive = tab === current;
         const href = buildDashboardHref("/analytics", {

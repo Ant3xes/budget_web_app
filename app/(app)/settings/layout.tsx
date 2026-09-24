@@ -18,7 +18,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
   return (
     <section className="flex flex-col gap-4 md:flex-row md:gap-6">
-      <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:w-48 md:flex-col md:gap-1 md:overflow-visible md:px-0 md:pb-0">
+      <nav className="-mx-4 no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:w-48 md:flex-col md:gap-1 md:overflow-visible md:px-0 md:pb-0">
         <h2 className="hidden text-xs font-semibold uppercase tracking-wide text-zinc-500 md:block mb-2 dark:text-zinc-400">
           {t("nav.settingsNav.title")}
         </h2>
