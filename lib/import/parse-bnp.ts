@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 
+import { parseAmount } from "./parse-amount";
 import type { ParsedTransaction } from "./parse-n26";
 
 /**
@@ -50,11 +51,11 @@ export function parseBnpXls(buffer: ArrayBuffer): ParsedTransaction[] {
     const cols = rows[i] ?? [];
     const dateRaw = String(cols[dateIdx] ?? "").trim();
     const descRaw = descIdx >= 0 ? String(cols[descIdx] ?? "").trim() : "";
-    const amountRaw = String(cols[amountIdx] ?? "").trim().replace(",", ".").replace(/\s/g, "");
+    const amountRaw = String(cols[amountIdx] ?? "").trim();
 
     if (!dateRaw || !amountRaw) continue;
 
-    const amountFloat = parseFloat(amountRaw);
+    const amountFloat = parseAmount(amountRaw);
     if (isNaN(amountFloat)) continue;
 
     const amount_cents = Math.round(amountFloat * 100);
