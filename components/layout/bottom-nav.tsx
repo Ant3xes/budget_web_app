@@ -7,9 +7,11 @@ import { useState } from "react";
 
 import { Logo } from "@/components/brand/logo";
 import { MoreSheet } from "@/components/layout/more-sheet";
+import { SpaceSwitcher } from "@/components/layout/space-switcher";
 import { isNavActive, PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS } from "@/components/layout/nav-utils";
 import { useLocale } from "@/components/locale-provider";
 import { NAV_ICONS } from "@/lib/nav-icons";
+import type { SpaceSummary } from "@/lib/spaces/context";
 
 /** Bouton rond de la pilule flottante : l'actif est rempli, les autres restent discrets. */
 function pillItemClass(active: boolean): string {
@@ -23,7 +25,15 @@ function pillItemClass(active: boolean): string {
  * en bas (façon Supabase) à 4 icônes + « Plus » (sheet avec le reste, les
  * toggles et la déconnexion). Respecte la safe-area iOS (`viewport-fit=cover`).
  */
-export function BottomNav({ userEmail }: { userEmail: string }) {
+export function BottomNav({
+  userEmail,
+  spaces,
+  activeSpaceId,
+}: {
+  userEmail: string;
+  spaces: SpaceSummary[];
+  activeSpaceId: string;
+}) {
   const pathname = usePathname();
   const { t } = useLocale();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -32,10 +42,11 @@ export function BottomNav({ userEmail }: { userEmail: string }) {
 
   return (
     <div className="md:hidden">
-      <header className="sticky top-0 z-40 flex items-center border-b border-border bg-background/80 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+      <header className="sticky top-0 z-40 flex items-center justify-between gap-2 border-b border-border bg-background/80 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-md">
         <Link href="/dashboard" className="flex h-14 items-center text-foreground">
           <Logo title={t("nav.appTitle")} />
         </Link>
+        <SpaceSwitcher spaces={spaces} activeSpaceId={activeSpaceId} compact />
       </header>
 
       <nav

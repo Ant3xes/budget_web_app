@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AuthMessage } from "@/components/auth-message";
 import { LogoMark } from "@/components/brand/logo";
 import { T } from "@/components/i18n/t";
+import { nextQuery, safeNext } from "@/lib/auth/safe-next";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 
 import { signup } from "../actions";
@@ -10,9 +11,10 @@ import { signup } from "../actions";
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ message?: string; next?: string }>;
 }) {
   const params = await searchParams;
+  const next = safeNext(params.next);
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
@@ -32,6 +34,7 @@ export default async function SignupPage({
           </p>
         ) : (
           <form action={signup} className="mt-6 space-y-4">
+            {next ? <input type="hidden" name="next" value={next} /> : null}
             <label className="block text-sm font-medium">
               <T k="auth.emailLabel" />
               <input
@@ -62,7 +65,7 @@ export default async function SignupPage({
         <AuthMessage message={params.message} />
         <p className="mt-4 text-sm text-muted-foreground">
           <T k="auth.signup.alreadyRegistered" />{" "}
-          <Link href="/login" className="underline">
+          <Link href={`/login${nextQuery(next)}`} className="underline">
             <T k="auth.signup.signIn" />
           </Link>
         </p>

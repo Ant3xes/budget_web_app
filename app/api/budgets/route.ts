@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 
 const budgetSchema = z.object({
   category_id: z.string().uuid(),
@@ -16,17 +16,8 @@ const querySchema = z.object({
     .optional(),
 });
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
-
 export async function GET(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
@@ -40,7 +31,7 @@ export async function GET(request: Request) {
   let builder = auth.supabase
     .from("budgets")
     .select("id, category_id, month, amount_cents, currency, categories(name, color, icon)")
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null)
     .order("month", { ascending: false });
 
@@ -66,7 +57,7 @@ export async function GET(request: Request) {
     const { data: txData, error: txError } = await auth.supabase
       .from("transactions")
       .select("category_id, amount_cents")
-      .eq("user_id", auth.user.id)
+      .eq("space_id", auth.spaceId)
       .eq("kind", "expense")
       .gte("date", monthStart)
       .lt("date", nextMonthStart)
@@ -86,7 +77,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const payload = budgetSchema.safeParse(await request.json());
@@ -98,6 +89,7 @@ export async function POST(request: Request) {
   const monthDate = `${month}-01`;
 
   const { error } = await auth.supabase.from("budgets").insert({
+    space_id: auth.spaceId,
     user_id: auth.user.id,
     category_id,
     month: monthDate,

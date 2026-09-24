@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 import { fetchTransferCounterparts } from "@/lib/transactions/transfer-counterparts";
 
 const transferSchema = z.object({
@@ -12,17 +12,8 @@ const transferSchema = z.object({
   description: z.string().trim().max(255).optional().nullable(),
 });
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
-
 export async function GET(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -40,7 +31,7 @@ export async function GET(request: Request) {
       "id, transfer_id, amount_cents, currency, date, description, account_id, accounts(name)",
       { count: "exact" },
     )
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .eq("kind", "transfer_debit")
     .is("deleted_at", null)
     .not("transfer_id", "is", null)
@@ -55,7 +46,7 @@ export async function GET(request: Request) {
   // Fetch corresponding credit transactions to get destination account
   const transferIds = (data ?? []).map((t) => t.transfer_id).filter(Boolean) as string[];
 
-  const toAccountByTransferId = await fetchTransferCounterparts(auth.supabase, auth.user.id, transferIds);
+  const toAccountByTransferId = await fetchTransferCounterparts(auth.supabase, auth.spaceId, transferIds);
 
   const transfers = (data ?? []).map((t) => ({
     transfer_id: t.transfer_id,
@@ -72,7 +63,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -88,10 +79,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Les comptes source et destination doivent être différents" }, { status: 400 });
   }
 
+  // Both accounts must belong to the active space (the DB trigger is only a backstop).
+  const { data: accounts, error: accountsError } = await auth.supabase
+    .from("accounts")
+    .select("id")
+    .eq("space_id", auth.spaceId)
+    .in("id", [from_account_id, to_account_id]);
+
+  if (accountsError) {
+    return NextResponse.json({ error: accountsError.message }, { status: 400 });
+  }
+  if ((accounts ?? []).length !== 2) {
+    return NextResponse.json({ error: "Compte introuvable" }, { status: 404 });
+  }
+
   const transferId = crypto.randomUUID();
 
   const { error } = await auth.supabase.from("transactions").insert([
     {
+      space_id: auth.spaceId,
       user_id: auth.user.id,
       account_id: from_account_id,
       kind: "transfer_debit",
@@ -102,6 +108,7 @@ export async function POST(request: Request) {
       transfer_id: transferId,
     },
     {
+      space_id: auth.spaceId,
       user_id: auth.user.id,
       account_id: to_account_id,
       kind: "transfer_credit",

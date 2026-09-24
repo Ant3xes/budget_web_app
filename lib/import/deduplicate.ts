@@ -15,14 +15,14 @@ export function buildHash(tx: Pick<ParsedTransaction, "date" | "description" | "
 
 /**
  * Given a list of parsed transactions (with their hashes), returns the set of
- * hashes that already exist in the DB for this user.
+ * hashes that already exist in the DB in this space.
  * Checks both:
  *   1. Previously imported transactions via their stored hash (raw_import_data->>'hash')
  *   2. All transactions (manual + mirror) by computing date|description|amount_cents hash
  */
 export async function findExistingHashes(
   supabase: SupabaseClient,
-  userId: string,
+  spaceId: string,
   hashes: string[],
 ): Promise<Set<string>> {
   if (hashes.length === 0) return new Set();
@@ -36,7 +36,7 @@ export async function findExistingHashes(
     supabase
       .from("transactions")
       .select("raw_import_data")
-      .eq("user_id", userId)
+      .eq("space_id", spaceId)
       .eq("is_imported", true)
       .is("deleted_at", null)
       .not("raw_import_data", "is", null),
@@ -45,7 +45,7 @@ export async function findExistingHashes(
     supabase
       .from("transactions")
       .select("date, description, amount_cents")
-      .eq("user_id", userId)
+      .eq("space_id", spaceId)
       .eq("is_imported", false)
       .is("deleted_at", null),
   ]);

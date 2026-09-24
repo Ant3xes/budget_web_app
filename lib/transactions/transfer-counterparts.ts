@@ -9,7 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 export async function fetchTransferCounterparts(
   supabase: SupabaseClient,
-  userId: string,
+  spaceId: string,
   transferIds: string[],
 ): Promise<Record<string, { name: string } | null>> {
   if (transferIds.length === 0) return {};
@@ -17,7 +17,7 @@ export async function fetchTransferCounterparts(
   const { data } = await supabase
     .from("transactions")
     .select("transfer_id, accounts(name)")
-    .eq("user_id", userId)
+    .eq("space_id", spaceId)
     .eq("kind", "transfer_credit")
     .is("deleted_at", null)
     .in("transfer_id", transferIds);

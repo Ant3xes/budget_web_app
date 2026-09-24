@@ -1,23 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 
 const reorderSchema = z.object({
   ids: z.array(z.string().uuid()).min(1),
 });
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
-
 export async function POST(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const payload = reorderSchema.safeParse(await request.json());
@@ -27,11 +18,11 @@ export async function POST(request: Request) {
 
   const { ids } = payload.data;
 
-  // Verify all ids belong to the current user before updating
+  // Verify all ids belong to the active space before updating
   const { data: existing, error: fetchError } = await auth.supabase
     .from("csv_import_rules")
     .select("id")
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .in("id", ids);
 
   if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 400 });
@@ -47,7 +38,7 @@ export async function POST(request: Request) {
       .from("csv_import_rules")
       .update({ priority: index })
       .eq("id", id)
-      .eq("user_id", auth.user.id),
+      .eq("space_id", auth.spaceId),
   );
 
   const results = await Promise.all(updates);

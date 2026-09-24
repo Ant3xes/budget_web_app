@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { nextRulePriority } from "@/lib/import/rules";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 
 const ruleSchema = z.object({
   keyword: z.string().trim().min(1).max(200),
@@ -10,23 +10,14 @@ const ruleSchema = z.object({
   kind: z.enum(["expense", "income"]),
 });
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
-
 export async function GET() {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data, error } = await auth.supabase
     .from("csv_import_rules")
     .select("id, keyword, category_id, kind, priority, categories(name, icon)")
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .order("priority", { ascending: true })
     .order("created_at", { ascending: true });
 
@@ -36,7 +27,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const payload = ruleSchema.safeParse(await request.json());
@@ -44,11 +35,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }
 
-  const priority = await nextRulePriority(auth.supabase, auth.user.id);
+  const priority = await nextRulePriority(auth.supabase, auth.spaceId);
 
   const { data, error } = await auth.supabase
     .from("csv_import_rules")
-    .insert({ ...payload.data, user_id: auth.user.id, priority })
+    .insert({ ...payload.data, space_id: auth.spaceId, user_id: auth.user.id, priority })
     .select("id")
     .single();
 

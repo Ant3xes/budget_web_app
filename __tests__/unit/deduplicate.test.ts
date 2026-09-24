@@ -65,7 +65,7 @@ describe("findExistingHashes", () => {
 
   it("returns empty set for empty hashes input", async () => {
     const supabase = makeSupabase([], []);
-    const result = await findExistingHashes(supabase, "user-1", []);
+    const result = await findExistingHashes(supabase, "space-1", []);
     expect(result.size).toBe(0);
   });
 
@@ -75,7 +75,7 @@ describe("findExistingHashes", () => {
       [{ raw_import_data: { hash } }],
       [],
     );
-    const result = await findExistingHashes(supabase, "user-1", [hash]);
+    const result = await findExistingHashes(supabase, "space-1", [hash]);
     expect(result.has(hash)).toBe(true);
   });
 
@@ -86,7 +86,7 @@ describe("findExistingHashes", () => {
       [],
       [{ date: tx.date, description: tx.description, amount_cents: tx.amount_cents }],
     );
-    const result = await findExistingHashes(supabase, "user-1", [hash]);
+    const result = await findExistingHashes(supabase, "space-1", [hash]);
     expect(result.has(hash)).toBe(true);
   });
 
@@ -97,7 +97,7 @@ describe("findExistingHashes", () => {
       [],
     );
     const inputHash = buildHash({ date: "2026-01-01", description: "Netflix", amount_cents: -1599 });
-    const result = await findExistingHashes(supabase, "user-1", [inputHash]);
+    const result = await findExistingHashes(supabase, "space-1", [inputHash]);
     expect(result.has(otherHash)).toBe(false);
     expect(result.size).toBe(0);
   });
@@ -108,7 +108,7 @@ describe("findExistingHashes", () => {
       [{ raw_import_data: null }, { raw_import_data: { hash } }],
       [],
     );
-    const result = await findExistingHashes(supabase, "user-1", [hash]);
+    const result = await findExistingHashes(supabase, "space-1", [hash]);
     expect(result.has(hash)).toBe(true);
   });
 });

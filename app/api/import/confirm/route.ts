@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 
 const importRowSchema = z.object({
   hash: z.string(),
@@ -21,14 +21,11 @@ const confirmSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const auth = await withSpace();
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const { supabase, user, spaceId } = auth;
 
   const body = await request.json() as unknown;
   const payload = confirmSchema.safeParse(body);
@@ -41,8 +38,30 @@ export async function POST(request: Request) {
 
   const { account_id, transactions } = payload.data;
 
+  // Every account the client names (target + transfer counterparts) must live
+  // in the active space. The DB trigger would refuse a foreign account too, but
+  // only with a raw constraint error.
+  const accountIds = [
+    ...new Set([account_id, ...transactions.map((tx) => tx.transfer_account_id).filter((id): id is string => !!id)]),
+  ];
+  const { data: spaceAccounts, error: accountsError } = await supabase
+    .from("accounts")
+    .select("id")
+    .eq("space_id", spaceId)
+    .is("deleted_at", null)
+    .in("id", accountIds);
+
+  if (accountsError) {
+    return NextResponse.json({ error: accountsError.message }, { status: 400 });
+  }
+  const knownAccountIds = new Set((spaceAccounts ?? []).map((account: { id: string }) => account.id));
+  if (!accountIds.every((id) => knownAccountIds.has(id))) {
+    return NextResponse.json({ error: "Compte introuvable" }, { status: 404 });
+  }
+
   // Build all rows, including mirror transactions for paired transfers
   type Row = {
+    space_id: string;
     user_id: string;
     account_id: string;
     kind: string;
@@ -67,6 +86,7 @@ export async function POST(request: Request) {
     const transferId = isTransfer && tx.transfer_account_id ? randomUUID() : null;
 
     rows.push({
+      space_id: spaceId,
       user_id: user.id,
       account_id,
       kind: mainKind,
@@ -84,6 +104,7 @@ export async function POST(request: Request) {
     if (isTransfer && tx.transfer_account_id && transferId) {
       const mirrorKind = mainKind === "transfer_debit" ? "transfer_credit" : "transfer_debit";
       rows.push({
+        space_id: spaceId,
         user_id: user.id,
         account_id: tx.transfer_account_id,
         kind: mirrorKind,

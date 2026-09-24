@@ -16,7 +16,7 @@ function makeSupabase(rules: Rule[]) {
 
 describe("buildRuleMatcher", () => {
   it("returns null when no rules match", async () => {
-    const match = await buildRuleMatcher(makeSupabase([]), "user-1");
+    const match = await buildRuleMatcher(makeSupabase([]), "space-1");
     expect(match("Netflix", "expense")).toBeNull();
   });
 
@@ -24,7 +24,7 @@ describe("buildRuleMatcher", () => {
     const rules: Rule[] = [
       { keyword: "netflix", category_id: "cat-streaming", kind: "expense", priority: 0 },
     ];
-    const match = await buildRuleMatcher(makeSupabase(rules), "user-1");
+    const match = await buildRuleMatcher(makeSupabase(rules), "space-1");
     expect(match("NETFLIX ABONNEMENT", "expense")).toBe("cat-streaming");
     expect(match("netflix subscription", "expense")).toBe("cat-streaming");
   });
@@ -33,7 +33,7 @@ describe("buildRuleMatcher", () => {
     const rules: Rule[] = [
       { keyword: "salaire", category_id: "cat-salary", kind: "income", priority: 0 },
     ];
-    const match = await buildRuleMatcher(makeSupabase(rules), "user-1");
+    const match = await buildRuleMatcher(makeSupabase(rules), "space-1");
     expect(match("Virement salaire", "income")).toBe("cat-salary");
     expect(match("Virement salaire", "expense")).toBeNull();
   });
@@ -43,7 +43,7 @@ describe("buildRuleMatcher", () => {
       { keyword: "lidl", category_id: "cat-grocery", kind: "expense", priority: 0 },
       { keyword: "lidl supermarche", category_id: "cat-food", kind: "expense", priority: 1 },
     ];
-    const match = await buildRuleMatcher(makeSupabase(rules), "user-1");
+    const match = await buildRuleMatcher(makeSupabase(rules), "space-1");
     // priority 0 wins
     expect(match("LIDL SUPERMARCHE 01", "expense")).toBe("cat-grocery");
   });
@@ -52,7 +52,7 @@ describe("buildRuleMatcher", () => {
     const rules: Rule[] = [
       { keyword: "amazon", category_id: "cat-shopping", kind: "income", priority: 0 },
     ];
-    const match = await buildRuleMatcher(makeSupabase(rules), "user-1");
+    const match = await buildRuleMatcher(makeSupabase(rules), "space-1");
     expect(match("AMAZON EU", "expense")).toBeNull();
   });
 
@@ -62,7 +62,7 @@ describe("buildRuleMatcher", () => {
       { keyword: "lidl", category_id: "cat-grocery", kind: "expense", priority: 1 },
       { keyword: "salaire", category_id: "cat-salary", kind: "income", priority: 0 },
     ];
-    const match = await buildRuleMatcher(makeSupabase(rules), "user-1");
+    const match = await buildRuleMatcher(makeSupabase(rules), "space-1");
     expect(match("NETFLIX", "expense")).toBe("cat-streaming");
     expect(match("LIDL PARIS", "expense")).toBe("cat-grocery");
     expect(match("VIREMENT SALAIRE", "income")).toBe("cat-salary");
@@ -170,7 +170,7 @@ describe("buildHistoryMatcher", () => {
   }
 
   it("returns null when no history exists", async () => {
-    const match = await buildHistoryMatcher(makeHistorySupabase([]), "user-1");
+    const match = await buildHistoryMatcher(makeHistorySupabase([]), "space-1");
     expect(match("Netflix", "expense")).toBeNull();
   });
 
@@ -180,7 +180,7 @@ describe("buildHistoryMatcher", () => {
       { description: "Netflix", kind: "expense", category_id: "cat-streaming" },
       { description: "Netflix", kind: "expense", category_id: "cat-other" },
     ];
-    const match = await buildHistoryMatcher(makeHistorySupabase(rows), "user-1");
+    const match = await buildHistoryMatcher(makeHistorySupabase(rows), "space-1");
     expect(match("Netflix", "expense")).toBe("cat-streaming");
   });
 
@@ -188,7 +188,7 @@ describe("buildHistoryMatcher", () => {
     const rows = [
       { description: "NETFLIX", kind: "expense", category_id: "cat-streaming" },
     ];
-    const match = await buildHistoryMatcher(makeHistorySupabase(rows), "user-1");
+    const match = await buildHistoryMatcher(makeHistorySupabase(rows), "space-1");
     expect(match("netflix", "expense")).toBe("cat-streaming");
     expect(match("Netflix", "expense")).toBe("cat-streaming");
   });
@@ -197,7 +197,7 @@ describe("buildHistoryMatcher", () => {
     const rows = [
       { description: "Remboursement", kind: "income", category_id: "cat-remb" },
     ];
-    const match = await buildHistoryMatcher(makeHistorySupabase(rows), "user-1");
+    const match = await buildHistoryMatcher(makeHistorySupabase(rows), "space-1");
     expect(match("Remboursement", "expense")).toBeNull();
     expect(match("Remboursement", "income")).toBe("cat-remb");
   });

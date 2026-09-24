@@ -203,19 +203,19 @@ type CsvImportRule = {
 };
 
 /**
- * Loads the user's csv_import_rules and returns a function that
+ * Loads the space's csv_import_rules and returns a function that
  * finds the best matching category_id for a given description + kind.
  * Rules are ordered by priority ASC (lowest = highest priority).
  * When multiple rules match, the one with the lowest priority value wins.
  */
 export async function buildRuleMatcher(
   supabase: SupabaseClient,
-  userId: string,
+  spaceId: string,
 ): Promise<(description: string, kind: "expense" | "income") => string | null> {
   const { data } = await supabase
     .from("csv_import_rules")
     .select("keyword, category_id, kind, priority")
-    .eq("user_id", userId)
+    .eq("space_id", spaceId)
     .order("priority", { ascending: true });
 
   const rules: CsvImportRule[] = (data ?? []) as CsvImportRule[];
@@ -232,19 +232,19 @@ export async function buildRuleMatcher(
 }
 
 /**
- * Builds a matcher from the user's past categorized transactions.
+ * Builds a matcher from the space's past categorized transactions.
  * For each (description, kind) pair, picks the most frequently assigned category_id.
  * Matching is exact on description (case-insensitive).
  * Intended as a fallback when no import rule matches.
  */
 export async function buildHistoryMatcher(
   supabase: SupabaseClient,
-  userId: string,
+  spaceId: string,
 ): Promise<(description: string, kind: "expense" | "income") => string | null> {
   const { data } = await supabase
     .from("transactions")
     .select("description, kind, category_id")
-    .eq("user_id", userId)
+    .eq("space_id", spaceId)
     .not("category_id", "is", null)
     .is("deleted_at", null);
 

@@ -9,14 +9,21 @@ vi.mock("next/headers", () => ({
   ),
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
-  createServerSupabaseClient: vi.fn(),
-}));
+vi.mock("@/lib/spaces/with-space", () => ({ withSpace: vi.fn() }));
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 import { GET } from "@/app/api/transactions/route";
 
 const mockUser = { id: "user-test-id", email: "test@budget.local" };
+
+const asAuth = (supabase: unknown) =>
+  ({
+    supabase,
+    user: mockUser,
+    spaceId: "space-test-id",
+    space: { id: "space-test-id", name: "Personnel", kind: "personal", role: "owner" },
+    spaces: [],
+  }) as never;
 const ACCOUNT_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
 
 function buildSupabaseMock(overrides: Record<string, unknown> = {}) {
@@ -55,12 +62,7 @@ describe("GET /api/transactions", () => {
   });
 
   it("returns 401 when not authenticated", async () => {
-    vi.mocked(createServerSupabaseClient).mockResolvedValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-      },
-      from: vi.fn(),
-    } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>);
+    vi.mocked(withSpace).mockResolvedValue(null);
 
     const res = await GET(new Request("http://localhost/api/transactions"));
     expect(res.status).toBe(401);
@@ -75,9 +77,7 @@ describe("GET /api/transactions", () => {
     const supabase = buildSupabaseMock({
       result: { data: txs, error: null, count: 3 },
     });
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const res = await GET(new Request("http://localhost/api/transactions"));
     expect(res.status).toBe(200);
@@ -86,6 +86,8 @@ describe("GET /api/transactions", () => {
       "income",
       "transfer_debit",
     ]);
+    expect(supabase._queryChain.eq).toHaveBeenCalledWith("space_id", "space-test-id");
+    expect(supabase._queryChain.eq).not.toHaveBeenCalledWith("user_id", expect.anything());
 
     const body = (await res.json()) as { transactions: typeof txs; total: number };
     expect(body.transactions).toHaveLength(3);
@@ -96,9 +98,7 @@ describe("GET /api/transactions", () => {
     const supabase = buildSupabaseMock({
       result: { data: [], error: null, count: 0 },
     });
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const url = new URL("http://localhost/api/transactions");
     url.searchParams.set("kind", "transfer");
@@ -112,9 +112,7 @@ describe("GET /api/transactions", () => {
     const supabase = buildSupabaseMock({
       result: { data: [], error: null, count: 0 },
     });
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const url = new URL("http://localhost/api/transactions");
     url.searchParams.set("uncategorized", "true");
@@ -129,9 +127,7 @@ describe("GET /api/transactions", () => {
     const supabase = buildSupabaseMock({
       result: { data: [], error: null, count: 0 },
     });
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const url = new URL("http://localhost/api/transactions");
     url.searchParams.set("uncategorized", "false");
@@ -147,9 +143,7 @@ describe("GET /api/transactions", () => {
     const supabase = buildSupabaseMock({
       result: { data: [{ id: "tx-1", kind: "expense" }], error: null, count: 1 },
     });
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const url = new URL("http://localhost/api/transactions");
     url.searchParams.set("account_id", ACCOUNT_ID);
@@ -168,9 +162,7 @@ describe("GET /api/transactions", () => {
     const supabase = buildSupabaseMock({
       result: { data: [], error: null, count: 0 },
     });
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const url = new URL("http://localhost/api/transactions");
     url.searchParams.set("account_id", seedAccountId);
@@ -182,9 +174,7 @@ describe("GET /api/transactions", () => {
 
   it("rejects malformed account_id", async () => {
     const supabase = buildSupabaseMock();
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const url = new URL("http://localhost/api/transactions");
     url.searchParams.set("account_id", "not-a-uuid");
@@ -197,9 +187,7 @@ describe("GET /api/transactions", () => {
     const supabase = buildSupabaseMock({
       result: { data: [], error: null, count: 0 },
     });
-    vi.mocked(createServerSupabaseClient).mockResolvedValue(
-      supabase as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>,
-    );
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
     const url = new URL("http://localhost/api/transactions");
     url.searchParams.set("kind", "expense");

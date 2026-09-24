@@ -7,6 +7,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * is actually selected; shared by app/(app)/dashboard/page.tsx and
  * app/(app)/analytics/page.tsx, which both had this identical fetch inline.
  *
+ * `spaceId` scopes the search to the active space (RLS only guarantees membership).
+ *
  * `accountIds`, when passed, scopes the search to those accounts — deleting
  * an account excludes it from every dashboard figure (explicit decision,
  * code-review pass on the dashboard account-scoping fix), including "tout"'s
@@ -18,11 +20,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 export async function resolveEarliestTransactionDate(
   supabase: SupabaseClient,
+  spaceId: string,
   accountIds?: string[],
 ): Promise<string | null> {
   if (accountIds && accountIds.length === 0) return null;
 
-  let query = supabase.from("transactions").select("date").is("deleted_at", null);
+  let query = supabase.from("transactions").select("date").eq("space_id", spaceId).is("deleted_at", null);
   if (accountIds) query = query.in("account_id", accountIds);
 
   const { data } = await query.order("date", { ascending: true }).limit(1).maybeSingle();

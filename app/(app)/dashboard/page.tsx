@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSpaceContext } from "@/lib/spaces/context";
 import { T } from "@/components/i18n/t";
 import { PeriodSelector } from "@/components/period-selector";
 import { AccountSelector } from "@/components/dashboard/account-selector";
@@ -59,7 +59,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ period?: string; accounts?: string }>;
 }) {
-  const supabase = await createServerSupabaseClient();
+  const { supabase, spaceId } = await requireSpaceContext();
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -91,6 +91,7 @@ export default async function DashboardPage({
   const accountsRes = await supabase
     .from("accounts")
     .select("id, name, type, bank, initial_balance_cents")
+    .eq("space_id", spaceId)
     .is("deleted_at", null);
   const accountIds = (accountsRes.data ?? []).map((a) => a.id);
 
@@ -143,7 +144,7 @@ export default async function DashboardPage({
   const period = parsePeriodParam(periodParam, now);
   const earliestDate =
     period.type === "preset" && period.value === "tout"
-      ? await resolveEarliestTransactionDate(supabase, selectedCourantIds)
+      ? await resolveEarliestTransactionDate(supabase, spaceId, selectedCourantIds)
       : null;
   const {
     from: periodFrom,
@@ -192,6 +193,7 @@ export default async function DashboardPage({
       supabase
         .from("transactions")
         .select("id, date, description, kind, amount_cents, category_id, categories(name, color, icon, is_default, translation_key)")
+        .eq("space_id", spaceId)
         .in("account_id", selectedCourantIds)
         .in("kind", ["expense", "income"])
         .gte("date", periodFrom)
@@ -209,6 +211,7 @@ export default async function DashboardPage({
       supabase
         .from("transactions")
         .select("amount_cents")
+        .eq("space_id", spaceId)
         .in("account_id", nonCourantAccountIds)
         .is("deleted_at", null)
         .gte("date", monthStart)
@@ -234,6 +237,7 @@ export default async function DashboardPage({
       supabase
         .from("transactions")
         .select("id, account_id, amount_cents, date, description, kind, categories(name, is_default, translation_key)")
+        .eq("space_id", spaceId)
         .in("account_id", selectedCourantIds)
         .is("deleted_at", null)
         .gte("date", periodFrom)
@@ -251,6 +255,7 @@ export default async function DashboardPage({
       supabase
         .from("transactions")
         .select("kind, amount_cents, date")
+        .eq("space_id", spaceId)
         .in("account_id", selectedCourantIds)
         .in("kind", ["expense", "income"])
         .gte("date", trendFrom)
@@ -263,6 +268,7 @@ export default async function DashboardPage({
     supabase
       .from("budgets")
       .select("id, category_id, amount_cents, categories(name, color, icon, is_default, translation_key)")
+      .eq("space_id", spaceId)
       .eq("month", monthStart)
       .is("deleted_at", null),
 
@@ -270,6 +276,7 @@ export default async function DashboardPage({
     supabase
       .from("savings_goals")
       .select("id, name, target_amount_cents, current_amount_cents, color, icon, linked_category_id")
+      .eq("space_id", spaceId)
       .is("deleted_at", null)
       .order("created_at", { ascending: true }),
 
@@ -279,6 +286,7 @@ export default async function DashboardPage({
     supabase
       .from("fixed_charges")
       .select("id, name, amount_cents, next_due_date, categories(icon)")
+      .eq("space_id", spaceId)
       .eq("status", "active")
       .gte("next_due_date", todayStr)
       .lte("next_due_date", currentMonthEnd)
@@ -291,6 +299,7 @@ export default async function DashboardPage({
     supabase
       .from("fixed_charges")
       .select("id, name, amount_cents, last_paid_date, categories(icon)")
+      .eq("space_id", spaceId)
       .eq("status", "active")
       .gte("last_paid_date", monthStart)
       .lte("last_paid_date", todayStr)
@@ -312,6 +321,7 @@ export default async function DashboardPage({
       supabase
         .from("transactions")
         .select("account_id, amount_cents")
+        .eq("space_id", spaceId)
         .in("account_id", accountIds)
         .is("deleted_at", null),
     ),
@@ -324,6 +334,7 @@ export default async function DashboardPage({
         supabase
           .from("transactions")
           .select("id, date, description, category_id, amount_cents")
+          .eq("space_id", spaceId)
           .eq("kind", "expense")
           .in("account_id", selectedCourantIds)
           .in("category_id", budgetCatIds)
@@ -336,6 +347,7 @@ export default async function DashboardPage({
       supabase
         .from("transactions")
         .select("category_id, amount_cents")
+        .eq("space_id", spaceId)
         .in("account_id", accountIds)
         .in("category_id", linkedCategoryIds)
         .is("deleted_at", null),

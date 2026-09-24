@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { withSpace } from "@/lib/spaces/with-space";
 
 const goalUpdateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
@@ -22,17 +22,8 @@ const addFundsSchema = z.object({
   amount_cents: z.number().int().positive(),
 });
 
-const withUser = async () => {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  return { supabase, user };
-};
-
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
@@ -48,7 +39,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .from("savings_goals")
       .select("current_amount_cents, linked_category_id")
       .eq("id", id)
-      .eq("user_id", auth.user.id)
+      .eq("space_id", auth.spaceId)
       .is("deleted_at", null)
       .single();
 
@@ -64,7 +55,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .from("savings_goals")
       .update({ current_amount_cents: newAmount })
       .eq("id", id)
-      .eq("user_id", auth.user.id);
+      .eq("space_id", auth.spaceId);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true });
@@ -80,7 +71,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .from("savings_goals")
     .update(payload.data)
     .eq("id", id)
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -89,7 +80,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await withUser();
+  const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
@@ -99,7 +90,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .from("savings_goals")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("user_id", auth.user.id)
+    .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

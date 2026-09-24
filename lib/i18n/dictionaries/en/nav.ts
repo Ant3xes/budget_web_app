@@ -13,8 +13,14 @@ export const nav = {
     budget: "Budget",
     fixedCharges: "Fixed Charges",
     goals: "Goals",
-    invitations: "Invitations",
+    invitations: "Sharing",
     settings: "Settings",
+  },
+  spaces: {
+    heading: "Spaces",
+    personal: "Personal",
+    switcher: "Active space: {space}. Switch space",
+    manage: "Manage sharing",
   },
   settingsNav: {
     title: "Settings",

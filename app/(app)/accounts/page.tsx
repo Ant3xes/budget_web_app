@@ -1,7 +1,7 @@
 import { AccountsList } from "@/components/accounts/accounts-list";
 import { AccountsImportButton } from "@/components/accounts/accounts-import-button";
 import { groupAccountsByBank } from "@/lib/accounts/group-accounts-by-bank";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireSpaceContext } from "@/lib/spaces/context";
 
 type AccountWithTransactions = {
   id: string;
@@ -15,10 +15,11 @@ type AccountWithTransactions = {
 
 export default async function AccountsPage({ searchParams }: { searchParams: Promise<{ bank?: string }> }) {
   const { bank: selectedBank } = await searchParams;
-  const supabase = await createServerSupabaseClient();
+  const { supabase, spaceId } = await requireSpaceContext();
   const { data } = await supabase
     .from("accounts")
     .select("id, name, type, currency, bank, initial_balance_cents, transactions(amount_cents, deleted_at, kind, date)")
+    .eq("space_id", spaceId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
