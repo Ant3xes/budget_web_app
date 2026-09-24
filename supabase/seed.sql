@@ -474,9 +474,9 @@ insert into public.spaces (id, name, kind, created_by)
 values ('c0000000-0000-0000-0000-000000000001', 'Foyer', 'shared', 'a0000000-0000-0000-0000-000000000001')
 on conflict (id) do nothing;
 
-insert into public.space_members (space_id, user_id, role) values
-  ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'owner'),
-  ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', 'member')
+insert into public.space_members (space_id, user_id, role, joined_at) values
+  ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'owner', '2026-05-01T00:00:00Z'),
+  ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002', 'member', '2026-05-01T00:00:00Z')
 on conflict do nothing;
 
 select public.seed_default_categories(

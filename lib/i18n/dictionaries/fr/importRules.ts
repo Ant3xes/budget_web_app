@@ -18,6 +18,22 @@ export const importRules = {
   deleteConfirmTitle: "Supprimer cette règle ?",
   deleteConfirmDescription: "La règle « {keyword} » sera supprimée.",
   sharedBadge: "Partagée · {space}",
+  apply: {
+    action: "Appliquer aux transactions existantes",
+    title: "Partager les transactions « {keyword} »",
+    description: "Les dépenses déjà importées qui correspondent à cette règle et ne sont pas encore partagées.",
+    since: "Depuis le",
+    warning:
+      "Une dépense partagée garde sa date : le solde et les analyses des mois passés seront modifiés. La part appliquée est celle d'aujourd'hui.",
+    target: "Partagées dans « {space} » — votre part : {percent} %",
+    empty: "Aucune transaction à partager depuis cette date.",
+    truncated: "Seules les 500 plus récentes sont affichées : relancez l'action pour partager la suite.",
+    total: "{count} transaction(s) sélectionnée(s) · {amount}",
+    confirm: "Partager {count} transaction(s)",
+    done: "{count} transaction(s) partagée(s).",
+    loadError: "Impossible de charger l'aperçu",
+    shareError: "Impossible de partager",
+  },
   form: {
     keywordLabel: "Mot-clé",
     keywordPlaceholder: "ex: Netflix, Lidl, Loyer…",

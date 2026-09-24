@@ -220,15 +220,25 @@ export async function buildRuleMatcher(
 
   const rules: CsvImportRule[] = (data ?? []) as CsvImportRule[];
 
-  return (description: string, kind: "expense" | "income"): string | null => {
-    const lower = description.toLowerCase();
-    for (const rule of rules) {
-      if (rule.kind === kind && lower.includes(rule.keyword.toLowerCase())) {
-        return rule.category_id;
-      }
-    }
-    return null;
-  };
+  return (description: string, kind: "expense" | "income"): string | null =>
+    findMatchingRule(rules, description, kind)?.category_id ?? null;
+}
+
+/**
+ * First rule (rules must already be sorted by priority ASC) of the given kind
+ * whose keyword appears in the description, case-insensitively. Shared by the
+ * import matchers and the retroactive sharing so they always agree.
+ */
+export function findMatchingRule<R extends { keyword: string; kind: string }>(
+  rules: R[],
+  description: string,
+  kind: "expense" | "income",
+): R | null {
+  const lower = description.toLowerCase();
+  for (const rule of rules) {
+    if (rule.kind === kind && lower.includes(rule.keyword.toLowerCase())) return rule;
+  }
+  return null;
 }
 
 export type RuleShare = {
@@ -264,19 +274,14 @@ export async function buildRuleShareMatcher(
   const rules = (data ?? []) as CsvImportShareRule[];
 
   return (description, kind) => {
-    const lower = description.toLowerCase();
-    for (const rule of rules) {
-      if (rule.kind === kind && lower.includes(rule.keyword.toLowerCase())) {
-        return rule.share_space_id
-          ? {
-              space_id: rule.share_space_id,
-              category_id: rule.share_category_id ?? null,
-              payer_share_percent: rule.share_payer_percent ?? null,
-            }
-          : null;
-      }
-    }
-    return null;
+    const rule = findMatchingRule(rules, description, kind);
+    return rule?.share_space_id
+      ? {
+          space_id: rule.share_space_id,
+          category_id: rule.share_category_id ?? null,
+          payer_share_percent: rule.share_payer_percent ?? null,
+        }
+      : null;
   };
 }
 

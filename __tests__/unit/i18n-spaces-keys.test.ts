@@ -44,6 +44,7 @@ const FILES = [
   // Phase 4: import rules that share.
   "components/settings/import-rules-modal.tsx",
   "components/settings/import-rules-list.tsx",
+  "components/settings/apply-rule-share-modal.tsx",
   "components/import/import-modal.tsx",
 ];
 
