@@ -35,6 +35,7 @@ import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amo
 import { computeGoalProgressSeries } from "@/lib/savings-goals/compute-goal-progress-series";
 import { addMonths, parsePeriodParam, periodBounds, periodLabel as resolvePeriodLabel, todayISO, toMonthLabel } from "@/lib/dates/period";
 import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-transaction-date";
+import { fetchSharedExpenseActivity, type ActivityRange } from "@/lib/shared-expenses/activity-rows";
 import { UNCATEGORIZED_CATEGORY_ID, ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/constants";
 
 // Fixed categorical order (dataviz skill: assign hues in fixed order, never
@@ -90,8 +91,16 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<{ period?: string; tab?: string }>;
 }) {
-  const { supabase, spaceId } = await requireSpaceContext();
+  const { supabase, spaceId, space } = await requireSpaceContext();
   const now = new Date();
+
+  // Analytics has no account filter, so a shared space always counts its
+  // shared expenses (they sit on no account, hence fetched outside
+  // `runScopedQuery` and merged into the activity queries only — never into a
+  // balance). A personal space runs no extra query at all.
+  const includeShared = space.kind === "shared";
+  const sharedActivity = (range: ActivityRange) =>
+    includeShared ? fetchSharedExpenseActivity(supabase, spaceId, range) : Promise.resolve([]);
 
   const { period: periodParam, tab: tabParam } = await searchParams;
   const tab: AnalyticsTab = (ANALYTICS_TABS as string[]).includes(tabParam ?? "") ? (tabParam as AnalyticsTab) : "overview";
@@ -122,7 +131,7 @@ export default async function AnalyticsPage({
   const period = parsePeriodParam(periodParam ?? "6m", now);
   const earliestDate =
     period.type === "preset" && period.value === "tout" && tab !== "accounts"
-      ? await resolveEarliestTransactionDate(supabase, spaceId, accountIds)
+      ? await resolveEarliestTransactionDate(supabase, spaceId, accountIds, { includeSharedExpenses: includeShared })
       : null;
   const { from: windowFrom, to: windowTo, monthCount: windowMonthCount } = periodBounds(period, { now, earliestDate });
   const windowLabel = resolvePeriodLabel(period, now);
@@ -131,7 +140,8 @@ export default async function AnalyticsPage({
   let tabContent: ReactNode = null;
 
   if (tab === "overview") {
-    const [allTxRes, windowTxRes, transferTxRes] = await Promise.all([
+    const [allTxRes, windowTxRes, transferTxRes, windowShared] = await Promise.all([
+      // Balance/snapshot (net worth): shared expenses are on no account, so excluded.
       runScopedQuery<{ amount_cents: number; date: string }>([accountIds], () =>
         supabase.from("transactions").select("amount_cents, date").eq("space_id", spaceId).in("account_id", accountIds).is("deleted_at", null),
       ),
@@ -146,6 +156,7 @@ export default async function AnalyticsPage({
           .gte("date", windowFrom)
           .lte("date", windowTo),
       ),
+      // Transfers are not expenses (and shared expenses have no account): excluded.
       runScopedQuery<{ amount_cents: number; date: string }>([accountIds], () =>
         supabase
           .from("transactions")
@@ -157,12 +168,14 @@ export default async function AnalyticsPage({
           .gte("date", windowFrom)
           .lte("date", windowTo),
       ),
+      sharedActivity({ from: windowFrom, to: windowTo }),
     ]);
 
     const initialBalanceTotal = accounts.reduce((sum, a) => sum + a.initial_balance_cents, 0);
     const fullNetWorthSeries = computeBalanceSeries(allTxRes.data ?? [], initialBalanceTotal, now, windowToMonth);
     const netWorthSeries = windowMonthCount === null ? fullNetWorthSeries : fullNetWorthSeries.slice(-windowMonthCount);
-    const windowSeries = computeIncomeExpenseSeries(windowTxRes.data ?? [], windowMonthCount, now, windowToMonth);
+    // Shared expenses count as expenses in the cashflow/savings-rate series (activity, not a balance).
+    const windowSeries = computeIncomeExpenseSeries([...(windowTxRes.data ?? []), ...windowShared], windowMonthCount, now, windowToMonth);
     const transferSeries = computeTransferVolumeSeries(transferTxRes.data ?? [], windowMonthCount, now, windowToMonth);
 
     tabContent = (
@@ -189,7 +202,7 @@ export default async function AnalyticsPage({
   } else if (tab === "categories") {
     const yearStart = `${now.getFullYear()}-01-01`;
 
-    const [categoryTxRes, budgetsRes, yearExpenseTxRes] = await Promise.all([
+    const [categoryTxRes, budgetsRes, yearExpenseTxRes, categoryShared, yearShared] = await Promise.all([
       // Window-bounded expense transactions with category info — feeds the
       // trend chart and the top-categories/merchants lists.
       runScopedQuery<{
@@ -231,9 +244,12 @@ export default async function AnalyticsPage({
             .gte("date", yearStart)
             .lte("date", todayStr),
       ),
+      // Shared expenses are expenses too: same windows as the two queries above.
+      sharedActivity({ from: windowFrom, to: windowTo }),
+      sharedActivity({ from: yearStart, to: todayStr }),
     ]);
 
-    const categoryTx = categoryTxRes.data ?? [];
+    const categoryTx = [...(categoryTxRes.data ?? []), ...categoryShared];
     const trendSeries = computeCategoryTrendSeries(
       categoryTx.map((tx) => {
         const cat = toCategoryMeta(tx.categories);
@@ -255,7 +271,7 @@ export default async function AnalyticsPage({
     // Budget vs réalisé (mois en cours) — same shape as the dashboard's
     // budget widget, consumption computed from the year-to-date query
     // (already fetched) rather than a 4th round-trip.
-    const yearExpenseTx = yearExpenseTxRes.data ?? [];
+    const yearExpenseTx = [...(yearExpenseTxRes.data ?? []), ...yearShared];
     const monthExpenseTx = yearExpenseTx.filter((tx) => tx.date >= currentMonthStart);
     const consumedByCategory = new Map<string, number>();
     for (const tx of monthExpenseTx) {
@@ -362,6 +378,7 @@ export default async function AnalyticsPage({
       // FixedChargesShareStat, so it must stay "right now" even when the
       // selected period ends in the past, rather than a second, mostly
       // redundant query bounded to todayStr on its own).
+      // Balance/snapshot (account balances): shared expenses are on no account, so excluded.
       runScopedQuery<{ account_id: string; date: string; amount_cents: number }>([accountIds], () =>
         supabase.from("transactions").select("account_id, date, amount_cents").eq("space_id", spaceId).in("account_id", accountIds).is("deleted_at", null).lte("date", todayStr),
       ),
@@ -429,18 +446,22 @@ export default async function AnalyticsPage({
       </>
     );
   } else if (tab === "transactions") {
-    const monthTxRes = await runScopedQuery<{ date: string; amount_cents: number }>([accountIds], () =>
-      supabase
-        .from("transactions")
-        .select("date, amount_cents")
-        .eq("space_id", spaceId)
-        .in("account_id", accountIds)
-        .eq("kind", "expense")
-        .is("deleted_at", null)
-        .gte("date", windowFrom)
-        .lte("date", windowTo),
-    );
-    const monthTx = monthTxRes.data ?? [];
+    const [monthTxRes, monthShared] = await Promise.all([
+      runScopedQuery<{ date: string; amount_cents: number }>([accountIds], () =>
+        supabase
+          .from("transactions")
+          .select("date, amount_cents")
+          .eq("space_id", spaceId)
+          .in("account_id", accountIds)
+          .eq("kind", "expense")
+          .is("deleted_at", null)
+          .gte("date", windowFrom)
+          .lte("date", windowTo),
+      ),
+      // Shared expenses are expenses too (histogram, heatmap, weekday totals).
+      sharedActivity({ from: windowFrom, to: windowTo }),
+    ]);
+    const monthTx = [...(monthTxRes.data ?? []), ...monthShared];
     const histogram = computeAmountHistogram(monthTx);
     const weekdayTotals = computeWeekdayExpenseTotals(monthTx);
 
@@ -485,7 +506,7 @@ export default async function AnalyticsPage({
     const yoyMonthCount = windowMonthCount ?? 12;
     const yoyFrom = addMonths(windowFrom.slice(0, 7), -12) + "-01";
 
-    const [yoyTxRes, goalsRes] = await Promise.all([
+    const [yoyTxRes, goalsRes, yoyShared] = await Promise.all([
       // Both "expense" and "income" fetched in one query — computeYearOverYear
       // is called twice below (once per metric) on the same rows, one round
       // trip instead of two.
@@ -506,11 +527,15 @@ export default async function AnalyticsPage({
         .eq("space_id", spaceId)
         .is("deleted_at", null)
         .order("created_at", { ascending: true }),
+      // Shared expenses count in the year-over-year expenses (same 12-month-back window).
+      sharedActivity({ from: yoyFrom, to: windowTo }),
     ]);
 
-    const yoyPoints = computeYearOverYear(yoyTxRes.data ?? [], yoyMonthCount, now, windowToMonth, "expense");
-    const yoyIncomePoints = computeYearOverYear(yoyTxRes.data ?? [], yoyMonthCount, now, windowToMonth, "income");
+    const yoyRows = [...(yoyTxRes.data ?? []), ...yoyShared];
+    const yoyPoints = computeYearOverYear(yoyRows, yoyMonthCount, now, windowToMonth, "expense");
+    const yoyIncomePoints = computeYearOverYear(yoyRows, yoyMonthCount, now, windowToMonth, "income");
 
+    // Goal progress is a balance-like snapshot: shared expenses excluded.
     const goals = goalsRes.data ?? [];
     const linkedCategoryIds = goals.map((g) => g.linked_category_id).filter((id): id is string => Boolean(id));
     const goalTxRes = await runScopedQuery<{ date: string; category_id: string | null; amount_cents: number }>(
@@ -575,6 +600,12 @@ export default async function AnalyticsPage({
           tabParam={tab === "overview" ? undefined : tab}
         />
       </div>
+
+      {includeShared ? (
+        <p className="text-sm text-muted-foreground">
+          <T k="analytics.sharedNote" />
+        </p>
+      ) : null}
 
       <AnalyticsTabs current={tab} periodParam={periodParam} />
 

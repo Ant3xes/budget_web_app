@@ -39,6 +39,8 @@ const FILES = [
   "components/balance/settlement-list.tsx",
   "components/balance/settlement-modal.tsx",
   "components/balance/shared-expense-list.tsx",
+  // Phase 3: shared spaces' dashboard and analytics.
+  "app/(app)/analytics/page.tsx",
 ];
 
 const usedKeys = (file: string) => {
@@ -60,11 +62,19 @@ describe("i18n keys of the spaces feature", () => {
     }
   });
 
+  it.each(["dashboard.sharedNote", "dashboard.sharedNoteFiltered", "analytics.sharedNote"])(
+    "%s exists in fr and en",
+    (key) => {
+      expect(lookup(fr, key), `fr: ${key}`).toBeTypeOf("string");
+      expect(lookup(en, key), `en: ${key}`).toBeTypeOf("string");
+    },
+  );
+
   it("finds keys in the switcher (guards the extractor itself)", () => {
     expect(usedKeys("components/layout/space-switcher.tsx")).toContain("nav.spaces.personal");
   });
 
-  it.each(["nav", "invitations", "sharedExpenses", "balance"] as const)("%s has the same keys in fr and en", (section) => {
+  it.each(["nav", "invitations", "sharedExpenses", "balance", "dashboard", "analytics"] as const)("%s has the same keys in fr and en", (section) => {
     expect(leafKeys(fr[section]).sort()).toEqual(leafKeys(en[section]).sort());
   });
 });

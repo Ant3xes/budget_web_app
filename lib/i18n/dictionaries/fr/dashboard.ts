@@ -1,4 +1,6 @@
 export const dashboard = {
+  sharedNote: "Inclut les dépenses partagées par les membres.",
+  sharedNoteFiltered: "Filtre par compte actif : les dépenses partagées (qui ne viennent d'aucun compte) sont exclues.",
   title: "Tableau de bord",
   consolidatedBalance: "Solde consolidé",
   consolidatedBalanceFooter: "Tous comptes confondus",
