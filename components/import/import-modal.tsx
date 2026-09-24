@@ -121,6 +121,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("account_id", selectedAccountId);
 
     const res = await fetch("/api/import/preview", { method: "POST", body: formData });
     setIsLoading(false);

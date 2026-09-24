@@ -8,7 +8,8 @@
  *
  * Convention :
  *  - `it(...)`       : comportement actuel qui doit rester vrai (non-régression).
- *  - `it.fails(...)` : comportement SOUHAITÉ mais aujourd'hui en défaut (bug connu).
+ *  - `it.fails(...)` : comportement SOUHAITÉ mais aujourd'hui en défaut (bug connu ;
+ *                      il n'y en a plus pour l'instant — les 8 bugs identifiés sont corrigés).
  *                      Le test décrit le bon comportement ; il est "vert" tant que
  *                      le bug existe et devient ROUGE quand il est corrigé → retirer
  *                      alors le `.fails` pour en faire une vraie non-régression.
@@ -76,20 +77,47 @@ class FakeDb {
     };
   }
 
-  /** import_transactions : une seule transaction SQL — tout ou rien. */
+  /**
+   * import_transactions : une seule transaction SQL — tout ou rien, et idempotent :
+   * une ligne importée dont le hash existe déjà dans son compte (ou déjà vue plus
+   * haut dans le lot) est ignorée, avec son miroir de virement et sa dépense partagée.
+   * (La vraie fonction est testée en SQL : supabase/tests/database/import_idempotent.test.sql.)
+   */
   private rpc(fn: string, { p_rows, p_shares }: { p_rows: Row[]; p_shares: Row[] }) {
     if (fn !== "import_transactions") return Promise.resolve({ data: null, error: { message: `unknown rpc ${fn}` } });
     if (this.rpcError) return Promise.resolve({ data: null, error: this.rpcError });
-    const inserted: Row[] = p_rows.map((r, i) => ({ ...r, id: (r.id as string | undefined) ?? `tx-${this.transactions.length + i}` }));
+
+    const hashOf = (r: Row) => (r.raw_import_data as { hash?: string } | null)?.hash;
+    const skipped = new Set<number>();
+    p_rows.forEach((r, i) => {
+      const hash = hashOf(r);
+      if (!r.is_imported || !hash) return;
+      const known = this.transactions.some(
+        (t) => t.account_id === r.account_id && t.is_imported && !t.deleted_at && hashOf(t) === hash,
+      );
+      const repeated = p_rows.slice(0, i).some((o) => o.account_id === r.account_id && hashOf(o) === hash);
+      if (known || repeated) skipped.add(i);
+    });
+    const skippedTransfers = new Set([...skipped].map((i) => p_rows[i]!.transfer_id).filter(Boolean));
+    const skippedIds = new Set([...skipped].map((i) => p_rows[i]!.id).filter(Boolean));
+
+    const inserted: Row[] = p_rows
+      .filter((r, i) => !skipped.has(i) && !(r.transfer_id && skippedTransfers.has(r.transfer_id)))
+      .map((r, i) => ({
+        ...r,
+        id: (r.id as string | undefined) ?? `tx-${this.transactions.length + i}`,
+        // timestamptz côté Postgres : la date revient avec une heure et un fuseau
+        date: `${r.date as string}T00:00:00+00:00`,
+      }));
     const shared: Row[] = [];
-    for (const share of p_shares) {
+    for (const share of p_shares.filter((sh) => !skippedIds.has(sh.source_transaction_id))) {
       const source = inserted.find((t) => t.id === share.source_transaction_id);
       if (!source) return Promise.resolve({ data: null, error: { message: "unknown source", code: "23503" } });
       shared.push({ ...share, paid_by: USER_ID, amount_cents: -(source.amount_cents as number) });
     }
     this.transactions.push(...inserted);
     this.sharedExpenses.push(...shared);
-    return Promise.resolve({ data: inserted.length, error: null });
+    return Promise.resolve({ data: inserted.filter((t) => t.is_imported).length, error: null });
   }
 
   private builder(table: string) {
@@ -104,10 +132,12 @@ class FakeDb {
               ? this.spaceMembers
               : [];
     const filters: Array<(r: Row) => boolean> = [];
+    let window: [number, number] | null = null;
     const run = () => {
-      let out = source().filter((r) => filters.every((f) => f(r)));
-      if (this.maxRows !== null) out = out.slice(0, this.maxRows);
-      return { data: out, error: null };
+      const out = source().filter((r) => filters.every((f) => f(r)));
+      const [from, to] = window ?? [0, Infinity];
+      const cap = this.maxRows ?? Infinity;
+      return { data: out.slice(from, Math.min(to + 1, from + cap)), error: null };
     };
 
     const chain: Record<string, unknown> = {
@@ -128,8 +158,20 @@ class FakeDb {
         filters.push((r) => (val === null ? r[col] != null : r[col] !== val));
         return chain;
       },
+      gte: (col: string, val: string) => {
+        filters.push((r) => String(r[col]) >= val);
+        return chain;
+      },
+      lt: (col: string, val: string) => {
+        filters.push((r) => String(r[col]) < val);
+        return chain;
+      },
       order: () => chain,
       limit: () => chain,
+      range: (from: number, to: number) => {
+        window = [from, to];
+        return chain;
+      },
       maybeSingle: () => Promise.resolve({ data: run().data[0] ?? null, error: null }),
     };
     Object.defineProperty(chain, "then", {
@@ -194,12 +236,15 @@ type PreviewRow = {
   kind: "expense" | "income";
   is_transfer_candidate: boolean;
   is_duplicate: boolean;
+  duplicate_reason: "already_imported" | "transfer_mirror" | null;
   suggested_share: { space_id: string; space_name: string; category_id: string | null; payer_share_percent: number } | null;
 };
 
-async function preview(file: File): Promise<PreviewRow[]> {
+async function preview(file: File, accountId?: string): Promise<PreviewRow[]> {
   const fd = new FormData();
   fd.append("file", file);
+  // Comme la modale : le compte cible part avec le fichier
+  if (accountId) fd.append("account_id", accountId);
   const res = await previewPOST(new Request("http://localhost/api/import/preview", { method: "POST", body: fd }));
   expect(res.status).toBe(200);
   return ((await res.json()) as { preview: PreviewRow[] }).preview;
@@ -249,7 +294,7 @@ async function confirmBody(body: unknown) {
 }
 
 async function importFile(accountId: string, file: File, opts: ConfirmOpts = {}) {
-  const rows = await preview(file);
+  const rows = await preview(file, accountId);
   const res = await confirmBody(buildConfirmBody(accountId, rows, opts));
   return { rows, res };
 }
@@ -372,16 +417,44 @@ describe("virement BNP → N26 importé depuis les deux banques", () => {
     expect(db.transactions[0]?.transfer_id).toBeNull();
   });
 
-  // BUG CONNU : le miroir garde le libellé BNP, la ligne N26 a un autre libellé
-  // (et un signe opposé) → hash différent → pas détectée comme doublon.
-  it.fails("la ligne N26 correspondant au miroir déjà créé est signalée doublon", async () => {
+  // Le miroir garde le libellé BNP et la ligne N26 en a un autre : le hash ne peut pas
+  // les rapprocher. Le preview cherche donc un miroir de même montant, à quelques jours près.
+  it("la ligne N26 correspondant au miroir déjà créé est signalée doublon (transfer_mirror)", async () => {
     await importFile(BNP_ACCOUNT, bnpFile(bnp), { counterpart: { "VIREMENT VERS N26": N26_ACCOUNT } });
-    const rows = await preview(n26File(n26));
-    expect(rows[0]?.is_duplicate).toBe(true);
+    const rows = await preview(n26File(n26), N26_ACCOUNT);
+    expect(rows[0]).toMatchObject({ is_duplicate: true, duplicate_reason: "transfer_mirror" });
   });
 
-  // Même bug vu par son effet : le solde N26 ne doit pas doubler.
-  it.fails("après import des deux fichiers, le solde N26 vaut +500 € (pas +1000 €)", async () => {
+  it("le rapprochement tolère quelques jours d'écart entre les deux banques", async () => {
+    await importFile(BNP_ACCOUNT, bnpFile(bnp), { counterpart: { "VIREMENT VERS N26": N26_ACCOUNT } });
+    const [proche] = await preview(n26File([{ date: "2026-01-08", label: "Romain Pereira", amount: 500 }]), N26_ACCOUNT);
+    const [loin] = await preview(n26File([{ date: "2026-01-12", label: "Romain Pereira", amount: 500 }]), N26_ACCOUNT);
+    expect(proche?.is_duplicate).toBe(true);
+    expect(loin?.is_duplicate).toBe(false);
+  });
+
+  it("un miroir n'absorbe qu'une ligne : un 2e virement de même montant reste à importer", async () => {
+    await importFile(BNP_ACCOUNT, bnpFile(bnp), { counterpart: { "VIREMENT VERS N26": N26_ACCOUNT } });
+    const rows = await preview(
+      n26File([
+        { date: "2026-01-05", label: "Romain Pereira", amount: 500 },
+        { date: "2026-01-06", label: "Autre virement", amount: 500 },
+      ]),
+      N26_ACCOUNT,
+    );
+    expect(rows.map((r) => r.is_duplicate)).toEqual([true, false]);
+  });
+
+  it("ré-importer le fichier N26 après coup reste sans effet (miroir toujours reconnu)", async () => {
+    await importFile(BNP_ACCOUNT, bnpFile(bnp), { counterpart: { "VIREMENT VERS N26": N26_ACCOUNT } });
+    await importFile(N26_ACCOUNT, n26File(n26));
+    const { rows } = await importFile(N26_ACCOUNT, n26File(n26));
+    expect(rows[0]?.is_duplicate).toBe(true);
+    expect(db.ofAccount(N26_ACCOUNT)).toHaveLength(1);
+  });
+
+  // Même problème vu par son effet : le solde N26 ne doit pas doubler.
+  it("après import des deux fichiers, le solde N26 vaut +500 € (pas +1000 €)", async () => {
     await importFile(BNP_ACCOUNT, bnpFile(bnp), { counterpart: { "VIREMENT VERS N26": N26_ACCOUNT } });
     // L'utilisateur importe le fichier N26 tel quel, en suivant les cases pré-cochées.
     await importFile(N26_ACCOUNT, n26File(n26));
@@ -402,11 +475,17 @@ describe("virement BNP → N26 importé depuis les deux banques", () => {
     expect(db.balance(BNP_ACCOUNT)).toBe(-50000);
   });
 
-  it("ordre inverse (N26 d'abord avec contrepartie BNP, puis BNP) : même double comptage côté BNP aujourd'hui", async () => {
+  it("ordre inverse (N26 d'abord avec contrepartie BNP, puis BNP) : pas de double comptage côté BNP", async () => {
     await importFile(N26_ACCOUNT, n26File(n26), { counterpart: { "Romain Pereira": BNP_ACCOUNT } });
-    const rows = await preview(bnpFile(bnp));
-    // documente l'état actuel : la ligne BNP n'est pas vue comme doublon du miroir
-    expect(rows[0]?.is_duplicate).toBe(false);
+    await importFile(BNP_ACCOUNT, bnpFile(bnp));
+    expect(db.balance(BNP_ACCOUNT)).toBe(-50000);
+    expect(db.balance(N26_ACCOUNT)).toBe(50000);
+  });
+
+  it("le miroir d'un autre compte n'est pas pris pour le virement : un fichier vers un 3e compte n'est pas touché", async () => {
+    await importFile(BNP_ACCOUNT, bnpFile(bnp), { counterpart: { "VIREMENT VERS N26": N26_ACCOUNT } });
+    const [row] = await preview(n26File(n26), BNP_ACCOUNT);
+    expect(row?.is_duplicate).toBe(false);
   });
 });
 
@@ -416,7 +495,7 @@ describe("virement BNP → N26 importé depuis les deux banques", () => {
 
 describe("faux positifs de la déduplication", () => {
   // Deux cafés à 3 € le même jour au même endroit = deux vraies dépenses.
-  it.fails("deux achats identiques le même jour dans un même fichier sont tous les deux importés", async () => {
+  it("deux achats identiques le même jour dans un même fichier sont tous les deux importés", async () => {
     const rows = await preview(
       n26File([
         { date: "2026-01-05", label: "Boulangerie Paul", amount: -3 },
@@ -426,12 +505,44 @@ describe("faux positifs de la déduplication", () => {
     expect(rows.filter((r) => r.is_duplicate)).toHaveLength(0);
   });
 
-  // La dédup n'est pas limitée au compte : un retrait identique sur deux banques
-  // le même jour est pris pour un doublon.
-  it.fails("une même opération (date/libellé/montant) sur deux comptes différents n'est pas un doublon", async () => {
+  it("ces deux achats identiques sont bien enregistrés, et un ré-import ne les recrée pas", async () => {
+    const twins = n26File([
+      { date: "2026-01-05", label: "Boulangerie Paul", amount: -3 },
+      { date: "2026-01-05", label: "Boulangerie Paul", amount: -3 },
+    ]);
+    await importFile(N26_ACCOUNT, twins);
+    expect(db.transactions).toHaveLength(2);
+
+    const { rows } = await importFile(N26_ACCOUNT, twins);
+    expect(rows.every((r) => r.is_duplicate)).toBe(true);
+    expect(db.transactions).toHaveLength(2);
+  });
+
+  it("un export plus récent qui contient un 2e achat identique n'importe que celui-là", async () => {
+    await importFile(N26_ACCOUNT, n26File([{ date: "2026-01-05", label: "Boulangerie Paul", amount: -3 }]));
+    const { rows } = await importFile(
+      N26_ACCOUNT,
+      n26File([
+        { date: "2026-01-05", label: "Boulangerie Paul", amount: -3 },
+        { date: "2026-01-05", label: "Boulangerie Paul", amount: -3 },
+      ]),
+    );
+    expect(rows.map((r) => r.is_duplicate)).toEqual([true, false]);
+    expect(db.transactions).toHaveLength(2);
+  });
+
+  // La dédup est limitée au compte : un retrait identique sur deux banques
+  // le même jour n'est pas un doublon.
+  it("une même opération (date/libellé/montant) sur deux comptes différents n'est pas un doublon", async () => {
     await importFile(BNP_ACCOUNT, bnpFile([{ date: "05-01-2026", label: "RETRAIT DAB", amount: "-50.00" }]));
-    const rows = await preview(n26File([{ date: "2026-01-05", label: "RETRAIT DAB", amount: -50 }]));
+    const rows = await preview(n26File([{ date: "2026-01-05", label: "RETRAIT DAB", amount: -50 }]), N26_ACCOUNT);
     expect(rows[0]?.is_duplicate).toBe(false);
+  });
+
+  it("… mais le même compte, lui, le reconnaît", async () => {
+    await importFile(BNP_ACCOUNT, bnpFile([{ date: "05-01-2026", label: "RETRAIT DAB", amount: "-50.00" }]));
+    const rows = await preview(bnpFile([{ date: "05-01-2026", label: "RETRAIT DAB", amount: "-50.00" }]), BNP_ACCOUNT);
+    expect(rows[0]?.is_duplicate).toBe(true);
   });
 
   it("deux achats identiques à des dates différentes ne sont pas des doublons", async () => {
@@ -458,15 +569,15 @@ function manyLines(n: number): Line[] {
 }
 
 describe("volumétrie", () => {
-  // Chaque requête de dédup est plafonnée à 1000 lignes par PostgREST : au-delà,
-  // les hashes existants ne sont plus tous vus et un ré-import recrée des doublons.
-  it.fails("la déduplication reste fiable au-delà de 1000 transactions déjà en base", async () => {
+  // Chaque réponse PostgREST est plafonnée à 1000 lignes : la dédup lit donc page par page,
+  // sinon les hashes au-delà de la 1000e ligne sont ignorés et un ré-import recrée des doublons.
+  it("la déduplication reste fiable au-delà de 1000 transactions déjà en base", async () => {
     for (const chunk of [manyLines(1100).slice(0, 500), manyLines(1100).slice(500, 1000), manyLines(1100).slice(1000)]) {
       await importFile(N26_ACCOUNT, n26File(chunk));
     }
     expect(db.transactions).toHaveLength(1100);
 
-    const rows = await preview(n26File(manyLines(1100)));
+    const rows = await preview(n26File(manyLines(1100)), N26_ACCOUNT);
     expect(rows.filter((r) => r.is_duplicate)).toHaveLength(1100);
   });
 
@@ -492,13 +603,48 @@ describe("volumétrie", () => {
 // ---------------------------------------------------------------------------
 
 describe("double envoi", () => {
-  // Double-clic sur « Importer » ou rejeu réseau : rien côté serveur ne l'empêche.
-  it.fails("confirmer deux fois le même lot n'insère pas les lignes deux fois", async () => {
-    const rows = await preview(n26File([{ date: "2026-01-05", label: "Lidl", amount: -42.3 }]));
+  // Double-clic sur « Importer » ou rejeu réseau : la fonction SQL ignore ce qui existe déjà.
+  it("confirmer deux fois le même lot n'insère pas les lignes deux fois", async () => {
+    const rows = await preview(n26File([{ date: "2026-01-05", label: "Lidl", amount: -42.3 }]), N26_ACCOUNT);
     const body = buildConfirmBody(N26_ACCOUNT, rows);
     await confirmBody(body);
-    await confirmBody(body);
+    const second = await confirmBody(body);
     expect(db.transactions).toHaveLength(1);
+    expect(await second.json()).toMatchObject({ ok: true, imported: 0, skipped: 1 });
+  });
+
+  it("un lot rejoué ne recrée ni le miroir d'un virement ni la dépense partagée", async () => {
+    const rows = await preview(
+      bnpFile([
+        { date: "05-01-2026", label: "VIREMENT VERS N26", amount: "-500.00" },
+        { date: "06-01-2026", label: "LOYER", amount: "-800.00" },
+      ]),
+      BNP_ACCOUNT,
+    );
+    const body = buildConfirmBody(BNP_ACCOUNT, rows, {
+      counterpart: { "VIREMENT VERS N26": N26_ACCOUNT },
+      share: { LOYER: { space_id: SHARED_SPACE } },
+    });
+    await confirmBody(body);
+    const rowsAfterFirst = db.transactions.length;
+    await confirmBody(body);
+    expect(db.transactions).toHaveLength(rowsAfterFirst); // 3 : ligne, miroir, loyer
+    expect(db.sharedExpenses).toHaveLength(1);
+  });
+
+  it("une ligne déjà importée dans un lot mixte est ignorée, les nouvelles passent", async () => {
+    await importFile(N26_ACCOUNT, n26File([{ date: "2026-01-05", label: "Lidl", amount: -42.3 }]));
+    const rows = await preview(
+      n26File([
+        { date: "2026-01-05", label: "Lidl", amount: -42.3 },
+        { date: "2026-01-06", label: "Netflix", amount: -15.99 },
+      ]),
+      N26_ACCOUNT,
+    );
+    // l'utilisateur force aussi la ligne marquée doublon
+    const res = await confirmBody(buildConfirmBody(N26_ACCOUNT, rows, { includeDuplicates: true }));
+    expect(await res.json()).toMatchObject({ imported: 1, skipped: 1 });
+    expect(db.transactions).toHaveLength(2);
   });
 });
 
@@ -537,12 +683,12 @@ describe("parsing des montants", () => {
   });
 
   // Le parseur ne remplace que la 1re virgule : "1.234,56" devient "1.234.56" → 1.234 €.
-  it.fails("BNP : séparateur de milliers avec point (1.234,56)", () => {
+  it("BNP : séparateur de milliers avec point (1.234,56)", () => {
     const [tx] = parseBnpXls(bnpBuffer([{ date: "05-01-2026", label: "LOYER", amount: "-1.234,56" }]));
     expect(tx?.amount_cents).toBe(-123456);
   });
 
-  it.fails("N26 : séparateur de milliers avec virgule (1,234.56)", () => {
+  it("N26 : séparateur de milliers avec virgule (1,234.56)", () => {
     const csv = [N26_HEADER, `"2026-01-05","2026-01-05","Employeur","","","","N26","1,234.56","","",""`].join("\n");
     const [tx] = parseN26Csv(csv);
     expect(tx?.amount_cents).toBe(123456);
@@ -620,7 +766,7 @@ describe("import avec partage (règles de partage)", () => {
 
     const res = await confirmBody(buildConfirmBody(N26_ACCOUNT, rows, { share: shareOf(rows) }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, imported: 3, shared: 1 });
+    expect(await res.json()).toEqual({ ok: true, imported: 3, skipped: 0, shared: 1 });
 
     expect(db.transactions).toHaveLength(3);
     expect(db.sharedExpenses).toHaveLength(1);
@@ -641,7 +787,7 @@ describe("import avec partage (règles de partage)", () => {
 
     const res = await confirmBody(buildConfirmBody(N26_ACCOUNT, rows, { share }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, imported: 3, shared: 0 });
+    expect(await res.json()).toEqual({ ok: true, imported: 3, skipped: 0, shared: 0 });
     expect(db.sharedExpenses).toHaveLength(0);
     expect(db.transactions).toHaveLength(3);
   });

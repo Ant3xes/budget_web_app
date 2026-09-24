@@ -184,13 +184,21 @@ export async function POST(request: Request) {
   }
 
   // One SQL transaction: the transactions and their shared expenses, or nothing.
-  const { error } = await supabase.rpc("import_transactions", { p_rows: rows, p_shares: shareRows });
+  // The function is idempotent: lines already recorded in the account (double
+  // click, retry) are skipped, and it returns how many it really inserted.
+  const { data: inserted, error } = await supabase.rpc("import_transactions", { p_rows: rows, p_shares: shareRows });
 
   if (error) {
     return pgErrorResponse(error);
   }
 
   // Report only the directly imported rows (not the auto-generated mirrors)
-  const importedCount = transactions.length;
-  return NextResponse.json({ ok: true, imported: importedCount, shared: shareRows.length });
+  const importedCount = typeof inserted === "number" ? inserted : transactions.length;
+  const skippedCount = transactions.length - importedCount;
+  return NextResponse.json({
+    ok: true,
+    imported: importedCount,
+    skipped: skippedCount,
+    shared: skippedCount === 0 ? shareRows.length : undefined,
+  });
 }

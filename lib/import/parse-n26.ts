@@ -1,3 +1,5 @@
+import { parseAmount } from "./parse-amount";
+
 export type ParsedTransaction = {
   date: string; // YYYY-MM-DD
   description: string;
@@ -30,11 +32,11 @@ export function parseN26Csv(content: string): ParsedTransaction[] {
 
     const dateRaw = cols[dateIdx]?.trim() ?? "";
     const descRaw = descIdx >= 0 ? (cols[descIdx]?.trim() ?? "") : "";
-    const amountRaw = cols[amountIdx]?.trim().replace(",", ".") ?? "";
+    const amountRaw = cols[amountIdx]?.trim() ?? "";
 
     if (!dateRaw || !amountRaw) continue;
 
-    const amountFloat = parseFloat(amountRaw);
+    const amountFloat = parseAmount(amountRaw);
     if (isNaN(amountFloat)) continue;
 
     const amount_cents = Math.round(amountFloat * 100);

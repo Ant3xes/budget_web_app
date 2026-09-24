@@ -29,11 +29,15 @@ const CATEGORY_ID = "00000000-0000-4000-8000-000000000002";
 const COUNTERPART_ACCOUNT_ID = "00000000-0000-4000-8000-000000000003";
 
 function buildSupabaseMock(
-  rpcResult: { data?: unknown; error: null | { message: string; code?: string } } = { data: 1, error: null },
+  rpcResult: { data?: unknown; error: null | { message: string; code?: string } } = { error: null },
   spaceAccountIds: string[] = [ACCOUNT_ID, COUNTERPART_ACCOUNT_ID],
 ) {
   const queryBuilder = createChainableMock({ data: null, error: null });
-  const rpc = vi.fn().mockResolvedValue(rpcResult);
+  // Like the SQL function: returns the number of imported lines it inserted
+  // (unless the test forces a result).
+  const rpc = vi.fn((_fn: string, args: { p_rows: { is_imported?: boolean }[] }) =>
+    Promise.resolve("data" in rpcResult || rpcResult.error ? rpcResult : { data: args.p_rows.filter((r) => r.is_imported).length, error: null }),
+  );
   // Members / default split of the shared space, loaded when a line is shared.
   const membersBuilder = createChainableMock({ data: [{ user_id: mockUser.id }, { user_id: "other-user" }], error: null });
   const spacesBuilder = createChainableMock({ data: { default_share_percent: 50 }, error: null });
@@ -334,6 +338,40 @@ describe("POST /api/import/confirm — success paths", () => {
   });
 });
 
+describe("POST /api/import/confirm — idempotence", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("reports the lines the database skipped because they were already imported", async () => {
+    // 3 lines sent, the function only inserted 1 (the 2 others were already there)
+    const { supabase } = buildSupabaseMock({ data: 1, error: null });
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(makeRequest({
+      account_id: ACCOUNT_ID,
+      transactions: [
+        { hash: "h1", date: "2026-01-01", description: "Lidl", amount_cents: -4230, kind: "expense" },
+        { hash: "h2", date: "2026-01-02", description: "Salaire", amount_cents: 250000, kind: "income" },
+        { hash: "h3", date: "2026-01-03", description: "Amazon", amount_cents: -3990, kind: "expense" },
+      ],
+    }));
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, imported: 1, skipped: 2 });
+  });
+
+  it("reports nothing skipped on a fresh import", async () => {
+    const { supabase } = buildSupabaseMock();
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(makeRequest({
+      account_id: ACCOUNT_ID,
+      transactions: [{ hash: "h1", date: "2026-01-01", description: "Lidl", amount_cents: -4230, kind: "expense" }],
+    }));
+
+    expect(await res.json()).toMatchObject({ imported: 1, skipped: 0 });
+  });
+});
+
 describe("POST /api/import/confirm — DB error", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -406,7 +444,7 @@ describe("POST /api/import/confirm — atomic rpc", () => {
     expect(rpc.mock.calls[0]?.[0]).toBe("import_transactions");
     expect(rpcArgs(rpc).p_shares).toEqual([]);
     expect(rpcArgs(rpc).p_rows[0]).not.toHaveProperty("id");
-    expect(await res.json()).toEqual({ ok: true, imported: 1, shared: 0 });
+    expect(await res.json()).toEqual({ ok: true, imported: 1, skipped: 0, shared: 0 });
   });
 
   it("maps rpc errors: 23514 -> 400, 42501 -> 403, 23505 -> 409, other -> 400", async () => {
@@ -434,7 +472,7 @@ describe("POST /api/import/confirm — atomic rpc", () => {
     );
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true, imported: 2, shared: 1 });
+    expect(await res.json()).toEqual({ ok: true, imported: 2, skipped: 0, shared: 1 });
     const { p_rows, p_shares } = rpcArgs(rpc);
     expect(p_rows).toHaveLength(2);
     expect(p_rows[0]?.id).toEqual(expect.any(String));

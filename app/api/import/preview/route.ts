@@ -1,9 +1,10 @@
 import * as XLSX from "xlsx";
 
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { buildDefaultMatcher, buildHistoryMatcher, buildRuleMatcher, buildRuleShareMatcher, detectTransfer } from "@/lib/import/apply-rules";
-import { buildHash, findExistingHashes } from "@/lib/import/deduplicate";
+import { buildFileHashes, findExistingHashes, findTransferMirrorMatches } from "@/lib/import/deduplicate";
 import { detectFormat } from "@/lib/import/detect-format";
 import { parseBnpXls } from "@/lib/import/parse-bnp";
 import { parseN26Csv } from "@/lib/import/parse-n26";
@@ -19,6 +20,15 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const file = formData.get("file");
+
+  // Target account: duplicates are looked up in this account only (the same
+  // line on another bank account is a different transaction) and the transfer
+  // lines already mirrored into it are recognised.
+  const accountField = formData.get("account_id");
+  const accountId = typeof accountField === "string" && accountField ? accountField : null;
+  if (accountId && !z.guid().safeParse(accountId).success) {
+    return NextResponse.json({ error: "Compte invalide" }, { status: 400 });
+  }
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
@@ -72,10 +82,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Aucune transaction trouvée dans le fichier" }, { status: 400 });
   }
 
-  // Build hashes and find duplicates
-  const hashed = parsed.map((tx) => ({ ...tx, hash: buildHash(tx) }));
-  const allHashes = hashed.map((tx) => tx.hash);
-  const existingHashes = await findExistingHashes(supabase, spaceId, allHashes);
+  // Build hashes and find duplicates. Identical lines of the file get distinct
+  // hashes (occurrence number), so two real purchases are never merged.
+  const fileHashes = buildFileHashes(parsed);
+  const hashed = parsed.map((tx, index) => ({ ...tx, hash: fileHashes[index]! }));
+  const existingHashes = await findExistingHashes(supabase, spaceId, fileHashes, accountId);
+
+  // Lines that are the other side of a transfer already imported (its mirror
+  // sits in this account): importing them would count the money twice.
+  const mirrorCandidates = hashed
+    .map((tx, index) => ({ tx, index }))
+    .filter(({ tx }) => !existingHashes.has(tx.hash));
+  const mirrorMatches = accountId
+    ? await findTransferMirrorMatches(
+        supabase,
+        spaceId,
+        accountId,
+        mirrorCandidates.map(({ tx }) => ({ date: tx.date, amount_cents: tx.amount_cents })),
+      )
+    : new Set<number>();
+  const mirrorIndexes = new Set([...mirrorMatches].map((i) => mirrorCandidates[i]!.index));
 
   // Build matchers for auto-categorization (rules > history > built-in defaults)
   const [ruleMatcher, historyMatcher, categoriesData, shareMatcher] = await Promise.all([
@@ -114,11 +140,9 @@ export async function POST(request: Request) {
   }
 
   // Determine kind from amount sign; flag transfer candidates separately
-  // Track hashes seen within this file to mark intra-file duplicates
-  const seenInFile = new Set<string>();
-  const preview = hashed.map((tx) => {
-    const isDuplicate = existingHashes.has(tx.hash) || seenInFile.has(tx.hash);
-    seenInFile.add(tx.hash);
+  const preview = hashed.map((tx, index) => {
+    const isMirror = mirrorIndexes.has(index);
+    const isDuplicate = existingHashes.has(tx.hash) || isMirror;
 
     const is_transfer_candidate = detectTransfer(tx.description);
     const kind: "expense" | "income" = tx.amount_cents < 0 ? "expense" : "income";
@@ -157,6 +181,7 @@ export async function POST(request: Request) {
       suggested_category_id: suggestedCategoryId,
       is_transfer_candidate,
       is_duplicate: isDuplicate,
+      duplicate_reason: isMirror ? ("transfer_mirror" as const) : isDuplicate ? ("already_imported" as const) : null,
       suggested_share: suggestedShare,
     };
   });
