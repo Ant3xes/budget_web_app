@@ -38,6 +38,27 @@ export async function POST(request: Request) {
 
   const { account_id, transactions } = payload.data;
 
+  // Every account the client names (target + transfer counterparts) must live
+  // in the active space. The DB trigger would refuse a foreign account too, but
+  // only with a raw constraint error.
+  const accountIds = [
+    ...new Set([account_id, ...transactions.map((tx) => tx.transfer_account_id).filter((id): id is string => !!id)]),
+  ];
+  const { data: spaceAccounts, error: accountsError } = await supabase
+    .from("accounts")
+    .select("id")
+    .eq("space_id", spaceId)
+    .is("deleted_at", null)
+    .in("id", accountIds);
+
+  if (accountsError) {
+    return NextResponse.json({ error: accountsError.message }, { status: 400 });
+  }
+  const knownAccountIds = new Set((spaceAccounts ?? []).map((account: { id: string }) => account.id));
+  if (!accountIds.every((id) => knownAccountIds.has(id))) {
+    return NextResponse.json({ error: "Compte introuvable" }, { status: 404 });
+  }
+
   // Build all rows, including mirror transactions for paired transfers
   type Row = {
     space_id: string;

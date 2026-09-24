@@ -17,7 +17,7 @@ export async function acceptInvitation(token: string) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/login`);
+    redirect(`/login?next=${encodeURIComponent(`/invite/${encodeURIComponent(token)}`)}`);
   }
 
   const { data: spaceId, error } = await supabase.rpc("accept_space_invitation", { p_token: token });

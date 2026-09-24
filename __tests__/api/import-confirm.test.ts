@@ -23,16 +23,22 @@ const ACCOUNT_ID = "00000000-0000-4000-8000-000000000001";
 const CATEGORY_ID = "00000000-0000-4000-8000-000000000002";
 const COUNTERPART_ACCOUNT_ID = "00000000-0000-4000-8000-000000000003";
 
-function buildSupabaseMock(insertResult: { error: null | { message: string } } = { error: null }) {
+function buildSupabaseMock(
+  insertResult: { error: null | { message: string } } = { error: null },
+  spaceAccountIds: string[] = [ACCOUNT_ID, COUNTERPART_ACCOUNT_ID],
+) {
   const queryBuilder = createChainableMock(insertResult as { data: unknown; error: unknown });
+  // The route first checks the accounts it was given against the active space.
+  const accountsBuilder = createChainableMock({ data: spaceAccountIds.map((id) => ({ id })), error: null });
   return {
     supabase: {
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: mockUser }, error: null }),
       },
-      from: vi.fn(() => queryBuilder),
+      from: vi.fn((table: string) => (table === "accounts" ? accountsBuilder : queryBuilder)),
     },
     queryBuilder,
+    accountsBuilder,
   };
 }
 
@@ -311,5 +317,37 @@ describe("POST /api/import/confirm — DB error", () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain("violates foreign key constraint");
+  });
+});
+
+describe("POST /api/import/confirm — accounts must belong to the active space", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const expense = { hash: "h1", date: "2026-01-15", description: "Netflix", amount_cents: -1599, kind: "expense" };
+
+  it("returns 404 and inserts nothing when the target account is not in the space", async () => {
+    const { supabase, queryBuilder, accountsBuilder } = buildSupabaseMock({ error: null }, []);
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(makeRequest({ account_id: ACCOUNT_ID, transactions: [expense] }));
+
+    expect(res.status).toBe(404);
+    expect(accountsBuilder.eq).toHaveBeenCalledWith("space_id", "space-test-id");
+    expect(queryBuilder.insert).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when a transfer counterpart account is not in the space", async () => {
+    const { supabase, queryBuilder } = buildSupabaseMock({ error: null }, [ACCOUNT_ID]);
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(
+      makeRequest({
+        account_id: ACCOUNT_ID,
+        transactions: [{ ...expense, kind: "transfer", transfer_account_id: COUNTERPART_ACCOUNT_ID }],
+      }),
+    );
+
+    expect(res.status).toBe(404);
+    expect(queryBuilder.insert).not.toHaveBeenCalled();
   });
 });

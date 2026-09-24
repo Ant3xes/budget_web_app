@@ -4,6 +4,7 @@ import { acceptInvitation } from "@/app/invite/[token]/actions";
 import { LogoMark } from "@/components/brand/logo";
 import { T } from "@/components/i18n/t";
 import { Button } from "@/components/ui/button";
+import { nextQuery } from "@/lib/auth/safe-next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 const shellClass =
@@ -38,6 +39,7 @@ export default async function InvitationAcceptPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  const inviteHref = `/invite/${encodeURIComponent(token)}`;
   const { data } = await supabase.rpc("get_space_invitation", { p_token: token });
   const invitation = data?.[0];
 
@@ -84,10 +86,10 @@ export default async function InvitationAcceptPage({
           <T k="invitations.accept.signInPrompt" />
         </p>
         <div className="flex gap-3">
-          <Link href="/login" className="inline-flex h-11 flex-1 items-center justify-center rounded-md bg-primary px-4 text-sm text-primary-foreground md:h-9 md:flex-none">
+          <Link href={`/login${nextQuery(inviteHref)}`} className="inline-flex h-11 flex-1 items-center justify-center rounded-md bg-primary px-4 text-sm text-primary-foreground md:h-9 md:flex-none">
             <T k="invitations.accept.signIn" />
           </Link>
-          <Link href="/signup" className="inline-flex h-11 flex-1 items-center justify-center rounded-md border border-border px-4 text-sm text-foreground md:h-9 md:flex-none">
+          <Link href={`/signup${nextQuery(inviteHref)}`} className="inline-flex h-11 flex-1 items-center justify-center rounded-md border border-border px-4 text-sm text-foreground md:h-9 md:flex-none">
             <T k="invitations.accept.signUp" />
           </Link>
         </div>

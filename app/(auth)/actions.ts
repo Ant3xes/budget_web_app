@@ -3,26 +3,29 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { nextQuery, safeNext } from "@/lib/auth/safe-next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const next = safeNext(formData.get("next"));
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(`/login?message=${encodeURIComponent(error.message)}`);
+    redirect(`/login?message=${encodeURIComponent(error.message)}${nextQuery(next, "&")}`);
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect(next ?? "/dashboard");
 }
 
 export async function signup(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const next = safeNext(formData.get("next"));
 
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase.auth.signUp({
@@ -36,15 +39,15 @@ export async function signup(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/signup?message=${encodeURIComponent(error.message)}`);
+    redirect(`/signup?message=${encodeURIComponent(error.message)}${nextQuery(next, "&")}`);
   }
 
   if (data.session) {
     revalidatePath("/", "layout");
-    redirect("/dashboard");
+    redirect(next ?? "/dashboard");
   }
 
-  redirect("/login?message=signupSuccess");
+  redirect(`/login?message=signupSuccess${nextQuery(next, "&")}`);
 }
 
 export async function logout() {
