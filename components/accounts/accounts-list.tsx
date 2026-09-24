@@ -10,6 +10,8 @@ import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { NO_BANK_PARAM } from "@/lib/accounts/bank-param";
+import { pillButtonClass } from "@/lib/dashboard/pill-class";
 import type { BankAccountGroup } from "@/lib/accounts/group-accounts-by-bank";
 import { ACCOUNT_TYPES } from "@/lib/constants";
 import { formatEuros } from "@/lib/format";
@@ -27,6 +29,8 @@ type AccountCardData = {
 interface AccountsListProps {
   groups: BankAccountGroup<AccountCardData>[];
   importButton?: ReactNode;
+  /** Current `?bank=` tab: a bank name, `NO_BANK_PARAM`, or undefined for "all banks". */
+  selectedBank?: string;
 }
 
 // Per account-type icon + accent color, so each card reads at a glance
@@ -48,10 +52,16 @@ const ACCOUNT_TYPE_ACCENTS: Record<(typeof ACCOUNT_TYPES)[number], string> = {
   autre: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
 };
 
-export function AccountsList({ groups, importButton }: AccountsListProps) {
+export function AccountsList({ groups: allGroups, importButton, selectedBank }: AccountsListProps) {
   const router = useRouter();
   const { t } = useLocale();
   const [modalOpen, setModalOpen] = useState(false);
+
+  const bankKey = (bank: string | null) => bank ?? NO_BANK_PARAM;
+  // An unknown `?bank=` (stale link, deleted bank) falls back to "all banks"
+  // rather than an empty page.
+  const activeBank = allGroups.some((g) => bankKey(g.bank) === selectedBank) ? selectedBank : undefined;
+  const groups = activeBank ? allGroups.filter((g) => bankKey(g.bank) === activeBank) : allGroups;
 
   const handleSuccess = () => {
     setModalOpen(false);
@@ -81,6 +91,30 @@ export function AccountsList({ groups, importButton }: AccountsListProps) {
           </Button>
         </div>
       </div>
+
+      {allGroups.length > 1 && (
+        <nav
+          aria-label={t("accounts.list.title")}
+          className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700"
+        >
+          <Link href="/accounts" className={pillButtonClass(!activeBank)} aria-current={!activeBank ? "page" : undefined}>
+            {t("accounts.list.allBanks")}
+          </Link>
+          {allGroups.map((g) => {
+            const isActive = activeBank === bankKey(g.bank);
+            return (
+              <Link
+                key={bankKey(g.bank)}
+                href={`/accounts?bank=${encodeURIComponent(bankKey(g.bank))}`}
+                className={pillButtonClass(isActive)}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {g.bank ?? t("accounts.list.noBank")}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
       {groups.length === 0 ? (
         <EmptyState

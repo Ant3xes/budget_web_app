@@ -3,12 +3,11 @@ export const dashboard = {
   consolidatedBalance: "Consolidated balance",
   consolidatedBalanceFooter: "All accounts combined",
   noBank: "No bank set",
+  bankAccountsSingular: "{count} account",
+  bankAccountsPlural: "{count} accounts",
   allAccounts: "All accounts",
   accountsOverview: {
     heading: "Accounts overview",
-  },
-  accountFilter: {
-    heading: "Filter the widgets below by account",
   },
   remainingToLive: {
     label: "Left to live on — this month (before charges)",

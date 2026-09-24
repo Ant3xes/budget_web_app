@@ -7,6 +7,7 @@ export const accounts = {
     subtitle: "Solde = solde initial + somme des transactions non supprimées.",
     newAccount: "Nouveau compte",
     noBank: "Sans banque",
+    allBanks: "Toutes les banques",
     emptyTitle: "Aucun compte pour l'instant.",
     createAccount: "Créer un compte",
     currentBalance: "Solde actuel",
