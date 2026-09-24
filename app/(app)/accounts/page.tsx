@@ -13,7 +13,8 @@ type AccountWithTransactions = {
   transactions: { amount_cents: number; deleted_at: string | null; kind: string; date: string }[] | null;
 };
 
-export default async function AccountsPage() {
+export default async function AccountsPage({ searchParams }: { searchParams: Promise<{ bank?: string }> }) {
+  const { bank: selectedBank } = await searchParams;
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase
     .from("accounts")
@@ -55,7 +56,7 @@ export default async function AccountsPage() {
 
   return (
     <section className="space-y-4">
-      <AccountsList groups={groups} importButton={<AccountsImportButton />} />
+      <AccountsList groups={groups} selectedBank={selectedBank}importButton={<AccountsImportButton />} />
     </section>
   );
 }

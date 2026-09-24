@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 
-import { CategoryBadge } from "@/components/category-badge";
 import { CategoryModal } from "@/components/settings/category-modal";
 import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
@@ -72,36 +71,50 @@ export default function CategoriesPage() {
     const items = grouped[kind] ?? [];
     return (
       <Card key={kind} className="px-(--card-spacing)">
-        <h2 className="mb-3 text-base font-medium">{t(`categories.kind.${kind}`)}</h2>
+        <div className="mb-1 flex items-center gap-2">
+          <h2 className="text-base font-semibold">{t(`categories.kind.${kind}`)}</h2>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
+            {items.length}
+          </span>
+        </div>
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("settings.categories.emptyForKind")}</p>
         ) : (
-          // auto-fill/minmax instead of viewport breakpoints (sm:/lg:) —
-          // this grid sits inside a column that's already halved by the
-          // Dépense/Revenu split above md:, so a viewport-based breakpoint
-          // would size columns off the *page* width, not the space this
-          // grid actually has, packing 3-4 columns into a half-width
-          // section and wrapping every multi-word name. auto-fill sizes
-          // off the container itself, however narrow.
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
+          // auto-fill/minmax sizes columns off the container itself (this
+          // grid sits inside a column already halved by the Dépense/Revenu
+          // split above md:), not off the viewport.
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
             {items.map((cat) => {
               const accentColor = cat.color ?? CATEGORY_COLOR_FALLBACK;
+              const name = resolveCategoryName(cat, t);
               return (
                 <Card
                   key={cat.id}
                   interactive
-                  title={resolveCategoryName(cat, t)}
-                  className="group relative flex min-w-0 flex-col items-center gap-1 px-2.5 pb-4 pt-9 text-center"
+                  title={name}
+                  className="group relative flex-row items-center gap-3 p-3 ring-1 hover:ring-(--cat-accent)/40"
+                  style={{ "--cat-accent": accentColor } as CSSProperties}
                 >
-                  {/* Bande d'accent colorée en haut de la card, clippée par overflow-hidden + rounded-2xl du conteneur */}
-                  <span aria-hidden className="absolute inset-x-0 top-0 z-0 h-1.5" style={{ backgroundColor: accentColor }} />
-                  {/* Halo doux derrière l'icône, teinté avec la couleur de la catégorie */}
+                  {/* Soft accent wash fading out from the top-left corner */}
                   <span
                     aria-hidden
-                    className="absolute left-1/2 top-7 z-0 h-10 w-10 -translate-x-1/2 rounded-full"
-                    style={{ backgroundColor: `color-mix(in srgb, ${accentColor} 20%, transparent)` }}
+                    className="pointer-events-none absolute inset-0"
+                    style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${accentColor} 12%, transparent), transparent 60%)` }}
                   />
-                  <div className="absolute right-1 top-2.5 z-20 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <span
+                    aria-hidden
+                    className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-sm ring-1 ring-inset"
+                    style={{
+                      backgroundColor: `color-mix(in srgb, ${accentColor} 18%, var(--card))`,
+                      color: accentColor,
+                      ["--tw-ring-color" as string]: `color-mix(in srgb, ${accentColor} 30%, transparent)`,
+                    }}
+                  >
+                    {cat.icon ?? <span className="h-3 w-3 rounded-full" style={{ backgroundColor: accentColor }} />}
+                  </span>
+                  <span className="relative min-w-0 flex-1 truncate text-sm font-medium">{name}</span>
+                  {/* Always visible on touch (no hover), revealed on hover/focus on desktop */}
+                  <div className="relative z-10 flex shrink-0 gap-0.5 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
                     <Button
                       variant="ghost"
                       size="icon-sm"
@@ -112,8 +125,9 @@ export default function CategoriesPage() {
                       <Pencil />
                     </Button>
                     <Button
-                      variant="destructive"
+                      variant="ghost"
                       size="icon-sm"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setDeletingCategory(cat)}
                       aria-label={t("common.actions.delete")}
                       title={t("common.actions.delete")}
@@ -121,12 +135,6 @@ export default function CategoriesPage() {
                       <Trash2 />
                     </Button>
                   </div>
-                  <CategoryBadge
-                    name={resolveCategoryName(cat, t)}
-                    color={cat.color}
-                    icon={cat.icon}
-                    className="relative z-10 w-full min-w-0 flex-col break-words text-sm"
-                  />
                 </Card>
               );
             })}

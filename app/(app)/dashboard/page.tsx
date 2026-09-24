@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { T } from "@/components/i18n/t";
 import { PeriodSelector } from "@/components/period-selector";
 import { AccountSelector } from "@/components/dashboard/account-selector";
-import { BankBubbles } from "@/components/dashboard/bank-bubbles";
+import { BankTiles } from "@/components/dashboard/bank-tiles";
 import { ConsolidatedBalanceTile } from "@/components/dashboard/consolidated-balance-tile";
 import { ExpenseByCategoryWidget } from "@/components/dashboard/expense-by-category-widget";
 import { ExpenseIncomeLine } from "@/components/dashboard/expense-income-line";
@@ -522,7 +522,7 @@ export default async function DashboardPage({
       </div>
 
       {/* Zone comptes — solde consolidé + bulles banques (elles-mêmes déjà
-          dans leur propre "grosse bulle", voir bank-bubbles.tsx), seule
+          dans leur propre "grosse bulle", voir bank-tiles.tsx), seule
           chose que ce panneau montre : une vue d'ensemble en lecture seule
           du patrimoine, sans aucun contrôle interactif à l'intérieur. Le
           sélecteur de comptes n'a rien à y faire — il filtre les widgets
@@ -535,20 +535,15 @@ export default async function DashboardPage({
         </h2>
 
         {/* Solde consolidé + bulles banques (remplace l'ancien bloc "Comptes par banque") */}
-        <div className="flex flex-wrap items-start gap-3">
+        <div className="flex flex-wrap items-stretch gap-3">
           <ConsolidatedBalanceTile amountCents={consolidatedBalance} />
-          <div className="flex min-w-0 flex-1 items-center">
-            <BankBubbles groups={bankGroups} />
-          </div>
+          <BankTiles groups={bankGroups} />
         </div>
       </div>
 
       {/* Barre de filtre — distincte du panneau "vue d'ensemble" ci-dessus,
           collée à la grille de widgets qu'elle filtre effectivement. */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-muted-foreground">
-          <T k="dashboard.accountFilter.heading" />
-        </span>
         <AccountSelector
           accounts={courantAccounts}
           selectedIds={selectedCourantIds}

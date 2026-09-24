@@ -7,6 +7,7 @@ export const accounts = {
     subtitle: "Balance = initial balance + sum of non-deleted transactions.",
     newAccount: "New account",
     noBank: "No bank",
+    allBanks: "All banks",
     emptyTitle: "No accounts yet.",
     createAccount: "Create an account",
     currentBalance: "Current balance",
