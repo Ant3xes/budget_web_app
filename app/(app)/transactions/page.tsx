@@ -1,9 +1,12 @@
 import { TransactionList } from "@/components/transactions/transaction-list";
+import { requireSpaceContext } from "@/lib/spaces/context";
 
-export default function TransactionsPage() {
+export default async function TransactionsPage() {
+  const { space } = await requireSpaceContext();
+
   return (
     <section className="space-y-4">
-      <TransactionList />
+      <TransactionList spaceKind={space.kind} />
     </section>
   );
 }

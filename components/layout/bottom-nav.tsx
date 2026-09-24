@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Logo } from "@/components/brand/logo";
 import { MoreSheet } from "@/components/layout/more-sheet";
 import { SpaceSwitcher } from "@/components/layout/space-switcher";
-import { isNavActive, PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS } from "@/components/layout/nav-utils";
+import { isNavActive, PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS, visibleNavItems } from "@/components/layout/nav-utils";
 import { useLocale } from "@/components/locale-provider";
 import { NAV_ICONS } from "@/lib/nav-icons";
 import type { SpaceSummary } from "@/lib/spaces/context";
@@ -38,7 +38,9 @@ export function BottomNav({
   const { t } = useLocale();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const moreActive = SECONDARY_NAV_ITEMS.some((item) => isNavActive(pathname, item.href));
+  const isShared = spaces.find((space) => space.id === activeSpaceId)?.kind === "shared";
+  const secondaryItems = visibleNavItems(SECONDARY_NAV_ITEMS, isShared);
+  const moreActive = secondaryItems.some((item) => isNavActive(pathname, item.href));
 
   return (
     <div className="md:hidden">
@@ -87,7 +89,7 @@ export function BottomNav({
         </ul>
       </nav>
 
-      <MoreSheet open={moreOpen} onOpenChange={setMoreOpen} userEmail={userEmail} />
+      <MoreSheet open={moreOpen} onOpenChange={setMoreOpen} userEmail={userEmail} items={secondaryItems} />
     </div>
   );
 }

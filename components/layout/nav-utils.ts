@@ -1,4 +1,4 @@
-import { NAV_ITEMS } from "@/lib/constants";
+import { NAV_ITEMS, type NavItemDef } from "@/lib/constants";
 
 /** Cookie qui mémorise l'état replié de la sidebar desktop (lu côté serveur par le layout). */
 export const SIDEBAR_COOKIE = "sidebar_collapsed";
@@ -14,4 +14,9 @@ export const SECONDARY_NAV_ITEMS = NAV_ITEMS.filter((item) => !PRIMARY_NAV_KEYS.
 /** Même règle de préfixe que l'ancienne top-nav (#37) : /transactions/123 active « Transactions ». */
 export function isNavActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** Masque les entrées `sharedOnly` (ex. Solde) tant que l'espace actif est personnel. */
+export function visibleNavItems<T extends NavItemDef>(items: readonly T[], isShared: boolean): T[] {
+  return items.filter((item) => isShared || !item.sharedOnly);
 }

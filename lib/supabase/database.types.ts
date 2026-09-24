@@ -517,6 +517,152 @@ export type Database = {
           },
         ]
       }
+      settlements: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          created_by: string
+          date: string
+          from_user: string
+          id: string
+          source_transaction_id: string | null
+          space_id: string
+          to_user: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          created_by: string
+          date?: string
+          from_user: string
+          id?: string
+          source_transaction_id?: string | null
+          space_id: string
+          to_user: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          created_by?: string
+          date?: string
+          from_user?: string
+          id?: string
+          source_transaction_id?: string | null
+          space_id?: string
+          to_user?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlements_from_user_fkey"
+            columns: ["from_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlements_source_transaction_id_fkey"
+            columns: ["source_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlements_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlements_to_user_fkey"
+            columns: ["to_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_expenses: {
+        Row: {
+          amount_cents: number
+          category_id: string | null
+          created_at: string
+          currency: string
+          date: string
+          description: string | null
+          id: string
+          paid_by: string
+          shares: Json
+          source_transaction_id: string
+          space_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          date?: string
+          description?: string | null
+          id?: string
+          paid_by: string
+          shares: Json
+          source_transaction_id: string
+          space_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          date?: string
+          description?: string | null
+          id?: string
+          paid_by?: string
+          shares?: Json
+          source_transaction_id?: string
+          space_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_expenses_paid_by_fkey"
+            columns: ["paid_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_expenses_source_transaction_id_fkey"
+            columns: ["source_transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_expenses_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       space_members: {
         Row: {
           joined_at: string
@@ -557,6 +703,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          default_share_percent: number
           id: string
           kind: string
           name: string
@@ -565,6 +712,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          default_share_percent?: number
           id?: string
           kind: string
           name: string
@@ -573,6 +721,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          default_share_percent?: number
           id?: string
           kind?: string
           name?: string
@@ -683,6 +832,10 @@ export type Database = {
     }
     Functions: {
       accept_space_invitation: { Args: { p_token: string }; Returns: string }
+      assert_valid_shares: {
+        Args: { p_paid_by: string; p_shares: Json; p_space_id: string }
+        Returns: undefined
+      }
       create_shared_space: { Args: { p_name: string }; Returns: string }
       get_space_invitation: {
         Args: { p_token: string }

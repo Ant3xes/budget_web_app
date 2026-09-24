@@ -2,6 +2,7 @@ import {
   ArrowLeftRight,
   BarChart3,
   LayoutDashboard,
+  Scale,
   Mail,
   PiggyBank,
   Receipt,
@@ -29,6 +30,7 @@ export const NAV_ICONS: Record<NavKey, LucideIcon> = {
   budget: PiggyBank,
   fixedCharges: Receipt,
   goals: Target,
+  balance: Scale,
   invitations: Mail,
   settings: Settings,
 };
@@ -50,6 +52,7 @@ export const NAV_ACCENTS: Record<NavKey, string> = {
   budget: "var(--chart-5)",
   fixedCharges: "var(--chart-6)",
   goals: "var(--chart-7)",
+  balance: "var(--chart-2)",
   invitations: "var(--chart-8)",
   settings: "var(--chart-1)",
 };

@@ -8,7 +8,7 @@ import { useState } from "react";
 import { logout } from "@/app/(auth)/actions";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { LogoutButtonLabel } from "@/components/layout/logout-button-label";
-import { isNavActive, SIDEBAR_COOKIE } from "@/components/layout/nav-utils";
+import { isNavActive, SIDEBAR_COOKIE, visibleNavItems } from "@/components/layout/nav-utils";
 import { SpaceSwitcher } from "@/components/layout/space-switcher";
 import { LocaleToggle } from "@/components/locale-toggle";
 import { useLocale } from "@/components/locale-provider";
@@ -40,6 +40,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const { t } = useLocale();
+  const isShared = spaces.find((space) => space.id === activeSpaceId)?.kind === "shared";
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
   const toggle = () => {
@@ -70,7 +71,7 @@ export function Sidebar({
       </div>
 
       <nav aria-label={t("nav.mainNav")} className="flex flex-1 flex-col gap-0.5 p-2">
-        {NAV_ITEMS.map((item) => {
+        {visibleNavItems(NAV_ITEMS, isShared).map((item) => {
           const active = isNavActive(pathname, item.href);
           const Icon = NAV_ICONS[item.key];
           const label = t(`nav.items.${item.key}`);

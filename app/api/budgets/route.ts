@@ -73,6 +73,25 @@ export async function GET(request: Request) {
     }
   }
 
+  // In a shared space, expenses shared into it by the members count too
+  // (their source transactions live in personal spaces, invisible here).
+  if (auth.space.kind === "shared" && month && monthStart && nextMonthStart) {
+    const { data: sharedData, error: sharedError } = await auth.supabase
+      .from("shared_expenses")
+      .select("category_id, amount_cents")
+      .eq("space_id", auth.spaceId)
+      .gte("date", monthStart)
+      .lt("date", nextMonthStart);
+
+    if (!sharedError && sharedData) {
+      for (const row of sharedData) {
+        if (row.category_id) {
+          consumption[row.category_id] = (consumption[row.category_id] ?? 0) + row.amount_cents;
+        }
+      }
+    }
+  }
+
   return NextResponse.json({ budgets: budgets ?? [], consumption });
 }
 

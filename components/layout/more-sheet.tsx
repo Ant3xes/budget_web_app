@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { logout } from "@/app/(auth)/actions";
 import { LogoutButtonLabel } from "@/components/layout/logout-button-label";
-import { isNavActive, SECONDARY_NAV_ITEMS } from "@/components/layout/nav-utils";
+import { isNavActive, type NavItem } from "@/components/layout/nav-utils";
 import { LocaleToggle } from "@/components/locale-toggle";
 import { useLocale } from "@/components/locale-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -18,10 +18,12 @@ export function MoreSheet({
   open,
   onOpenChange,
   userEmail,
+  items,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userEmail: string;
+  items: readonly NavItem[];
 }) {
   const pathname = usePathname();
   const { t } = useLocale();
@@ -29,7 +31,7 @@ export function MoreSheet({
   return (
     <Modal open={open} onOpenChange={onOpenChange} title={t("nav.more")}>
       <div className="grid grid-cols-2 gap-3">
-        {SECONDARY_NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const active = isNavActive(pathname, item.href);
           const Icon = NAV_ICONS[item.key];
           return (
