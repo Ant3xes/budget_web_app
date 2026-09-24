@@ -10,6 +10,7 @@ import { useLocale } from "@/components/locale-provider";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 import { formatEuros, formatEurosAxisTick } from "@/lib/format";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 export interface BudgetRow {
   id: string;
@@ -79,6 +80,7 @@ function tierColorFor(ratio: number): string {
  * instead (plan Étape 2) — same bar-click mechanism, different result.
  */
 export function BudgetStackedChart({ rows, transactionsByCategory }: BudgetStackedChartProps) {
+  const isMobile = useIsMobile();
   const { t } = useLocale();
   const [overlayCategoryId, setOverlayCategoryId] = useState<string | null>(null);
   if (rows.length === 0) return null;
@@ -141,7 +143,7 @@ export function BudgetStackedChart({ rows, transactionsByCategory }: BudgetStack
             type="number"
             tickFormatter={formatEurosAxisTick}
             tick={{ fontSize: 11 }}
-            width={48}
+            width={isMobile ? Math.round(48 * 0.7) : 48}
             axisLine={false}
             tickLine={false}
           />

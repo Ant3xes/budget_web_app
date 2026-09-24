@@ -10,6 +10,7 @@ import { ChartEmptyState } from "@/components/chart-empty-state";
 import { EuroTooltipValue } from "@/components/euro-tooltip-value";
 import { useLocale } from "@/components/locale-provider";
 import type { IncomeExpenseSeriesPoint } from "@/lib/accounts/compute-income-expense-series";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 interface ExpenseTrendChartProps {
   data: IncomeExpenseSeriesPoint[];
@@ -34,6 +35,7 @@ function computeMonthOverMonthDelta(data: IncomeExpenseSeriesPoint[]): { pct: nu
  * green, regardless of the raw sign.
  */
 export function ExpenseTrendChart({ data, height = 240 }: ExpenseTrendChartProps) {
+  const isMobile = useIsMobile();
   const { t } = useLocale();
 
   const chartConfig = useMemo(
@@ -64,7 +66,7 @@ export function ExpenseTrendChart({ data, height = 240 }: ExpenseTrendChartProps
           <YAxis
             tickFormatter={formatEurosAxisTick}
             tick={{ fontSize: 11 }}
-            width={48}
+            width={isMobile ? Math.round(48 * 0.7) : 48}
             axisLine={false}
             tickLine={false}
           />

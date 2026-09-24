@@ -50,10 +50,10 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam, tabPara
 
   return (
     <div
-      className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors ${
+      className={`flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-sm transition-colors ${
         isActive
-          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-          : "text-zinc-600 dark:text-zinc-400"
+          ? "bg-foreground text-background"
+          : "text-muted-foreground"
       }`}
     >
       <span className="whitespace-nowrap">{t("periodSelector.custom.label")}</span>
@@ -62,7 +62,7 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam, tabPara
         value={from}
         onChange={(e) => setFrom(e.target.value)}
         aria-label={t("periodSelector.custom.fromLabel")}
-        className="rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+        className="h-10 w-32 shrink-0 rounded border border-border bg-background px-1 text-xs text-foreground md:h-auto md:w-auto md:py-0.5"
       />
       <span aria-hidden>–</span>
       <input
@@ -70,12 +70,12 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam, tabPara
         value={to}
         onChange={(e) => setTo(e.target.value)}
         aria-label={t("periodSelector.custom.toLabel")}
-        className="rounded border border-zinc-300 bg-white px-1 py-0.5 text-xs text-zinc-900 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+        className="h-10 w-32 shrink-0 rounded border border-border bg-background px-1 text-xs text-foreground md:h-auto md:w-auto md:py-0.5"
       />
       <button
         type="button"
         onClick={() => router.push(buildDashboardHref(basePath, { period: `${from}:${to}`, accounts: accountsParam, tab: tabParam }))}
-        className="rounded px-1.5 py-0.5 text-xs font-medium underline-offset-2 hover:underline"
+        className="min-h-10 rounded px-2 py-0.5 text-xs font-medium md:min-h-0 md:px-1.5 underline-offset-2 hover:underline"
       >
         {t("periodSelector.custom.apply")}
       </button>

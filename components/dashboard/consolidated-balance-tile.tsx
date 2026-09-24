@@ -22,7 +22,7 @@ export function ConsolidatedBalanceTile({ amountCents }: ConsolidatedBalanceTile
       value={formatEuros(amountCents)}
       valueClassName={amountCents < 0 ? "text-expense" : undefined}
       footer={<p className="mt-1 text-xs text-muted-foreground">{t("dashboard.consolidatedBalanceFooter")}</p>}
-      className="w-56 shrink-0"
+      className="w-[80%] shrink-0 snap-start sm:w-56"
     />
   );
 }

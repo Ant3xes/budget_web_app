@@ -6,9 +6,9 @@
  * in sync by hand.
  */
 export function pillButtonClass(isActive: boolean): string {
-  return `rounded-md px-3 py-1 text-sm transition-colors ${
+  return `inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-md px-3 py-1 text-sm transition-colors md:min-h-0 ${
     isActive
-      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-      : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+      ? "bg-foreground text-background"
+      : "text-muted-foreground hover:bg-muted"
   }`;
 }

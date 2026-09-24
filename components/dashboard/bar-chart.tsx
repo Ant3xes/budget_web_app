@@ -14,6 +14,7 @@ import { useLocale } from "@/components/locale-provider";
 import { formatEuros, formatEurosAxisTick } from "@/lib/format";
 import { EXPENSE_COLOR, INCOME_COLOR } from "@/lib/constants";
 import { ChartEmptyState } from "@/components/chart-empty-state";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 export interface BarChartData {
   month: string; // e.g. "Jan", "Fév"
@@ -39,6 +40,7 @@ interface IncomeExpenseBarChartProps {
  * dashboard-only scope.
  */
 export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarChartProps) {
+  const isMobile = useIsMobile();
   const { t } = useLocale();
   if (data.length === 0) {
     return <ChartEmptyState />;
@@ -70,7 +72,7 @@ export function IncomeExpenseBarChart({ data, height = 280 }: IncomeExpenseBarCh
         <YAxis
           tickFormatter={formatEurosAxisTick}
           tick={{ fontSize: 11 }}
-          width={48}
+          width={isMobile ? Math.round(48 * 0.7) : 48}
           axisLine={false}
           tickLine={false}
         />

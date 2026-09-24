@@ -52,7 +52,7 @@ export function ExpenseCalendarHeatmap({ days }: ExpenseCalendarHeatmapProps) {
 
   return (
     <div>
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-zinc-400">
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-muted-foreground">
         {WEEKDAY_LABELS.map((label, i) => (
           <span key={i}>{label}</span>
         ))}
@@ -68,7 +68,7 @@ export function ExpenseCalendarHeatmap({ days }: ExpenseCalendarHeatmapProps) {
             <div
               key={day.date}
               title={`${day.date} — ${formatEuros(day.amountCents)}`}
-              className="flex aspect-square items-center justify-center rounded text-[10px] text-zinc-500 dark:text-zinc-400"
+              className="flex aspect-square items-center justify-center rounded text-[11px] text-muted-foreground sm:text-[10px]"
               style={{
                 backgroundColor: opacity > 0 ? `color-mix(in srgb, var(--expense) ${opacity * 100}%, transparent)` : "var(--muted)",
               }}
@@ -78,7 +78,7 @@ export function ExpenseCalendarHeatmap({ days }: ExpenseCalendarHeatmapProps) {
           );
         })}
       </div>
-      <div className="mt-3 flex items-center gap-1.5 text-[10px] text-zinc-400">
+      <div className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground">
         <span>{t("analytics.heatmap.less")}</span>
         {[0, 0.2, 0.4, 0.6, 0.8, 1].map((opacity) => (
           <span

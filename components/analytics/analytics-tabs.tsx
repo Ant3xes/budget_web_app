@@ -21,7 +21,7 @@ interface AnalyticsTabsProps {
  */
 export function AnalyticsTabs({ current, periodParam }: AnalyticsTabsProps) {
   return (
-    <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
+    <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border p-1 sm:inline-flex">
       {ANALYTICS_TABS.map((tab) => {
         const isActive = tab === current;
         const href = buildDashboardHref("/analytics", {
@@ -32,10 +32,10 @@ export function AnalyticsTabs({ current, periodParam }: AnalyticsTabsProps) {
           <Link
             key={tab}
             href={href}
-            className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+            className={`inline-flex min-h-10 shrink-0 items-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors md:min-h-0 ${
               isActive
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                : "text-zinc-500 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:bg-muted"
             }`}
           >
             <T k={`analytics.tabs.${tab}`} />

@@ -15,6 +15,7 @@ import { ChartEmptyState } from "@/components/chart-empty-state";
 import { useLocale } from "@/components/locale-provider";
 import { formatEuros, formatEurosAxisTick } from "@/lib/format";
 import type { GoalProgressSeriesPoint } from "@/lib/savings-goals/compute-goal-progress-series";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 interface ManualGoal {
   id: string;
@@ -43,6 +44,7 @@ const FALLBACK_COLOR = "var(--status-good)";
  * of forcing a flat, meaningless line onto the chart.
  */
 export function GoalProgressChart({ points, series, manualGoals, height = 260 }: GoalProgressChartProps) {
+  const isMobile = useIsMobile();
   const { t } = useLocale();
 
   const chartConfig = useMemo(
@@ -59,7 +61,7 @@ export function GoalProgressChart({ points, series, manualGoals, height = 260 }:
           <LineChart data={points} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
-            <YAxis tickFormatter={formatEurosAxisTick} tick={{ fontSize: 11 }} width={48} axisLine={false} tickLine={false} />
+            <YAxis tickFormatter={formatEurosAxisTick} tick={{ fontSize: 11 }} width={isMobile ? Math.round(48 * 0.7) : 48} axisLine={false} tickLine={false} />
             <ChartTooltip
               content={
                 <ChartTooltipContent formatter={(value) => (typeof value === "number" ? formatEuros(value) : String(value ?? ""))} />

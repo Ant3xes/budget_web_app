@@ -18,6 +18,7 @@ import { ChartEmptyState } from "@/components/chart-empty-state";
 import { useLocale } from "@/components/locale-provider";
 import type { IncomeExpenseSeriesPoint } from "@/lib/accounts/compute-income-expense-series";
 import type { TransferVolumeSeriesPoint } from "@/lib/accounts/compute-transfer-volume-series";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 interface CashflowChartProps {
   data: IncomeExpenseSeriesPoint[];
@@ -38,6 +39,7 @@ interface CashflowChartProps {
  * income/expense pair — a volume, not a signed flow.
  */
 export function CashflowChart({ data, transferData, height = 280 }: CashflowChartProps) {
+  const isMobile = useIsMobile();
   const { t } = useLocale();
 
   const chartConfig = useMemo(
@@ -82,7 +84,7 @@ export function CashflowChart({ data, transferData, height = 280 }: CashflowChar
           // relative to the ReferenceLine at 0, and by color/legend.
           tickFormatter={(v: number) => formatEurosAxisTick(Math.abs(v))}
           tick={{ fontSize: 11 }}
-          width={48}
+          width={isMobile ? Math.round(48 * 0.7) : 48}
           axisLine={false}
           tickLine={false}
         />

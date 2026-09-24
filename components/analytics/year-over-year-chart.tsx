@@ -15,6 +15,7 @@ import { ChartEmptyState } from "@/components/chart-empty-state";
 import { useLocale } from "@/components/locale-provider";
 import { formatEuros, formatEurosAxisTick } from "@/lib/format";
 import type { YoYPoint } from "@/lib/accounts/compute-year-over-year";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 interface YearOverYearChartProps {
   data: YoYPoint[];
@@ -29,6 +30,7 @@ interface YearOverYearChartProps {
  * magnitude ramp, so `--chart-1`/`--chart-2` rather than a sequential ramp).
  */
 export function YearOverYearChart({ data, height = 280 }: YearOverYearChartProps) {
+  const isMobile = useIsMobile();
   const { t } = useLocale();
 
   const chartConfig = useMemo(
@@ -47,7 +49,7 @@ export function YearOverYearChart({ data, height = 280 }: YearOverYearChartProps
       <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
-        <YAxis tickFormatter={formatEurosAxisTick} tick={{ fontSize: 11 }} width={48} axisLine={false} tickLine={false} />
+        <YAxis tickFormatter={formatEurosAxisTick} tick={{ fontSize: 11 }} width={isMobile ? Math.round(48 * 0.7) : 48} axisLine={false} tickLine={false} />
         <ChartTooltip
           content={
             <ChartTooltipContent formatter={(value) => (typeof value === "number" ? formatEuros(value) : String(value ?? ""))} />

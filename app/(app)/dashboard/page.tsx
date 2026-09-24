@@ -535,7 +535,7 @@ export default async function DashboardPage({
         </h2>
 
         {/* Solde consolidé + bulles banques (remplace l'ancien bloc "Comptes par banque") */}
-        <div className="flex flex-wrap items-stretch gap-3">
+        <div className="-mx-4 flex snap-x snap-mandatory items-stretch gap-3 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
           <ConsolidatedBalanceTile amountCents={consolidatedBalance} />
           <BankTiles groups={bankGroups} />
         </div>

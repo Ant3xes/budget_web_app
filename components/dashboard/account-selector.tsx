@@ -61,14 +61,14 @@ export function AccountSelector({ accounts, selectedIds, basePath, periodParam }
   };
 
   return (
-    <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
+    <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border p-1 sm:inline-flex">
       <button type="button" onClick={() => navigate(undefined)} className={pillButtonClass(allSelected)}>
         {t("dashboard.allAccounts")}
       </button>
       {/* Separates "Tous les comptes" (a reset control) from the individual
           account toggles below — same divider period-selector.tsx uses
           before its "Personnalisé" block. */}
-      <div aria-hidden className="mx-1 w-px self-stretch bg-zinc-200 dark:bg-zinc-700" />
+      <div aria-hidden className="mx-1 w-px shrink-0 self-stretch bg-border" />
       {accounts.map((account) => {
         const isSelected = selectedIdSet.has(account.id);
         return (

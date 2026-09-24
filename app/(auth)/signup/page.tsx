@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AuthMessage } from "@/components/auth-message";
+import { LogoMark } from "@/components/brand/logo";
 import { T } from "@/components/i18n/t";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 
@@ -14,9 +15,15 @@ export default async function SignupPage({
   const params = await searchParams;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-4">
-      <section className="w-full rounded-xl bg-white p-6 shadow-sm dark:bg-zinc-900 dark:shadow-none dark:ring-1 dark:ring-zinc-800">
-        <h1 className="text-2xl font-semibold dark:text-zinc-100">
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]">
+      <div className="flex items-center justify-center gap-2.5">
+        <LogoMark />
+        <span className="text-base font-semibold tracking-tight">
+          <T k="nav.appTitle" />
+        </span>
+      </div>
+      <section className="w-full rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm">
+        <h1 className="text-2xl font-semibold">
           <T k="auth.signup.title" />
         </h1>
         {!hasSupabaseConfig ? (
@@ -25,19 +32,19 @@ export default async function SignupPage({
           </p>
         ) : (
           <form action={signup} className="mt-6 space-y-4">
-            <label className="block text-sm font-medium dark:text-zinc-300">
+            <label className="block text-sm font-medium">
               <T k="auth.emailLabel" />
               <input
-                className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-base text-foreground md:h-9 md:text-sm"
                 name="email"
                 type="email"
                 required
               />
             </label>
-            <label className="block text-sm font-medium dark:text-zinc-300">
+            <label className="block text-sm font-medium">
               <T k="auth.passwordLabel" />
               <input
-                className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-base text-foreground md:h-9 md:text-sm"
                 name="password"
                 type="password"
                 minLength={8}
@@ -45,7 +52,7 @@ export default async function SignupPage({
               />
             </label>
             <button
-              className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+              className="h-11 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 md:h-9"
               type="submit"
             >
               <T k="auth.signup.submit" />
@@ -53,9 +60,9 @@ export default async function SignupPage({
           </form>
         )}
         <AuthMessage message={params.message} />
-        <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-4 text-sm text-muted-foreground">
           <T k="auth.signup.alreadyRegistered" />{" "}
-          <Link href="/login" className="underline dark:text-zinc-300">
+          <Link href="/login" className="underline">
             <T k="auth.signup.signIn" />
           </Link>
         </p>
