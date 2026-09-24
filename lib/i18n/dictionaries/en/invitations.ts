@@ -7,6 +7,7 @@ export const invitations = {
   title: "Sharing",
   current: {
     heading: "Active space: {space}",
+    headingPersonal: "Active space: Personal",
     personalDescription:
       "Your personal space is private: nobody else can access it. Create a shared space to manage a joint budget.",
     sharedDescription:

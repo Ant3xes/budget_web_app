@@ -42,7 +42,11 @@ export default async function SharingPage() {
 
       <Card className="p-4">
         <h2 className="text-lg font-medium">
-          <T k="invitations.current.heading" vars={{ space: isShared ? space.name : "" }} />
+          {isShared ? (
+            <T k="invitations.current.heading" vars={{ space: space.name }} />
+          ) : (
+            <T k="invitations.current.headingPersonal" />
+          )}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           <T k={isShared ? "invitations.current.sharedDescription" : "invitations.current.personalDescription"} />

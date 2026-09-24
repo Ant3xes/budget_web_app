@@ -7,6 +7,7 @@ export const invitations = {
   title: "Partage",
   current: {
     heading: "Espace actif : {space}",
+    headingPersonal: "Espace actif : Personnel",
     personalDescription:
       "Votre espace personnel est privé : personne d'autre n'y a accès. Créez un espace partagé pour gérer un budget commun.",
     sharedDescription:
