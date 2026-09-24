@@ -37,14 +37,26 @@ export function BankTiles({ groups }: BankTilesProps) {
             href={`/accounts?bank=${encodeURIComponent(group.bank ?? NO_BANK_PARAM)}`}
             title={accountsDetail}
             aria-label={`${bankLabel} — ${formatEuros(group.totalCents)} (${accountsDetail})`}
-            className="block w-56 shrink-0 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="block w-[80%] shrink-0 snap-start rounded-2xl sm:w-56 focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             <StatTile
               interactive
               label={bankLabel}
               value={formatEuros(group.totalCents)}
               valueClassName={group.totalCents < 0 ? "text-expense" : undefined}
-              footer={<p className="mt-1 text-xs text-muted-foreground">{countLabel}</p>}
+              footer={
+                <>
+                  <p className="mt-1 text-xs text-muted-foreground">{countLabel}</p>
+                  <ul className="mt-2 space-y-0.5 border-t border-border pt-2 text-xs text-muted-foreground sm:hidden">
+                    {group.accounts.map((a) => (
+                      <li key={a.id} className="flex justify-between gap-2">
+                        <span className="truncate">{a.name}</span>
+                        <span className="shrink-0 tabular-nums">{formatEuros(a.balanceCents)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              }
               className="h-full"
             />
           </Link>

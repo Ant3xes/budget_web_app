@@ -1,6 +1,7 @@
 export const nav = {
   appTitle: "Budget & Comptes",
   logout: "Déconnexion",
+  more: "Plus",
   items: {
     dashboard: "Tableau de bord",
     analytics: "Analyses",

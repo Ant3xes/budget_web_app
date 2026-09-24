@@ -3,10 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { X } from "lucide-react";
 import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
+import { Modal } from "@/components/ui/modal";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 
 type RuleFormValues = {
@@ -126,94 +126,84 @@ export function ImportRulesModal({ ruleId, defaultValues, onSuccess, onClose }: 
   });
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {ruleId ? t("importRules.editRule") : t("importRules.newRule")}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-700"
-            aria-label={t("common.actions.close")}
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <Modal
+      open
+      onOpenChange={(next) => !next && onClose()}
+      title={ruleId ? t("importRules.editRule") : t("importRules.newRule")}
+      closeLabel={t("common.actions.close")}
+    >
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="rule-keyword" className="mb-1 block text-sm font-medium text-foreground">{t("importRules.form.keywordLabel")}</label>
+          <input
+            id="rule-keyword"
+            {...register("keyword")}
+            type="text"
+            placeholder={t("importRules.form.keywordPlaceholder")}
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("importRules.form.keywordHint")}
+          </p>
+          {errors.keyword && <p className="mt-1 text-xs text-red-500">{errors.keyword.message}</p>}
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="rule-keyword" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("importRules.form.keywordLabel")}</label>
-            <input
-              id="rule-keyword"
-              {...register("keyword")}
-              type="text"
-              placeholder={t("importRules.form.keywordPlaceholder")}
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-            />
-            <p className="mt-1 text-xs text-zinc-500">
-              {t("importRules.form.keywordHint")}
-            </p>
-            {errors.keyword && <p className="mt-1 text-xs text-red-500">{errors.keyword.message}</p>}
-          </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("importRules.form.kindLabel")}</label>
+          <select
+            {...register("kind")}
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          >
+            {(["expense", "income"] as const).map((kind) => (
+              <option key={kind} value={kind}>
+                {t(`categories.kind.${kind}`)}
+              </option>
+            ))}
+          </select>
+        </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("importRules.form.kindLabel")}</label>
-            <select
-              {...register("kind")}
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-            >
-              {(["expense", "income"] as const).map((kind) => (
-                <option key={kind} value={kind}>
-                  {t(`categories.kind.${kind}`)}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("importRules.form.categoryLabel")}</label>
+          <select
+            {...categoryIdField}
+            onChange={(e) => {
+              categoryTouchedRef.current = true;
+              void categoryIdField.onChange(e);
+            }}
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          >
+            <option value="">{t("importRules.form.categoryPlaceholder")}</option>
+            {filteredCategories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.icon ? `${cat.icon} ` : ""}
+                {resolveCategoryName(cat, t)}
+              </option>
+            ))}
+          </select>
+          {errors.category_id && (
+            <p className="mt-1 text-xs text-red-500">{errors.category_id.message}</p>
+          )}
+        </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("importRules.form.categoryLabel")}</label>
-            <select
-              {...categoryIdField}
-              onChange={(e) => {
-                categoryTouchedRef.current = true;
-                void categoryIdField.onChange(e);
-              }}
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-            >
-              <option value="">{t("importRules.form.categoryPlaceholder")}</option>
-              {filteredCategories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.icon ? `${cat.icon} ` : ""}
-                  {resolveCategoryName(cat, t)}
-                </option>
-              ))}
-            </select>
-            {errors.category_id && (
-              <p className="mt-1 text-xs text-red-500">{errors.category_id.message}</p>
-            )}
-          </div>
+        {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
 
-          {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              {t("common.actions.cancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSubmitting ? t("importRules.form.saving") : ruleId ? t("common.actions.edit") : t("common.actions.create")}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-muted"
+          >
+            {t("common.actions.cancel")}
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSubmitting ? t("importRules.form.saving") : ruleId ? t("common.actions.edit") : t("common.actions.create")}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

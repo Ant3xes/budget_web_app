@@ -8,6 +8,7 @@ import { ChartEmptyState } from "@/components/chart-empty-state";
 import { useLocale } from "@/components/locale-provider";
 import { EXPENSE_COLOR } from "@/lib/constants";
 import type { HistogramBucket } from "@/lib/accounts/compute-amount-histogram";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 interface AmountHistogramChartProps {
   data: HistogramBucket[];
@@ -21,6 +22,7 @@ interface AmountHistogramChartProps {
  * bars) — same `--expense` token every other expense-only chart already uses.
  */
 export function AmountHistogramChart({ data, height = 240 }: AmountHistogramChartProps) {
+  const isMobile = useIsMobile();
   const { t } = useLocale();
 
   const chartConfig = useMemo(
@@ -35,7 +37,7 @@ export function AmountHistogramChart({ data, height = 240 }: AmountHistogramChar
       <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fontSize: 11 }} width={32} axisLine={false} tickLine={false} allowDecimals={false} />
+        <YAxis tick={{ fontSize: 11 }} width={isMobile ? Math.round(32 * 0.7) : 32} axisLine={false} tickLine={false} allowDecimals={false} />
         <ChartTooltip
           content={
             <ChartTooltipContent

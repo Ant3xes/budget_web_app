@@ -24,14 +24,14 @@ export function RemainingToLive({ amountCents, afterChargesCents }: RemainingToL
   const { t } = useLocale();
   return (
     <Card>
-      <CardContent className="grid grid-cols-2 divide-x divide-border">
-        <div className="pr-4">
+      <CardContent className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+        <div className="pb-3 sm:pb-0 sm:pr-4">
           <p className="text-sm text-muted-foreground">{t("dashboard.remainingToLive.label")}</p>
           <p className={cn("mt-1 text-xl font-semibold", amountCents < 0 && "text-expense")}>
             {formatEuros(amountCents)}
           </p>
         </div>
-        <div className="pl-4">
+        <div className="pt-3 sm:pt-0 sm:pl-4">
           <p className="text-sm text-muted-foreground">{t("dashboard.remainingToLive.afterChargesLabel")}</p>
           <p className={cn("mt-1 text-xl font-semibold", afterChargesCents < 0 && "text-expense")}>
             {formatEuros(afterChargesCents)}

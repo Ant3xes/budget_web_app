@@ -5,6 +5,7 @@ import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, XAxis, YAxis } from 
 
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { ChartEmptyState } from "@/components/chart-empty-state";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 import { formatEuros, formatEurosAxisTick } from "@/lib/format";
 
 export interface DivergingBarRow {
@@ -33,6 +34,7 @@ interface DivergingBarChartProps {
  * over-budget category) — a bar extending left of a zero reference line can.
  */
 export function DivergingBarChart({ data, height = 280, yAxisWidth = 120, formatTooltipValue = formatEuros }: DivergingBarChartProps) {
+  const isMobile = useIsMobile();
   const chartConfig = useMemo(() => ({ value: {} }) satisfies ChartConfig, []);
 
   if (data.length === 0) return <ChartEmptyState />;
@@ -44,7 +46,7 @@ export function DivergingBarChart({ data, height = 280, yAxisWidth = 120, format
       <BarChart data={data} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
         <XAxis type="number" tickFormatter={formatEurosAxisTick} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-        <YAxis type="category" dataKey="label" tick={{ fontSize: dense ? 10 : 12 }} width={yAxisWidth} axisLine={false} tickLine={false} />
+        <YAxis type="category" dataKey="label" tick={{ fontSize: dense ? 10 : 12 }} width={isMobile ? Math.min(yAxisWidth, 84) : yAxisWidth} axisLine={false} tickLine={false} />
         <ReferenceLine x={0} stroke="var(--border)" />
         <ChartTooltip
           content={

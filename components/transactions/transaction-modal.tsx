@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -144,87 +145,83 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
       : "transactions.form.titleNewIncome";
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{t(titleKey)}</h2>
-          <Button variant="ghost" size="icon-sm" onClick={onClose} className="text-xl leading-none">
-            ×
+    <Modal
+      open
+      onOpenChange={(next) => !next && onClose()}
+      title={t(titleKey)}
+      closeLabel={t("common.actions.close")}
+    >
+      <form onSubmit={onSubmit} className="space-y-4">
+        <label className="block text-sm font-medium">
+          {t("transactions.form.account")}
+          <Select className="mt-1" {...register("account_id")}>
+            <option value="">{t("transactions.form.selectPlaceholder")}</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </Select>
+          {errors.account_id ? <p className="mt-1 text-xs text-red-600">{errors.account_id.message}</p> : null}
+        </label>
+
+        <label className="block text-sm font-medium">
+          {t("transactions.form.amount")}
+          <Input
+            className="mt-1"
+            placeholder={t("transactions.form.amountPlaceholder")}
+            type="text"
+            inputMode="decimal"
+            {...register("amount")}
+          />
+          {errors.amount ? <p className="mt-1 text-xs text-red-600">{errors.amount.message}</p> : null}
+        </label>
+
+        <label className="block text-sm font-medium">
+          {t("transactions.form.date")}
+          <Input className="mt-1" type="date" {...register("date")} />
+          {errors.date ? <p className="mt-1 text-xs text-red-600">{errors.date.message}</p> : null}
+        </label>
+
+        <label className="block text-sm font-medium">
+          {t("transactions.form.description")}
+          <Input className="mt-1" {...register("description")} />
+          {errors.description ? <p className="mt-1 text-xs text-red-600">{errors.description.message}</p> : null}
+        </label>
+
+        <label className="block text-sm font-medium">
+          {t("transactions.form.category")}
+          <Select className="mt-1" {...register("category_id")}>
+            <option value="">{t("transactions.form.noCategoryOption")}</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.icon ? `${c.icon} ` : ""}
+                {resolveCategoryName(c, t)}
+              </option>
+            ))}
+          </Select>
+        </label>
+
+        <label className="block text-sm font-medium">
+          {t("transactions.form.notes")}
+          <textarea
+            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+            rows={2}
+            {...register("notes")}
+          />
+        </label>
+
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+        <div className="flex gap-2 pt-2">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? t("common.state.saving") : transactionId ? t("common.actions.update") : t("common.actions.create")}
+          </Button>
+          <Button type="button" variant="outline" onClick={onClose}>
+            {t("common.actions.cancel")}
           </Button>
         </div>
-
-        <form onSubmit={onSubmit} className="space-y-4">
-          <label className="block text-sm font-medium">
-            {t("transactions.form.account")}
-            <Select className="mt-1" {...register("account_id")}>
-              <option value="">{t("transactions.form.selectPlaceholder")}</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </Select>
-            {errors.account_id ? <p className="mt-1 text-xs text-red-600">{errors.account_id.message}</p> : null}
-          </label>
-
-          <label className="block text-sm font-medium">
-            {t("transactions.form.amount")}
-            <Input
-              className="mt-1"
-              placeholder={t("transactions.form.amountPlaceholder")}
-              type="text"
-              inputMode="decimal"
-              {...register("amount")}
-            />
-            {errors.amount ? <p className="mt-1 text-xs text-red-600">{errors.amount.message}</p> : null}
-          </label>
-
-          <label className="block text-sm font-medium">
-            {t("transactions.form.date")}
-            <Input className="mt-1" type="date" {...register("date")} />
-            {errors.date ? <p className="mt-1 text-xs text-red-600">{errors.date.message}</p> : null}
-          </label>
-
-          <label className="block text-sm font-medium">
-            {t("transactions.form.description")}
-            <Input className="mt-1" {...register("description")} />
-            {errors.description ? <p className="mt-1 text-xs text-red-600">{errors.description.message}</p> : null}
-          </label>
-
-          <label className="block text-sm font-medium">
-            {t("transactions.form.category")}
-            <Select className="mt-1" {...register("category_id")}>
-              <option value="">{t("transactions.form.noCategoryOption")}</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.icon ? `${c.icon} ` : ""}
-                  {resolveCategoryName(c, t)}
-                </option>
-              ))}
-            </Select>
-          </label>
-
-          <label className="block text-sm font-medium">
-            {t("transactions.form.notes")}
-            <textarea
-              className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              rows={2}
-              {...register("notes")}
-            />
-          </label>
-
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-          <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? t("common.state.saving") : transactionId ? t("common.actions.update") : t("common.actions.create")}
-            </Button>
-            <Button type="button" variant="outline" onClick={onClose}>
-              {t("common.actions.cancel")}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

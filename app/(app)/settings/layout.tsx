@@ -17,8 +17,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   const { t } = useLocale();
 
   return (
-    <section className="flex flex-col gap-6 p-6 md:flex-row">
-      <nav className="flex gap-2 md:w-48 md:flex-col md:gap-1">
+    <section className="flex flex-col gap-4 md:flex-row md:gap-6">
+      <nav className="-mx-4 no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:w-48 md:flex-col md:gap-1 md:overflow-visible md:px-0 md:pb-0">
         <h2 className="hidden text-xs font-semibold uppercase tracking-wide text-zinc-500 md:block mb-2 dark:text-zinc-400">
           {t("nav.settingsNav.title")}
         </h2>
@@ -38,7 +38,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
               // than each hand-typing the same class string and color) so
               // this pill can't silently drift out of sync with the top
               // navbar's own "Paramètres" pill.
-              className={navPillClass(active)}
+              className={`shrink-0 ${navPillClass(active)}`}
               style={active ? { backgroundColor: NAV_ACCENTS.settings } : undefined}
             >
               {t(`nav.settingsNav.${item.key}`)}

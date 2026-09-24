@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X } from "lucide-react";
 
 import { useLocale } from "@/components/locale-provider";
+import { Modal } from "@/components/ui/modal";
 
 type AddFundsFormValues = {
   amount: string;
@@ -65,57 +65,49 @@ export function AddFundsModal({ goalId, goalName, onSuccess, onClose }: AddFunds
   });
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{t("goals.addFundsModal.title")}</h2>
-          <button
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-700"
-            aria-label={t("common.actions.close")}
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <Modal
+      open
+      onOpenChange={(next) => !next && onClose()}
+      title={t("goals.addFundsModal.title")}
+      closeLabel={t("common.actions.close")}
+    >
+      <p className="mb-4 text-sm text-muted-foreground">
+        {t("goals.addFundsModal.goalLabel")} <span className="font-medium text-foreground">{goalName}</span>
+      </p>
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("goals.addFundsModal.amountLabel")}</label>
+          <input
+            {...register("amount")}
+            type="text"
+            inputMode="decimal"
+            placeholder="200"
+            autoFocus
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          />
+          {errors.amount && <p className="mt-1 text-xs text-red-500">{errors.amount.message}</p>}
         </div>
 
-        <p className="mb-4 text-sm text-zinc-500">
-          {t("goals.addFundsModal.goalLabel")} <span className="font-medium text-zinc-700">{goalName}</span>
-        </p>
+        {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.addFundsModal.amountLabel")}</label>
-            <input
-              {...register("amount")}
-              type="text"
-              inputMode="decimal"
-              placeholder="200"
-              autoFocus
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-            />
-            {errors.amount && <p className="mt-1 text-xs text-red-500">{errors.amount.message}</p>}
-          </div>
-
-          {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              {t("common.actions.cancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              {isSubmitting ? t("common.state.saving") : t("goals.addFundsModal.submit")}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-muted"
+          >
+            {t("common.actions.cancel")}
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {isSubmitting ? t("common.state.saving") : t("goals.addFundsModal.submit")}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

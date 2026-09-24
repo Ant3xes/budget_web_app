@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { useLocale } from "@/components/locale-provider";
 import { useTheme } from "@/components/theme-provider";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 export interface BalanceChartData {
   date: string; // YYYY-MM-DD
@@ -49,6 +50,7 @@ function formatTooltipDate(isoDate: string): string {
 }
 
 export function BalanceChart({ data, currency = "EUR" }: BalanceChartProps) {
+  const isMobile = useIsMobile();
   const { resolvedTheme } = useTheme();
   const { t } = useLocale();
   const isDark = resolvedTheme === "dark";
@@ -87,7 +89,7 @@ export function BalanceChart({ data, currency = "EUR" }: BalanceChartProps) {
         <YAxis
           tickFormatter={formatAxisTick}
           tick={{ fontSize: 11, fill: tickColor }}
-          width={48}
+          width={isMobile ? Math.round(48 * 0.7) : 48}
           axisLine={false}
           tickLine={false}
         />

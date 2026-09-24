@@ -17,6 +17,7 @@ import { UNCATEGORIZED_CATEGORY_ID } from "@/lib/constants";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 import { formatEuros, formatEurosAxisTick } from "@/lib/format";
 import type { CategoryTrendSeries } from "@/lib/accounts/compute-category-trend-series";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 interface CategoryTrendChartProps {
   data: CategoryTrendSeries;
@@ -39,6 +40,7 @@ const OTHERS_COLOR = "var(--muted-foreground)";
  * categories.
  */
 export function CategoryTrendChart({ data, height = 280 }: CategoryTrendChartProps) {
+  const isMobile = useIsMobile();
   const { t } = useLocale();
 
   const labelFor = (s: CategoryTrendSeries["series"][number]) => {
@@ -65,7 +67,7 @@ export function CategoryTrendChart({ data, height = 280 }: CategoryTrendChartPro
       <LineChart data={data.points} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
-        <YAxis tickFormatter={formatEurosAxisTick} tick={{ fontSize: 11 }} width={48} axisLine={false} tickLine={false} />
+        <YAxis tickFormatter={formatEurosAxisTick} tick={{ fontSize: 11 }} width={isMobile ? Math.round(48 * 0.7) : 48} axisLine={false} tickLine={false} />
         <ChartTooltip
           content={
             <ChartTooltipContent

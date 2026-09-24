@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { TopNav } from "@/components/layout/top-nav";
+import { BottomNav } from "@/components/layout/bottom-nav";
+import { Sidebar } from "@/components/layout/sidebar";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -31,18 +32,21 @@ export default async function AppLayout({
   }
 
   return (
-    <div>
-      <TopNav userEmail={user.email ?? ""} />
-      {/* Single source of page padding — pages below only ever add
-          `space-y-4` for their own vertical rhythm, never their own p-*
-          (previously duplicated inconsistently: some added p-6 on top of
-          this, accounts used space-y-6 instead of space-y-4). */}
-      <main className="p-4 md:p-6">{children}</main>
-      <footer className="border-t border-border px-4 py-3 text-xs text-muted-foreground md:px-6">
-        <Link href="/plan" className="underline underline-offset-2 hover:text-foreground">
-          Plan
-        </Link>
-      </footer>
+    <div className="md:flex">
+      {/* Desktop : sidebar sticky à gauche. Mobile : barre du haut (logo) + barre du bas fixe. */}
+      <Sidebar userEmail={user.email ?? ""} />
+      <BottomNav userEmail={user.email ?? ""} />
+      <div className="min-w-0 flex-1">
+        {/* Single source of page padding — pages below only ever add
+            `space-y-4` for their own vertical rhythm, never their own p-*.
+            `pb-28` réserve la place de la barre du bas fixe sur mobile. */}
+        <main className="p-4 pb-28 md:p-6 md:pb-6">{children}</main>
+        <footer className="hidden border-t border-border px-4 py-3 text-xs text-muted-foreground md:block md:px-6">
+          <Link href="/plan" className="underline underline-offset-2 hover:text-foreground">
+            Plan
+          </Link>
+        </footer>
+      </div>
     </div>
   );
 }

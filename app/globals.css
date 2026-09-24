@@ -196,3 +196,10 @@ body {
     @apply font-sans;
   }
 }
+/* Rangées scrollables horizontalement (pills, tuiles) : pas de barre visible, le swipe suffit. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

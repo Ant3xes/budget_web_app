@@ -8,6 +8,7 @@ import { ChartEmptyState } from "@/components/chart-empty-state";
 import { useLocale } from "@/components/locale-provider";
 import { NET_WORTH_COLOR } from "@/lib/constants";
 import type { IncomeExpenseSeriesPoint } from "@/lib/accounts/compute-income-expense-series";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 interface SavingsRateChartProps {
   /** Reuses the same series the cash-flow chart already has — no extra query. */
@@ -34,6 +35,7 @@ interface SavingsRateChartProps {
 const RATE_CLAMP = 100;
 
 export function SavingsRateChart({ data, height = 220 }: SavingsRateChartProps) {
+  const isMobile = useIsMobile();
   const { t } = useLocale();
 
   const chartConfig = useMemo(
@@ -57,7 +59,7 @@ export function SavingsRateChart({ data, height = 220 }: SavingsRateChartProps) 
           domain={[-RATE_CLAMP, RATE_CLAMP]}
           tickFormatter={(v: number) => `${v}%`}
           tick={{ fontSize: 11 }}
-          width={40}
+          width={isMobile ? Math.round(40 * 0.7) : 40}
           axisLine={false}
           tickLine={false}
         />

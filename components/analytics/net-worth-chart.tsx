@@ -10,6 +10,7 @@ import { ChartEmptyState } from "@/components/chart-empty-state";
 import { EuroTooltipValue } from "@/components/euro-tooltip-value";
 import { useLocale } from "@/components/locale-provider";
 import type { BalanceSeriesPoint } from "@/lib/accounts/compute-balance-series";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 interface NetWorthChartProps {
   data: BalanceSeriesPoint[];
@@ -27,6 +28,7 @@ interface NetWorthChartProps {
  * function needed (see app/(app)/analytics/page.tsx).
  */
 export function NetWorthChart({ data, height = 280 }: NetWorthChartProps) {
+  const isMobile = useIsMobile();
   const { t } = useLocale();
 
   const chartConfig = useMemo(
@@ -49,7 +51,7 @@ export function NetWorthChart({ data, height = 280 }: NetWorthChartProps) {
         <YAxis
           tickFormatter={formatEurosAxisTick}
           tick={{ fontSize: 11 }}
-          width={52}
+          width={isMobile ? Math.round(52 * 0.7) : 52}
           axisLine={false}
           tickLine={false}
         />

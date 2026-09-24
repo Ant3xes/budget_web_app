@@ -132,6 +132,12 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
     setMonth(next);
   };
 
+  const sortedBudgets = [...budgets].sort((a, b) => {
+    const ratioA = a.amount_cents > 0 ? (consumption[a.category_id] ?? 0) / a.amount_cents : 0;
+    const ratioB = b.amount_cents > 0 ? (consumption[b.category_id] ?? 0) / b.amount_cents : 0;
+    return ratioB - ratioA;
+  });
+
   const totalBudget = budgets.reduce((s, b) => s + b.amount_cents, 0);
   const totalConsumed = budgets.reduce((s, b) => s + (consumption[b.category_id] ?? 0), 0);
 
@@ -152,7 +158,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
   return (
     <div className="space-y-4">
       {/* Month navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" onClick={goToPrevMonth}>
             ←
@@ -166,7 +172,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
       </div>
 
       {isLoading ? (
-        <p className="py-8 text-center text-sm text-zinc-500">{t("common.state.loading")}</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">{t("common.state.loading")}</p>
       ) : budgets.length === 0 ? (
         <EmptyState
           title={t("budget.emptyForMonth", { month: monthLabel(month) })}
@@ -184,37 +190,104 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
         <>
           {/* Spending by category */}
           <Card className="p-4">
-            <h2 className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <h2 className="mb-2 text-sm font-medium text-muted-foreground">
               {t("budget.spendingByCategory")}
             </h2>
             <DonutChart data={donutData} emptyLabel={t("budget.noExpense")} />
           </Card>
 
           {/* Summary */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 [&>*]:min-w-0">
             <Card className="p-4">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("budget.totalBudget")}</p>
-              <p className="mt-1 text-lg font-semibold">{formatEuros(totalBudget)}</p>
+              <p className="truncate text-xs text-muted-foreground">{t("budget.totalBudget")}</p>
+              <p className="mt-1 truncate text-base font-semibold sm:text-lg">{formatEuros(totalBudget)}</p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("budget.consumed")}</p>
-              <p className="mt-1 text-lg font-semibold">{formatEuros(totalConsumed)}</p>
+              <p className="truncate text-xs text-muted-foreground">{t("budget.consumed")}</p>
+              <p className="mt-1 truncate text-base font-semibold sm:text-lg">{formatEuros(totalConsumed)}</p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("budget.remaining")}</p>
+              <p className="truncate text-xs text-muted-foreground">{t("budget.remaining")}</p>
               <p
-                className={`mt-1 text-lg font-semibold ${totalBudget - totalConsumed < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}
+                className={`mt-1 truncate text-base font-semibold sm:text-lg ${totalBudget - totalConsumed < 0 ? "text-expense" : "text-income"}`}
               >
                 {formatEuros(totalBudget - totalConsumed)}
               </p>
             </Card>
           </div>
 
-          {/* Budget table */}
-          <Card className="overflow-x-auto p-0">
+          {/* Cards (< md) */}
+          <ul className="space-y-2 md:hidden">
+            {sortedBudgets.map((budget) => {
+              const consumed = consumption[budget.category_id] ?? 0;
+              const remaining = budget.amount_cents - consumed;
+              const ratio = budget.amount_cents > 0 ? consumed / budget.amount_cents : 0;
+              return (
+                <li key={budget.id} className="rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <CategoryBadge
+                        name={budget.categories?.name ?? "—"}
+                        icon={budget.categories?.icon}
+                        color={budget.categories?.color}
+                      />
+                      {ratio > 1 && (
+                        <span className="inline-block shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                          {t("budget.overBudget")}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setEditingBudget(budget)}
+                        aria-label={t("budget.editEnvelope")}
+                        title={t("common.actions.edit")}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="icon-sm"
+                        onClick={() => setDeletingBudget(budget)}
+                        aria-label={t("budget.deleteEnvelope")}
+                        title={t("common.actions.delete")}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs [&>*]:min-w-0">
+                    <div>
+                      <p className="truncate text-muted-foreground">{t("budget.table.envelope")}</p>
+                      <p className="truncate text-sm font-medium">{formatEuros(budget.amount_cents)}</p>
+                    </div>
+                    <div>
+                      <p className="truncate text-muted-foreground">{t("budget.consumed")}</p>
+                      <p className="truncate text-sm">{formatEuros(consumed)}</p>
+                    </div>
+                    <div>
+                      <p className="truncate text-muted-foreground">{t("budget.table.remaining")}</p>
+                      <p className={`truncate text-sm font-medium ${remaining < 0 ? "text-expense" : ""}`}>
+                        {formatEuros(remaining)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <BudgetBar ratio={ratio} />
+                    <p className="mt-0.5 text-right text-xs text-muted-foreground">{Math.round(ratio * 100)}%</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Budget table (>= md) */}
+          <Card className="hidden overflow-x-auto p-0 md:block">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100 text-left text-xs font-medium text-zinc-500 uppercase dark:border-zinc-700 dark:text-zinc-400">
+                <tr className="border-b border-border text-left text-xs font-medium text-muted-foreground uppercase">
                   <th className="px-4 py-3">{t("budget.table.category")}</th>
                   <th className="px-4 py-3 text-right">{t("budget.table.envelope")}</th>
                   <th className="px-4 py-3 text-right">{t("budget.consumed")}</th>
@@ -224,19 +297,13 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                 </tr>
               </thead>
               <tbody>
-                {[...budgets]
-                  .sort((a, b) => {
-                    const ratioA = a.amount_cents > 0 ? (consumption[a.category_id] ?? 0) / a.amount_cents : 0;
-                    const ratioB = b.amount_cents > 0 ? (consumption[b.category_id] ?? 0) / b.amount_cents : 0;
-                    return ratioB - ratioA;
-                  })
-                  .map((budget) => {
+                {sortedBudgets.map((budget) => {
                     const consumed = consumption[budget.category_id] ?? 0;
                     const remaining = budget.amount_cents - consumed;
                     const ratio = budget.amount_cents > 0 ? consumed / budget.amount_cents : 0;
 
                     return (
-                      <tr key={budget.id} className="border-b border-zinc-50 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
+                      <tr key={budget.id} className="border-b border-border/50 hover:bg-muted/50">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <CategoryBadge
@@ -255,12 +322,12 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
                           {formatEuros(budget.amount_cents)}
                         </td>
                         <td className="px-4 py-3 text-right">{formatEuros(consumed)}</td>
-                        <td className={`px-4 py-3 text-right font-medium ${remaining < 0 ? "text-red-600 dark:text-red-400" : "text-zinc-700 dark:text-zinc-300"}`}>
+                        <td className={`px-4 py-3 text-right font-medium ${remaining < 0 ? "text-expense" : ""}`}>
                           {formatEuros(remaining)}
                         </td>
                         <td className="px-4 py-3">
                           <BudgetBar ratio={ratio} />
-                          <p className="mt-0.5 text-right text-xs text-zinc-400">
+                          <p className="mt-0.5 text-right text-xs text-muted-foreground">
                             {Math.round(ratio * 100)}%
                           </p>
                         </td>

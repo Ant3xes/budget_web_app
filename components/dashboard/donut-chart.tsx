@@ -8,6 +8,7 @@ import type { NameType, ValueType } from "recharts/types/component/DefaultToolti
 
 import { UNCATEGORIZED_CATEGORY_ID } from "@/lib/constants";
 import { formatEuros } from "@/lib/format";
+import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 interface DonutDatum {
   name: string;
@@ -115,6 +116,7 @@ export function DonutChart({
   onSliceClick,
 }: DonutChartProps) {
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   // See ChartContainer's own comment (components/ui/chart.tsx): recharts'
   // ResponsiveContainer can measure a stale/zero size on first mount here
@@ -171,13 +173,13 @@ export function DonutChart({
         <Tooltip content={(props) => <DonutTooltipContent {...props} />} />
         <Legend
           formatter={(value) => (
-            <span style={{ fontSize: "12px", color: "var(--muted-foreground)" }}>{value}</span>
+            <span style={{ fontSize: isMobile ? "11px" : "12px", color: "var(--muted-foreground)" }}>{value}</span>
           )}
           // A caller can size the chart taller to make room for many
           // categories (see account-detail.tsx), but this is the backstop
           // for whatever height is passed: scroll rather than silently clip
           // once the legend itself would exceed a third of the chart.
-          wrapperStyle={{ paddingTop: "8px", maxHeight: Math.round(height * 0.35), overflowY: "auto" }}
+          wrapperStyle={{ paddingTop: "8px", maxHeight: Math.round(height * (isMobile ? 0.3 : 0.35)), overflowY: "auto" }}
         />
       </PieChart>
     </ResponsiveContainer>
