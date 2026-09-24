@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -118,87 +119,81 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {transferId ? t("transactions.transfers.form.titleEdit") : t("transactions.transfers.form.titleNew")}
-          </h2>
-          <Button variant="ghost" size="icon-sm" onClick={onClose} className="text-xl leading-none">
-            ×
+    <Modal
+      open
+      onOpenChange={(next) => !next && onClose()}
+      title={transferId ? t("transactions.transfers.form.titleEdit") : t("transactions.transfers.form.titleNew")}
+      closeLabel={t("common.actions.close")}
+    >
+      <form onSubmit={onSubmit} className="space-y-4">
+        {!transferId && (
+          <>
+            <label className="block text-sm font-medium">
+              {t("transactions.transfers.form.fromAccount")}
+              <Select className="mt-1" {...register("from_account_id")}>
+                <option value="">{t("transactions.form.selectPlaceholder")}</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </Select>
+              {errors.from_account_id ? (
+                <p className="mt-1 text-xs text-red-600">{errors.from_account_id.message}</p>
+              ) : null}
+            </label>
+
+            <label className="block text-sm font-medium">
+              {t("transactions.transfers.form.toAccount")}
+              <Select className="mt-1" {...register("to_account_id")}>
+                <option value="">{t("transactions.form.selectPlaceholder")}</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </Select>
+              {errors.to_account_id ? (
+                <p className="mt-1 text-xs text-red-600">{errors.to_account_id.message}</p>
+              ) : null}
+            </label>
+          </>
+        )}
+
+        <label className="block text-sm font-medium">
+          {t("transactions.transfers.form.amount")}
+          <Input
+            className="mt-1"
+            placeholder={t("transactions.transfers.form.amountPlaceholder")}
+            type="text"
+            inputMode="decimal"
+            {...register("amount")}
+          />
+          {errors.amount ? <p className="mt-1 text-xs text-red-600">{errors.amount.message}</p> : null}
+        </label>
+
+        <label className="block text-sm font-medium">
+          {t("transactions.transfers.form.date")}
+          <Input className="mt-1" type="date" {...register("date")} />
+          {errors.date ? <p className="mt-1 text-xs text-red-600">{errors.date.message}</p> : null}
+        </label>
+
+        <label className="block text-sm font-medium">
+          {t("transactions.transfers.form.description")}
+          <Input className="mt-1" {...register("description")} />
+        </label>
+
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+        <div className="flex gap-2 pt-2">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? t("common.state.saving") : transferId ? t("common.actions.update") : t("common.actions.create")}
+          </Button>
+          <Button type="button" variant="outline" onClick={onClose}>
+            {t("common.actions.cancel")}
           </Button>
         </div>
-
-        <form onSubmit={onSubmit} className="space-y-4">
-          {!transferId && (
-            <>
-              <label className="block text-sm font-medium">
-                {t("transactions.transfers.form.fromAccount")}
-                <Select className="mt-1" {...register("from_account_id")}>
-                  <option value="">{t("transactions.form.selectPlaceholder")}</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </Select>
-                {errors.from_account_id ? (
-                  <p className="mt-1 text-xs text-red-600">{errors.from_account_id.message}</p>
-                ) : null}
-              </label>
-
-              <label className="block text-sm font-medium">
-                {t("transactions.transfers.form.toAccount")}
-                <Select className="mt-1" {...register("to_account_id")}>
-                  <option value="">{t("transactions.form.selectPlaceholder")}</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </Select>
-                {errors.to_account_id ? (
-                  <p className="mt-1 text-xs text-red-600">{errors.to_account_id.message}</p>
-                ) : null}
-              </label>
-            </>
-          )}
-
-          <label className="block text-sm font-medium">
-            {t("transactions.transfers.form.amount")}
-            <Input
-              className="mt-1"
-              placeholder={t("transactions.transfers.form.amountPlaceholder")}
-              type="text"
-              inputMode="decimal"
-              {...register("amount")}
-            />
-            {errors.amount ? <p className="mt-1 text-xs text-red-600">{errors.amount.message}</p> : null}
-          </label>
-
-          <label className="block text-sm font-medium">
-            {t("transactions.transfers.form.date")}
-            <Input className="mt-1" type="date" {...register("date")} />
-            {errors.date ? <p className="mt-1 text-xs text-red-600">{errors.date.message}</p> : null}
-          </label>
-
-          <label className="block text-sm font-medium">
-            {t("transactions.transfers.form.description")}
-            <Input className="mt-1" {...register("description")} />
-          </label>
-
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-          <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? t("common.state.saving") : transferId ? t("common.actions.update") : t("common.actions.create")}
-            </Button>
-            <Button type="button" variant="outline" onClick={onClose}>
-              {t("common.actions.cancel")}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

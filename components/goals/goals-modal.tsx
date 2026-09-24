@@ -3,10 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { X } from "lucide-react";
 import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
+import { Modal } from "@/components/ui/modal";
 import { CATEGORY_COLOR_FALLBACK, CATEGORY_COLOR_SWATCHES } from "@/lib/constants";
 
 type GoalFormValues = {
@@ -146,148 +146,138 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
   });
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {goalId ? t("goals.modal.editTitle") : t("goals.modal.newTitle")}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-700"
-            aria-label={t("common.actions.close")}
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <Modal
+      open
+      onOpenChange={(next) => !next && onClose()}
+      title={goalId ? t("goals.modal.editTitle") : t("goals.modal.newTitle")}
+      closeLabel={t("common.actions.close")}
+    >
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="goal-name" className="mb-1 block text-sm font-medium text-foreground">{t("goals.modal.name")}</label>
+          <input
+            id="goal-name"
+            {...register("name")}
+            type="text"
+            placeholder={t("goals.modal.namePlaceholder")}
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          />
+          {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="goal-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.modal.name")}</label>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="mb-1 block text-sm font-medium text-foreground">{t("goals.modal.icon")}</label>
             <input
-              id="goal-name"
-              {...register("name")}
+              {...register("icon")}
               type="text"
-              placeholder={t("goals.modal.namePlaceholder")}
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
+              placeholder="🏖️"
+              className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
             />
-            {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
           </div>
-
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.modal.icon")}</label>
-              <input
-                {...register("icon")}
-                type="text"
-                placeholder="🏖️"
-                className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-              />
-            </div>
-            <div className="flex-1">
-              <label htmlFor="goal-target" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.modal.targetAmount")}</label>
-              <input
-                id="goal-target"
-                {...register("target_amount")}
-                type="text"
-                inputMode="decimal"
-                placeholder="2000"
-                className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-              />
-              {errors.target_amount && (
-                <p className="mt-1 text-xs text-red-500">{errors.target_amount.message}</p>
-              )}
-            </div>
-          </div>
-
-          {!isLinked && (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {t("goals.modal.currentAmount")}
-              </label>
-              <input
-                {...register("current_amount")}
-                type="text"
-                inputMode="decimal"
-                placeholder="0"
-                className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-              />
-              {errors.current_amount && (
-                <p className="mt-1 text-xs text-red-500">{errors.current_amount.message}</p>
-              )}
-            </div>
-          )}
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.modal.deadline")}</label>
+          <div className="flex-1">
+            <label htmlFor="goal-target" className="mb-1 block text-sm font-medium text-foreground">{t("goals.modal.targetAmount")}</label>
             <input
-              {...register("deadline")}
-              type="date"
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
+              id="goal-target"
+              {...register("target_amount")}
+              type="text"
+              inputMode="decimal"
+              placeholder="2000"
+              className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
             />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              {t("goals.modal.linkedCategory")}
-            </label>
-            <select
-              {...register("linked_category_id")}
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-            >
-              <option value="">{t("goals.modal.noCategoryManual")}</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.icon ? `${cat.icon} ` : ""}
-                  {(cat as { name: string }).name}
-                </option>
-              ))}
-            </select>
-            {isLinked && (
-              <p className="mt-1 text-xs text-zinc-500">
-                {t("goals.modal.linkedCategoryHint")}
-              </p>
+            {errors.target_amount && (
+              <p className="mt-1 text-xs text-red-500">{errors.target_amount.message}</p>
             )}
           </div>
+        </div>
 
+        {!isLinked && (
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("goals.modal.color")}</label>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {DEFAULT_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setValue("color", color)}
-                  className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110"
-                  style={{
-                    backgroundColor: color,
-                    borderColor: selectedColor === color ? "#000" : "transparent",
-                  }}
-                />
-              ))}
-            </div>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t("goals.modal.currentAmount")}
+            </label>
+            <input
+              {...register("current_amount")}
+              type="text"
+              inputMode="decimal"
+              placeholder="0"
+              className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+            />
+            {errors.current_amount && (
+              <p className="mt-1 text-xs text-red-500">{errors.current_amount.message}</p>
+            )}
           </div>
+        )}
 
-          {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("goals.modal.deadline")}</label>
+          <input
+            {...register("deadline")}
+            type="date"
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          />
+        </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              {t("common.actions.cancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSubmitting ? t("common.state.saving") : goalId ? t("common.actions.edit") : t("common.actions.create")}
-            </button>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            {t("goals.modal.linkedCategory")}
+          </label>
+          <select
+            {...register("linked_category_id")}
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          >
+            <option value="">{t("goals.modal.noCategoryManual")}</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.icon ? `${cat.icon} ` : ""}
+                {(cat as { name: string }).name}
+              </option>
+            ))}
+          </select>
+          {isLinked && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("goals.modal.linkedCategoryHint")}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("goals.modal.color")}</label>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {DEFAULT_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setValue("color", color)}
+                className="size-10 rounded-full md:size-7 border-2 transition-transform hover:scale-110"
+                style={{
+                  backgroundColor: color,
+                  borderColor: selectedColor === color ? "#000" : "transparent",
+                }}
+              />
+            ))}
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-muted"
+          >
+            {t("common.actions.cancel")}
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSubmitting ? t("common.state.saving") : goalId ? t("common.actions.edit") : t("common.actions.create")}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

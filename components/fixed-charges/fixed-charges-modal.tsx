@@ -3,10 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { X } from "lucide-react";
 import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
+import { Modal } from "@/components/ui/modal";
 
 type FixedChargeFormValues = {
   name: string;
@@ -152,130 +152,125 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
   });
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {chargeId ? t("fixedCharges.modal.editTitle") : t("fixedCharges.modal.newTitle")}
-          </h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200" aria-label={t("common.actions.close")}>
-            <X className="h-5 w-5" />
-          </button>
+    <Modal
+      open
+      onOpenChange={(next) => !next && onClose()}
+      title={chargeId ? t("fixedCharges.modal.editTitle") : t("fixedCharges.modal.newTitle")}
+      className="md:max-w-lg"
+      closeLabel={t("common.actions.close")}
+    >
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("fixedCharges.modal.name")}</label>
+          <input
+            {...register("name")}
+            type="text"
+            placeholder={t("fixedCharges.modal.namePlaceholder")}
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          />
+          {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.name")}</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">{t("fixedCharges.modal.amount")}</label>
             <input
-              {...register("name")}
+              {...register("amount")}
               type="text"
-              placeholder={t("fixedCharges.modal.namePlaceholder")}
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
+              inputMode="decimal"
+              placeholder="850"
+              className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
             />
-            {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.amount")}</label>
-              <input
-                {...register("amount")}
-                type="text"
-                inputMode="decimal"
-                placeholder="850"
-                className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-              />
-              {errors.amount && <p className="mt-1 text-xs text-red-500">{errors.amount.message}</p>}
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.frequency")}</label>
-              <select
-                {...register("frequency")}
-                className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-              >
-                {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {errors.amount && <p className="mt-1 text-xs text-red-500">{errors.amount.message}</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.nextDueDate")}</label>
-            <input
-              {...register("next_due_date")}
-              type="date"
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-            />
-            {errors.next_due_date && (
-              <p className="mt-1 text-xs text-red-500">{errors.next_due_date.message}</p>
-            )}
+            <label className="mb-1 block text-sm font-medium text-foreground">{t("fixedCharges.modal.frequency")}</label>
+            <select
+              {...register("frequency")}
+              className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+            >
+              {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.account")}</label>
-              <select
-                {...register("account_id")}
-                className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-              >
-                <option value="">{t("fixedCharges.modal.noAccount")}</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("fixedCharges.modal.nextDueDate")}</label>
+          <input
+            {...register("next_due_date")}
+            type="date"
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          />
+          {errors.next_due_date && (
+            <p className="mt-1 text-xs text-red-500">{errors.next_due_date.message}</p>
+          )}
+        </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.category")}</label>
-              <select
-                {...register("category_id")}
-                className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-              >
-                <option value="">{t("fixedCharges.modal.noCategory")}</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.icon ? `${cat.icon} ` : ""}{cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground">{t("fixedCharges.modal.account")}</label>
+            <select
+              {...register("account_id")}
+              className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">{t("fixedCharges.modal.noAccount")}</option>
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("fixedCharges.modal.notes")}</label>
-            <textarea
-              {...register("notes")}
-              rows={2}
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-            />
-          </div>
-
-          {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            <label className="mb-1 block text-sm font-medium text-foreground">{t("fixedCharges.modal.category")}</label>
+            <select
+              {...register("category_id")}
+              className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
             >
-              {t("common.actions.cancel")}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSubmitting ? t("common.state.saving") : chargeId ? t("common.actions.edit") : t("common.actions.create")}
-            </button>
+              <option value="">{t("fixedCharges.modal.noCategory")}</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.icon ? `${cat.icon} ` : ""}{cat.name}
+                </option>
+              ))}
+            </select>
           </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">{t("fixedCharges.modal.notes")}</label>
+          <textarea
+            {...register("notes")}
+            rows={2}
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          />
+        </div>
+
+        {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-muted"
+          >
+            {t("common.actions.cancel")}
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSubmitting ? t("common.state.saving") : chargeId ? t("common.actions.edit") : t("common.actions.create")}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

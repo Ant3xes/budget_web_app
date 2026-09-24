@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 
 import { useLocale } from "@/components/locale-provider";
+import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -173,188 +174,175 @@ export function ApplyRulesModal({ onSuccess, onClose }: ApplyRulesModalProps) {
   }, [categories]);
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    <Modal
+      open
+      onOpenChange={(next) => !next && onClose()}
+      title={t("transactions.applyRules.title")}
+      className="md:max-w-2xl"
+      closeLabel={t("common.actions.close")}
     >
-      <div className="w-full max-w-2xl rounded-lg bg-white shadow-xl flex flex-col max-h-[85vh] dark:bg-zinc-900">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-700">
-          <h2 className="text-lg font-semibold">{t("transactions.applyRules.title")}</h2>
-          <Button variant="ghost" size="icon-sm" onClick={onClose} className="text-xl leading-none">
-            ×
-          </Button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
-          {isLoading ? (
-            <p className="text-sm text-zinc-500">{t("common.state.loading")}</p>
-          ) : result !== null ? (
-            <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
-              <p className="text-lg font-semibold">{t("transactions.applyRules.appliedTitle")}</p>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                {t("transactions.applyRules.appliedDescription", {
-                  count: result.applied,
-                  plural: result.applied > 1 ? "s" : "",
-                })}
-              </p>
-              {result.rulesCreated > 0 && (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  {t("transactions.applyRules.rulesCreatedDescription", {
-                    count: result.rulesCreated,
-                    plural: result.rulesCreated > 1 ? "s" : "",
-                  })}
-                </p>
-              )}
-            </div>
-          ) : previews.length === 0 && unmatched.length === 0 ? (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">{t("transactions.applyRules.nothingToCategorize")}</p>
-          ) : (
-            <div className="space-y-6">
-              {previews.length > 0 && (
-                <div className="space-y-3">
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">{previews.length}</span>{" "}
-                    {t("transactions.applyRules.willApplyCount")}
-                  </p>
-                  <div className="space-y-2">
-                    {grouped.map((group) => (
-                      <div key={group.category_id} className="rounded-lg border border-zinc-200 dark:border-zinc-700">
-                        <div className="flex items-center justify-between px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800 rounded-t-lg">
-                          <span className="text-sm font-medium">
-                            {group.category_icon ? `${group.category_icon} ` : ""}
-                            {group.category_name}
-                          </span>
-                          <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                            {t("transactions.applyRules.transactionCount", {
-                              count: group.items.length,
-                              plural: group.items.length > 1 ? "s" : "",
-                            })}
-                          </span>
-                        </div>
-                        <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                          {group.items.map((item) => (
-                            <li key={item.id} className="flex items-center justify-between px-4 py-2 text-xs">
-                              <span className="text-zinc-700 dark:text-zinc-300 truncate max-w-[280px]">
-                                {item.description}
-                              </span>
-                              <span
-                                className={`ml-2 flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] leading-none ${
-                                  item.suggestion_source === "rule"
-                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                                    : "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
-                                }`}
-                              >
-                                {item.suggestion_source === "rule"
-                                  ? t("transactions.applyRules.sourceRule")
-                                  : t("transactions.applyRules.sourceHistory")}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
+    {isLoading ? (
+      <p className="text-sm text-muted-foreground">{t("common.state.loading")}</p>
+    ) : result !== null ? (
+      <div className="flex flex-col items-center gap-4 py-8 text-center">
+        <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+        <p className="text-lg font-semibold">{t("transactions.applyRules.appliedTitle")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("transactions.applyRules.appliedDescription", {
+            count: result.applied,
+            plural: result.applied > 1 ? "s" : "",
+          })}
+        </p>
+        {result.rulesCreated > 0 && (
+          <p className="text-sm text-muted-foreground">
+            {t("transactions.applyRules.rulesCreatedDescription", {
+              count: result.rulesCreated,
+              plural: result.rulesCreated > 1 ? "s" : "",
+            })}
+          </p>
+        )}
+      </div>
+    ) : previews.length === 0 && unmatched.length === 0 ? (
+      <p className="text-sm text-muted-foreground">{t("transactions.applyRules.nothingToCategorize")}</p>
+    ) : (
+      <div className="space-y-6">
+        {previews.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{previews.length}</span>{" "}
+              {t("transactions.applyRules.willApplyCount")}
+            </p>
+            <div className="space-y-2">
+              {grouped.map((group) => (
+                <div key={group.category_id} className="rounded-lg border border-border">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-muted rounded-t-lg">
+                    <span className="text-sm font-medium">
+                      {group.category_icon ? `${group.category_icon} ` : ""}
+                      {group.category_name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {t("transactions.applyRules.transactionCount", {
+                        count: group.items.length,
+                        plural: group.items.length > 1 ? "s" : "",
+                      })}
+                    </span>
                   </div>
-                </div>
-              )}
-
-              {unmatched.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    {t("transactions.applyRules.unmatchedTitle", {
-                      count: unmatched.length,
-                      plural: unmatched.length > 1 ? "s" : "",
-                    })}
-                  </p>
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500">{t("transactions.applyRules.unmatchedHint")}</p>
-                  <ul className="space-y-2">
-                    {unmatched.map((u) => {
-                      const kindCategories = categoriesByKind[u.kind];
-                      const chosen = manualCategory[u.id] ?? "";
-                      return (
-                        <li key={u.id} className="rounded-lg border border-zinc-200 p-3 text-xs dark:border-zinc-700">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="truncate max-w-[220px] text-zinc-700 dark:text-zinc-300" title={u.description}>
-                              {u.description}
-                            </span>
-                            <Select
-                              value={chosen}
-                              onChange={(e) =>
-                                setManualCategory((prev) => ({ ...prev, [u.id]: e.target.value }))
-                              }
-                              className="w-auto"
-                            >
-                              <option value="">{t("transactions.applyRules.chooseCategoryOption")}</option>
-                              {kindCategories.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.icon ? `${c.icon} ` : ""}
-                                  {resolveCategoryName(c, t)}
-                                </option>
-                              ))}
-                            </Select>
-                          </div>
-                          {chosen && (
-                            <div className="mt-2 flex items-center gap-2 border-t border-zinc-100 pt-2 dark:border-zinc-800">
-                              <label className="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400">
-                                <input
-                                  type="checkbox"
-                                  checked={createRule[u.id] ?? true}
-                                  onChange={(e) =>
-                                    setCreateRule((prev) => ({ ...prev, [u.id]: e.target.checked }))
-                                  }
-                                />
-                                {t("transactions.applyRules.createRuleLabel")}
-                              </label>
-                              {(createRule[u.id] ?? true) && (
-                                <Input
-                                  type="text"
-                                  value={keyword[u.id] ?? u.description}
-                                  onChange={(e) => setKeyword((prev) => ({ ...prev, [u.id]: e.target.value }))}
-                                  placeholder={t("transactions.applyRules.keywordPlaceholder")}
-                                  maxLength={RULE_KEYWORD_MAX_LENGTH}
-                                  className="flex-1"
-                                />
-                              )}
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
+                  <ul className="divide-y divide-border">
+                    {group.items.map((item) => (
+                      <li key={item.id} className="flex items-center justify-between px-4 py-2 text-xs">
+                        <span className="text-foreground min-w-0 truncate">
+                          {item.description}
+                        </span>
+                        <span
+                          className={`ml-2 flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] leading-none ${
+                            item.suggestion_source === "rule"
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                              : "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                          }`}
+                        >
+                          {item.suggestion_source === "rule"
+                            ? t("transactions.applyRules.sourceRule")
+                            : t("transactions.applyRules.sourceHistory")}
+                        </span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
-              )}
-
-              {error ? <p className="text-sm text-red-600">{error}</p> : null}
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Footer */}
-        <div className="flex justify-end gap-2 border-t border-zinc-200 px-6 py-4 dark:border-zinc-700">
-          {result !== null ? (
-            <Button onClick={onSuccess}>{t("common.actions.close")}</Button>
-          ) : (
-            <>
-              <Button variant="outline" onClick={onClose}>
-                {t("common.actions.cancel")}
-              </Button>
-              {totalActionable > 0 && (
-                <Button onClick={() => void handleApply()} disabled={isSubmitting}>
-                  {isSubmitting
-                    ? t("transactions.applyRules.applying")
-                    : t("transactions.applyRules.applyButton", {
-                        count: totalActionable,
-                        plural: totalActionable > 1 ? "s" : "",
-                      })}
-                </Button>
-              )}
-            </>
-          )}
-        </div>
+        {unmatched.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">
+              {t("transactions.applyRules.unmatchedTitle", {
+                count: unmatched.length,
+                plural: unmatched.length > 1 ? "s" : "",
+              })}
+            </p>
+            <p className="text-xs text-muted-foreground">{t("transactions.applyRules.unmatchedHint")}</p>
+            <ul className="space-y-2">
+              {unmatched.map((u) => {
+                const kindCategories = categoriesByKind[u.kind];
+                const chosen = manualCategory[u.id] ?? "";
+                return (
+                  <li key={u.id} className="rounded-lg border border-border p-3 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 flex-1 truncate text-foreground" title={u.description}>
+                        {u.description}
+                      </span>
+                      <Select
+                        value={chosen}
+                        onChange={(e) =>
+                          setManualCategory((prev) => ({ ...prev, [u.id]: e.target.value }))
+                        }
+                        className="w-auto"
+                      >
+                        <option value="">{t("transactions.applyRules.chooseCategoryOption")}</option>
+                        {kindCategories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.icon ? `${c.icon} ` : ""}
+                            {resolveCategoryName(c, t)}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    {chosen && (
+                      <div className="mt-2 flex items-center gap-2 border-t border-border pt-2">
+                        <label className="flex items-center gap-1.5 text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={createRule[u.id] ?? true}
+                            onChange={(e) =>
+                              setCreateRule((prev) => ({ ...prev, [u.id]: e.target.checked }))
+                            }
+                          />
+                          {t("transactions.applyRules.createRuleLabel")}
+                        </label>
+                        {(createRule[u.id] ?? true) && (
+                          <Input
+                            type="text"
+                            value={keyword[u.id] ?? u.description}
+                            onChange={(e) => setKeyword((prev) => ({ ...prev, [u.id]: e.target.value }))}
+                            placeholder={t("transactions.applyRules.keywordPlaceholder")}
+                            maxLength={RULE_KEYWORD_MAX_LENGTH}
+                            className="flex-1"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
       </div>
-    </div>
+    )}
+      <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4">
+    {result !== null ? (
+      <Button onClick={onSuccess}>{t("common.actions.close")}</Button>
+    ) : (
+      <>
+        <Button variant="outline" onClick={onClose}>
+          {t("common.actions.cancel")}
+        </Button>
+        {totalActionable > 0 && (
+          <Button onClick={() => void handleApply()} disabled={isSubmitting}>
+            {isSubmitting
+              ? t("transactions.applyRules.applying")
+              : t("transactions.applyRules.applyButton", {
+                  count: totalActionable,
+                  plural: totalActionable > 1 ? "s" : "",
+                })}
+          </Button>
+        )}
+      </>
+    )}
+      </div>
+    </Modal>
   );
 }

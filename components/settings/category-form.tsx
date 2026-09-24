@@ -87,7 +87,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
       <label className="block text-sm font-medium">
         {t("settings.categories.form.name")}
         <input
-          className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
+          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
           {...register("name")}
         />
         {errors.name ? <p className="mt-1 text-xs text-red-600">{errors.name.message}</p> : null}
@@ -96,7 +96,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
       <label className="block text-sm font-medium">
         {t("settings.categories.form.type")}
         <select
-          className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
+          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
           {...register("kind")}
         >
           {(["expense", "income", "transfer"] as const).map((kind) => (
@@ -110,7 +110,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
       <div className="block text-sm font-medium">
         {t("settings.categories.form.icon")}
         <input
-          className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
+          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
           placeholder={t("settings.categories.form.iconPlaceholder")}
           {...register("icon")}
         />
@@ -124,7 +124,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
               key={color}
               type="button"
               onClick={() => setValue("color", color)}
-              className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110"
+              className="size-10 rounded-full md:size-7 border-2 transition-transform hover:scale-110"
               style={{
                 backgroundColor: color,
                 borderColor: selectedColor === color ? "#000" : "transparent",
@@ -147,7 +147,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-md border border-zinc-300 px-4 py-2 text-sm dark:border-zinc-600 dark:text-zinc-300"
+          className="rounded-md border border-border px-4 py-2 text-sm text-foreground"
         >
           {t("common.actions.cancel")}
         </button>

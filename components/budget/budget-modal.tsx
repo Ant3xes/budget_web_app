@@ -3,10 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { X } from "lucide-react";
 import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
+import { Modal } from "@/components/ui/modal";
 
 type BudgetFormValues = {
   category_id: string;
@@ -102,68 +102,61 @@ export function BudgetModal({ month, budgetId, defaultValues, onSuccess, onClose
   });
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {budgetId ? t("budget.modal.editTitle") : t("budget.modal.newTitle")}
-          </h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200" aria-label={t("common.actions.close")}>
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">{t("budget.modal.monthLabel", { month: monthLabel })}</p>
-
-        <form onSubmit={onSubmit} className="space-y-4">
-          {!budgetId && (
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("budget.modal.category")}</label>
-              <select
-                {...register("category_id")}
-                className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
-              >
-                <option value="">{t("budget.modal.selectCategory")}</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.icon ? `${cat.icon} ` : ""}{cat.name}
-                  </option>
-                ))}
-              </select>
-              {errors.category_id && (
-                <p className="mt-1 text-xs text-red-500">{errors.category_id.message}</p>
-              )}
-            </div>
-          )}
-
+    <Modal
+      open
+      onOpenChange={(next) => !next && onClose()}
+      title={budgetId ? t("budget.modal.editTitle") : t("budget.modal.newTitle")}
+      description={t("budget.modal.monthLabel", { month: monthLabel })}
+      closeLabel={t("common.actions.close")}
+    >
+      <form onSubmit={onSubmit} className="space-y-4">
+        {!budgetId && (
           <div>
-            <label htmlFor="budget-amount" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{t("budget.modal.amount")}</label>
-            <input
-              id="budget-amount"
-              {...register("amount")}
-              type="text"
-              inputMode="decimal"
-              placeholder="400"
-              className="w-full rounded-md border border-zinc-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-            />
-            {errors.amount && (
-              <p className="mt-1 text-xs text-red-500">{errors.amount.message}</p>
+            <label className="mb-1 block text-sm font-medium text-foreground">{t("budget.modal.category")}</label>
+            <select
+              {...register("category_id")}
+              className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">{t("budget.modal.selectCategory")}</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.icon ? `${cat.icon} ` : ""}{cat.name}
+                </option>
+              ))}
+            </select>
+            {errors.category_id && (
+              <p className="mt-1 text-xs text-red-500">{errors.category_id.message}</p>
             )}
           </div>
+        )}
 
-          {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
+        <div>
+          <label htmlFor="budget-amount" className="mb-1 block text-sm font-medium text-foreground">{t("budget.modal.amount")}</label>
+          <input
+            id="budget-amount"
+            {...register("amount")}
+            type="text"
+            inputMode="decimal"
+            placeholder="400"
+            className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
+          />
+          {errors.amount && (
+            <p className="mt-1 text-xs text-red-500">{errors.amount.message}</p>
+          )}
+        </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSubmitting ? t("common.state.saving") : budgetId ? t("common.actions.edit") : t("common.actions.create")}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isSubmitting ? t("common.state.saving") : budgetId ? t("common.actions.edit") : t("common.actions.create")}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
