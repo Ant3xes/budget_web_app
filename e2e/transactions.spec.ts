@@ -61,10 +61,11 @@ test.describe("Transactions", () => {
     await page.getByRole("menuitem", { name: "+ Dépense" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     // Wait for accounts to load then select the first one
-    await page.getByLabel(/compte/i).selectOption({ index: 1 });
-    await page.getByLabel(/montant/i).fill("25.50");
-    await page.getByLabel(/description/i).fill("Test dépense E2E");
-    await page.getByRole("button", { name: /créer|enregistrer/i }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/compte/i).selectOption({ index: 1 });
+    await dialog.getByLabel(/montant/i).fill("25.50");
+    await dialog.getByLabel(/description/i).fill("Test dépense E2E");
+    await dialog.getByRole("button", { name: /créer|enregistrer/i }).click();
     await expect(page.getByText("Test dépense E2E")).toBeVisible({ timeout: 10000 });
   });
 
@@ -73,10 +74,18 @@ test.describe("Transactions", () => {
     await page.getByRole("button", { name: "+ Ajouter" }).click();
     await page.getByRole("menuitem", { name: "+ Virement" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
-    await page.getByLabel(/compte source/i).selectOption({ index: 1 });
-    await page.getByLabel(/compte destination/i).selectOption({ index: 2 });
-    await page.getByLabel(/montant/i).fill("100");
-    await page.getByRole("button", { name: /créer|enregistrer/i }).click();
+    const dialog = page.getByRole("dialog");
+    const source = dialog.getByLabel(/compte source/i);
+    const destination = dialog.getByLabel(/compte destination/i);
+    await source.selectOption({ index: 1 });
+    // Pick any destination that differs from the chosen source.
+    const sourceValue = await source.inputValue();
+    const destinationValues = await destination
+      .locator("option")
+      .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).value).filter(Boolean));
+    await destination.selectOption(destinationValues.find((v) => v !== sourceValue)!);
+    await dialog.getByLabel(/montant/i).fill("100");
+    await dialog.getByRole("button", { name: /créer|enregistrer/i }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 10000 });
   });
 
