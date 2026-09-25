@@ -56,7 +56,7 @@ jobs:
       - if: steps.secrets.outputs.ready == 'true'
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.116.0
 
       - name: Apply database migrations
         if: steps.secrets.outputs.ready == 'true'
