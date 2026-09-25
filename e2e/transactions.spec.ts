@@ -58,7 +58,7 @@ test.describe("Transactions", () => {
   test("can create an expense via the type picker", async ({ page }) => {
     await page.goto("/transactions");
     await page.getByRole("button", { name: "+ Ajouter" }).click();
-    await page.getByRole("button", { name: "+ Dépense" }).click();
+    await page.getByRole("menuitem", { name: "+ Dépense" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     // Wait for accounts to load then select the first one
     await page.getByLabel(/compte/i).selectOption({ index: 1 });
@@ -71,7 +71,7 @@ test.describe("Transactions", () => {
   test("can create a transfer via the type picker", async ({ page }) => {
     await page.goto("/transactions");
     await page.getByRole("button", { name: "+ Ajouter" }).click();
-    await page.getByRole("button", { name: "+ Virement" }).click();
+    await page.getByRole("menuitem", { name: "+ Virement" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.getByLabel(/compte source/i).selectOption({ index: 1 });
     await page.getByLabel(/compte destination/i).selectOption({ index: 2 });

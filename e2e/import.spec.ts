@@ -87,6 +87,6 @@ test.describe("Import CSV", () => {
     await dialog.getByRole("button", { name: /suivant/i }).click();
     await dialog.getByRole("button", { name: /suivant/i }).click();
     await dialog.getByRole("button", { name: /^importer/i }).click();
-    await expect(page.getByText(/importée.* avec succès/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Import terminé")).toBeVisible({ timeout: 10000 });
   });
 });
