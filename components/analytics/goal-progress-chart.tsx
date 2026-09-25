@@ -87,14 +87,14 @@ export function GoalProgressChart({ points, series, manualGoals, height = 260 }:
 
       {manualGoals.length > 0 && (
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             {t("analytics.goalProgress.manualHeading")}
           </h3>
           <ul className="space-y-1.5 text-sm">
             {manualGoals.map((g) => (
               <li key={g.id} className="flex items-center justify-between text-zinc-700 dark:text-zinc-300">
                 <span>{g.name}</span>
-                <span className="text-zinc-500">
+                <span className="text-zinc-500 dark:text-zinc-400">
                   {formatEuros(g.currentCents)} / {formatEuros(g.targetCents)}
                 </span>
               </li>

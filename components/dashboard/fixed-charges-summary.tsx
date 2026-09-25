@@ -51,10 +51,10 @@ export function FixedChargesSummary({ charges, totalCents }: FixedChargesSummary
         <ViewAllLink href="/fixed-charges" />
       </div>
       {charges.length === 0 ? (
-        <p className="text-sm text-zinc-500">{t("dashboard.fixedCharges.empty")}</p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("dashboard.fixedCharges.empty")}</p>
       ) : (
         <>
-          <p className="mb-2 text-xs text-zinc-500">
+          <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
             {t("dashboard.fixedCharges.total")} : <span className="font-semibold text-zinc-800 dark:text-zinc-100">{formatEuros(totalCents)}</span>
           </p>
           <ul className="space-y-2 text-sm">
@@ -65,7 +65,7 @@ export function FixedChargesSummary({ charges, totalCents }: FixedChargesSummary
                   <span className="truncate text-zinc-700 dark:text-zinc-300">
                     {charge.icon && <span className="mr-1">{charge.icon}</span>}
                     {charge.name}
-                    <span className={`ml-1.5 text-xs ${dueSoon ? "font-semibold text-red-600 dark:text-red-400" : "text-zinc-400"}`}>
+                    <span className={`ml-1.5 text-xs ${dueSoon ? "font-semibold text-red-600 dark:text-red-400" : "text-zinc-500 dark:text-zinc-400"}`}>
                       · {formatFixedChargeDate(charge.date)}
                       {charge.paid ? (
                         <span className="ml-1 inline-flex items-center gap-0.5 text-status-good">

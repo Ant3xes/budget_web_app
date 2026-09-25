@@ -101,7 +101,7 @@ export default async function InvitationAcceptPage({
     <Shell>
       {summary}
       {error ? (
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-red-600 dark:text-red-400">
           <T k="invitations.accept.error" />
         </p>
       ) : null}
