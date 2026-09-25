@@ -179,7 +179,7 @@ export function BudgetList({ initialMonth }: BudgetListProps) {
           description={t("budget.copyFromPrevQuestion", { month: monthLabel(prevMonth(month)) })}
           action={
             <div className="flex flex-col items-center gap-2">
-              {copyError && <p className="text-sm text-red-600">{copyError}</p>}
+              {copyError && <p className="text-sm text-red-600 dark:text-red-400">{copyError}</p>}
               <Button onClick={handleCopyFromPrev} disabled={isCopying} variant="outline">
                 {isCopying ? t("budget.copying") : t("budget.copyFromPrevButton", { month: monthLabel(prevMonth(month)) })}
               </Button>

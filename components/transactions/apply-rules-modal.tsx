@@ -319,7 +319,7 @@ export function ApplyRulesModal({ onSuccess, onClose }: ApplyRulesModalProps) {
           </div>
         )}
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
       </div>
     )}
       <div className="mt-6 flex justify-end gap-2 border-t border-border pt-4">

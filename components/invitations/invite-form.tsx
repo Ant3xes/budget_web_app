@@ -62,8 +62,8 @@ export function InviteForm() {
         {t("invitations.invite.emailLabel")}
         <Input className="mt-1" {...register("email")} />
       </label>
-      {errors.email ? <p className="text-xs text-red-600">{errors.email.message}</p> : null}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {errors.email ? <p className="text-xs text-red-600 dark:text-red-400">{errors.email.message}</p> : null}
+      {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
       {success ? <p className="text-sm text-emerald-700 break-all">{success}</p> : null}
       <Button variant="default" disabled={isSubmitting} type="submit">
         {t("invitations.invite.submit")}

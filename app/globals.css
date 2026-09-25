@@ -105,7 +105,9 @@
      the dataviz skill's status palette: a status/semantic color must never
      double as a categorical series, so it stays distinct from --chart-*). */
   --income: #0ca30c;
-  --expense: #d03b3b;
+  /* Lighter than the light theme's #d03b3b, which is only 3.7:1 on the dark
+     card background (WCAG AA needs 4.5:1 for text). */
+  --expense: #e55555;
   --status-good: #0ca30c;
   --status-warning: #fab219;
   --status-serious: #ec835a;

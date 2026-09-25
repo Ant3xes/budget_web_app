@@ -82,7 +82,7 @@ export function DefaultShareForm({
           {saved ? <span className="text-sm text-muted-foreground">{t("sharedExpenses.defaultSplit.saved")}</span> : null}
         </div>
       )}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
     </form>
   );
 }

@@ -162,7 +162,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
             placeholder={t("goals.modal.namePlaceholder")}
             className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
           />
-          {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
+          {errors.name && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name.message}</p>}
         </div>
 
         <div className="flex gap-3">
@@ -186,7 +186,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
               className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
             />
             {errors.target_amount && (
-              <p className="mt-1 text-xs text-red-600">{errors.target_amount.message}</p>
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.target_amount.message}</p>
             )}
           </div>
         </div>
@@ -204,7 +204,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
               className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
             />
             {errors.current_amount && (
-              <p className="mt-1 text-xs text-red-600">{errors.current_amount.message}</p>
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.current_amount.message}</p>
             )}
           </div>
         )}

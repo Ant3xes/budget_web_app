@@ -234,7 +234,7 @@ export function ImportRulesModal({ ruleId, defaultValues, spaceKind = "personal"
           <p className="mt-1 text-xs text-muted-foreground">
             {t("importRules.form.keywordHint")}
           </p>
-          {errors.keyword && <p className="mt-1 text-xs text-red-600">{errors.keyword.message}</p>}
+          {errors.keyword && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.keyword.message}</p>}
         </div>
 
         <div>
@@ -270,7 +270,7 @@ export function ImportRulesModal({ ruleId, defaultValues, spaceKind = "personal"
             ))}
           </select>
           {errors.category_id && (
-            <p className="mt-1 text-xs text-red-600">{errors.category_id.message}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.category_id.message}</p>
           )}
         </div>
 
@@ -340,7 +340,7 @@ export function ImportRulesModal({ ruleId, defaultValues, spaceKind = "personal"
                     {t("importRules.form.sharePercentHint")}
                   </span>
                   {!percentValid ? (
-                    <span className="mt-1 block text-xs text-red-600">{t("importRules.form.sharePercentInvalid")}</span>
+                    <span className="mt-1 block text-xs text-red-600 dark:text-red-400">{t("importRules.form.sharePercentInvalid")}</span>
                   ) : null}
                 </label>
               </>

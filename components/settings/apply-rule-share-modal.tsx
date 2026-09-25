@@ -149,15 +149,15 @@ export function ApplyRuleShareModal({
             {t("importRules.apply.warning")}
           </p>
 
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
           {isLoading ? (
-            <p className="text-sm text-zinc-500">{t("common.state.loading")}</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("common.state.loading")}</p>
           ) : preview && preview.rows.length === 0 ? (
-            <p className="text-sm text-zinc-500">{t("importRules.apply.empty")}</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("importRules.apply.empty")}</p>
           ) : preview ? (
             <>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 {t("importRules.apply.target", {
                   space: preview.target_space.name,
                   percent: String(preview.payer_percent),
@@ -185,7 +185,7 @@ export function ApplyRuleShareModal({
                 </table>
               </div>
               {preview.truncated ? (
-                <p className="text-xs text-zinc-500">{t("importRules.apply.truncated")}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("importRules.apply.truncated")}</p>
               ) : null}
               <p className="text-sm font-medium">
                 {t("importRules.apply.total", { count: String(kept.length), amount: formatAmount(keptTotal) })}

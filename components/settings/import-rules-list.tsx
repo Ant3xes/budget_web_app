@@ -71,7 +71,7 @@ function SortableRow({
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab touch-none text-zinc-500 hover:text-zinc-600 active:cursor-grabbing dark:hover:text-zinc-300"
+        className="cursor-grab touch-none text-zinc-500 dark:text-zinc-400 hover:text-zinc-600 active:cursor-grabbing dark:hover:text-zinc-300"
         aria-label={t("importRules.dragHandle")}
       >
         <GripVertical className="size-4" />
@@ -84,8 +84,8 @@ function SortableRow({
       <span
         className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
           rule.kind === "expense"
-            ? "bg-red-100 text-red-700"
-            : "bg-green-100 text-green-700"
+            ? "bg-red-100 text-red-700 dark:text-red-400"
+            : "bg-green-100 text-green-700 dark:text-green-500"
         }`}
       >
         {t(`categories.kind.${rule.kind}`)}
@@ -183,18 +183,18 @@ export function ImportRulesList({ spaceKind = "personal" }: { spaceKind?: "perso
   };
 
   if (isLoading) {
-    return <p className="py-8 text-center text-sm text-zinc-500">{t("common.state.loading")}</p>;
+    return <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">{t("common.state.loading")}</p>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             {rules.length} {rules.length !== 1 ? t("importRules.countPlural") : t("importRules.countSingular")}
           </p>
           {rules.length > 1 && (
-            <p className="text-xs text-zinc-500">{t("importRules.reorderHint")}</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("importRules.reorderHint")}</p>
           )}
         </div>
         <Button variant="default" onClick={() => setShowCreate(true)}>
