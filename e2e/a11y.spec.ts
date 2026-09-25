@@ -26,7 +26,12 @@ const KNOWN_DEBT = new Set<string>();
 // Only blocks on violations that really hurt users; minor/moderate ones and
 // known debt are reported in the test output (attached below) without failing.
 async function expectNoSeriousViolations(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    // WCAG 2.5.3 "Label in Name": experimental in axe, so off by default.
+    // Lighthouse flagged it (bank tiles, user menu), keep it fixed.
+    .options({ rules: { "label-content-name-mismatch": { enabled: true } } })
+    .analyze();
 
   const blocking = results.violations.filter(
     (v) => (v.impact === "serious" || v.impact === "critical") && !KNOWN_DEBT.has(v.id),

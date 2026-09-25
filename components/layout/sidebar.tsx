@@ -106,14 +106,21 @@ export function Sidebar({
       <div className={cn("flex border-t border-border p-2", collapsed ? "flex-col items-center gap-1" : "items-center gap-1")}>
         <DropdownMenu>
           <DropdownMenuTrigger
-            aria-label={userEmail}
+            // Only needed when the sidebar is collapsed (icon only). Expanded,
+            // the visible email is the accessible name, which keeps it
+            // consistent with the label (WCAG 2.5.3, Lighthouse
+            // `label-content-name-mismatch`).
+            aria-label={collapsed ? userEmail : undefined}
             title={userEmail}
             className={cn(
               "flex h-9 items-center gap-2 rounded-lg text-sm text-muted-foreground outline-none transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
               collapsed ? "w-9 justify-center" : "min-w-0 flex-1 px-1.5",
             )}
           >
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
+            <span
+              aria-hidden="true"
+              className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground"
+            >
               {initial}
             </span>
             {!collapsed && (
