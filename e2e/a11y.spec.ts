@@ -12,6 +12,12 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/dashboard/);
 }
 
+// Guards against a silently ignored theme switch (which would make the "dark"
+// scan a second light scan).
+async function expectTheme(page: Page, theme: "light" | "dark") {
+  await expect(page.locator("html")).toHaveClass(theme === "dark" ? /(^|\s)dark(\s|$)/ : /^((?!\bdark\b).)*$/);
+}
+
 // Rules that are known design debt (tracked separately): still reported in the
 // attached report, but they don't fail the build yet. Remove an id from this
 // list once it's fixed so it can't regress.
@@ -48,32 +54,46 @@ async function expectNoSeriousViolations(page: Page) {
   expect(blocking, `Accessibility violations:\n${summary(blocking)}`).toEqual([]);
 }
 
-test.describe("Accessibility (axe)", () => {
-  test("login page", async ({ page }) => {
-    await page.goto("/login");
-    await expect(page.getByLabel(/email/i)).toBeVisible();
-    await expectNoSeriousViolations(page);
-  });
+const PAGES = [
+  { name: "dashboard", path: "/dashboard" },
+  { name: "transactions", path: "/transactions" },
+  { name: "accounts", path: "/accounts" },
+  { name: "budget", path: "/budget" },
+  { name: "goals", path: "/goals" },
+  { name: "fixed charges", path: "/fixed-charges" },
+  { name: "analytics", path: "/analytics" },
+  // /settings redirects to its first sub-page.
+  { name: "settings", path: "/settings/categories" },
+];
 
-  for (const { name, path } of [
-    { name: "dashboard", path: "/dashboard" },
-    { name: "transactions", path: "/transactions" },
-    { name: "accounts", path: "/accounts" },
-    { name: "budget", path: "/budget" },
-    { name: "goals", path: "/goals" },
-    { name: "fixed charges", path: "/fixed-charges" },
-    { name: "analytics", path: "/analytics" },
-    // /settings redirects to its first sub-page.
-    { name: "settings", path: "/settings/categories" },
-  ]) {
-    test(`${name} page`, async ({ page }) => {
-      await login(page);
-      await page.goto(path);
-      // Some pages add a query string (e.g. /budget?month=2026-09).
-      await expect(page).toHaveURL(new RegExp(`${path}(\\?.*)?$`));
-      // Page content rendered (not a loading skeleton) before scanning.
-      await expect(page.getByRole("heading").first()).toBeVisible();
+// The theme is read from localStorage before first paint (see app/layout.tsx),
+// so setting it in an init script makes every page load in that theme.
+// Dark mode is only scanned on the desktop project to keep the CI short.
+for (const theme of ["light", "dark"] as const) {
+  test.describe(`Accessibility (axe) — ${theme}`, () => {
+    test.beforeEach(async ({ page }, testInfo) => {
+      test.skip(theme === "dark" && testInfo.project.name !== "chromium", "dark mode: desktop project only");
+      await page.addInitScript((t) => localStorage.setItem("theme", t), theme);
+    });
+
+    test("login page", async ({ page }) => {
+      await page.goto("/login");
+      await expect(page.getByLabel(/email/i)).toBeVisible();
+      await expectTheme(page, theme);
       await expectNoSeriousViolations(page);
     });
-  }
-});
+
+    for (const { name, path } of PAGES) {
+      test(`${name} page`, async ({ page }) => {
+        await login(page);
+        await page.goto(path);
+        // Some pages add a query string (e.g. /budget?month=2026-09).
+        await expect(page).toHaveURL(new RegExp(`${path}(\\?.*)?$`));
+        // Page content rendered (not a loading skeleton) before scanning.
+        await expect(page.getByRole("heading").first()).toBeVisible();
+        await expectTheme(page, theme);
+        await expectNoSeriousViolations(page);
+      });
+    }
+  });
+}
