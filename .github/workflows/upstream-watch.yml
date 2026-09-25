@@ -1,0 +1,31 @@
+name: Upstream watch
+
+# Deux mises à jour majeures sont en attente d'un support upstream (voir
+# .github/dependabot.yml) : TypeScript 7 (typescript-eslint) et ESLint 10
+# (eslint-plugin-react). Chaque lundi, on regarde si c'est débloqué et on ouvre
+# un ticket le cas échéant. Aucun code n'est modifié.
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # chaque lundi, 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - name: Install semver
+        run: npm install --no-save --no-package-lock --ignore-scripts semver
+      - name: Check upstream support
+        run: node scripts/check-upstream-support.mjs --create
+        env:
+          GH_TOKEN: ${{ github.token }}
