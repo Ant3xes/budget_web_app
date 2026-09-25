@@ -1,7 +1,9 @@
 name: Deploy
 
-# Déploie après un CI vert sur main. Sans les secrets ci-dessous, le job
-# est ignoré (et non en échec) : ajoutez-les dans Settings > Secrets > Actions.
+# L'app est déployée par l'intégration Git de Vercel (à chaque push sur main).
+# Ce workflow applique les migrations Supabase après un CI vert sur main.
+# Sans les secrets ci-dessous, le job est ignoré (et non en échec) :
+# ajoutez-les dans Settings > Secrets and variables > Actions.
 
 on:
   workflow_run:
@@ -18,27 +20,24 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
+  migrate:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - name: Check secrets
         id: secrets
         run: |
           missing=""
-          for v in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+          for v in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD; do
             [ -z "${!v}" ] && missing="$missing $v"
           done
           if [ -n "$missing" ]; then
-            echo "::warning::Déploiement ignoré, secrets manquants:$missing"
+            echo "::warning::Migrations ignorées, secrets manquants:$missing"
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -50,12 +49,6 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - if: steps.secrets.outputs.ready == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - if: steps.secrets.outputs.ready == 'true'
         uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -65,10 +58,3 @@ jobs:
         run: |
           supabase link --project-ref "$SUPABASE_PROJECT_REF"
           supabase db push
-
-      - name: Deploy to Vercel
-        if: steps.secrets.outputs.ready == 'true'
-        run: |
-          npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
-          npx vercel@latest build --prod --token="$VERCEL_TOKEN"
-          npx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
