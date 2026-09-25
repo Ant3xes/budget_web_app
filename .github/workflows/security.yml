@@ -24,14 +24,14 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci --ignore-scripts
-      # Non bloquant tant que Next.js (advisory critique) n'est pas mis à jour :
-      # le résultat reste visible dans le résumé du job. Retirer
-      # `continue-on-error` une fois les dépendances à jour.
+      # Bloquant : la production est à 0 vulnérabilité (niveau high+). Ce job
+      # n'est pas un check requis de `main` : une nouvelle advisory publiée
+      # entre deux PR n'en bloque aucune, mais la planification hebdomadaire
+      # (et chaque PR) la fait apparaître en rouge.
       - name: Audit
-        continue-on-error: true
         run: |
           npm audit --omit=dev --audit-level=high | tee audit.txt
           status=${PIPESTATUS[0]}
@@ -45,7 +45,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: critical
           comment-summary-in-pr: never

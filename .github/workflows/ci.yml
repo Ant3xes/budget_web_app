@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run lint
@@ -52,6 +52,8 @@ jobs:
           path: coverage
           retention-days: 7
       - run: npm run build
+      - name: Bundle size budget
+        run: node scripts/check-bundle-size.mjs
 
   e2e:
     name: DB tests + E2E (Supabase local)
@@ -61,7 +63,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
 
@@ -107,6 +109,9 @@ jobs:
           PORT: 3000
 
       - run: npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Smoke test (same checks as the post-deploy one)
+        run: bash scripts/smoke.sh http://localhost:3000
 
       - name: Run E2E tests
         run: npx playwright test

@@ -10,7 +10,8 @@
     "test": "NODE_OPTIONS=--disable-warning=DEP0205 vitest run",
     "test:watch": "NODE_OPTIONS=--disable-warning=DEP0205 vitest",
     "test:coverage": "NODE_OPTIONS=--disable-warning=DEP0205 vitest run --coverage",
-    "typecheck": "node node_modules/typescript-7/bin/tsc --noEmit"
+    "typecheck": "node node_modules/typescript-7/bin/tsc --noEmit",
+    "bundle-size": "node scripts/check-bundle-size.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
