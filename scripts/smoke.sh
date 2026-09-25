@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Smoke test for a running instance of the app.
-#   scripts/smoke.sh https://my-app.vercel.app
+#   scripts/smoke.sh https://my-app.vercel.app [expected-commit-sha]
+#
+# With an expected commit SHA, the script waits until /api/health reports that
+# commit, so it can't pass by testing the previous deployment while the
+# production alias is still being switched over.
 #
 # Used by .github/workflows/smoke.yml (after each production deploy) and by the
 # CI e2e job (against the locally started app), so the checks themselves are
@@ -9,6 +13,7 @@ set -euo pipefail
 
 BASE_URL="${1:?usage: smoke.sh <base-url>}"
 BASE_URL="${BASE_URL%/}"
+EXPECTED_SHA="${2:-}"
 
 fail() {
   echo "::error::$1"
@@ -21,15 +26,23 @@ status() {
 
 echo "Smoke testing $BASE_URL"
 
-# 1. Wait for the instance to serve traffic (a fresh deploy can take a moment).
+# 1. Wait for the instance to serve traffic (a fresh deploy can take a moment),
+#    and, when a commit is expected, for the alias to point at that deployment.
 ready=0
-for i in 1 2 3 4 5 6; do
+for i in $(seq 1 12); do
   code=$(status /api/health)
-  if [ "$code" = "200" ]; then ready=1; break; fi
-  echo "health returned $code (attempt $i), retrying in 10s..."
+  if [ "$code" = "200" ]; then
+    if [ -z "$EXPECTED_SHA" ] || curl -sf "$BASE_URL/api/health" | grep -q "\"commit\":\"$EXPECTED_SHA\""; then
+      ready=1
+      break
+    fi
+    echo "health is up but not serving $EXPECTED_SHA yet (attempt $i), retrying in 10s..."
+  else
+    echo "health returned $code (attempt $i), retrying in 10s..."
+  fi
   sleep 10
 done
-[ "$ready" = "1" ] || fail "$BASE_URL/api/health never returned 200"
+[ "$ready" = "1" ] || fail "$BASE_URL/api/health never returned 200${EXPECTED_SHA:+ for commit $EXPECTED_SHA}"
 
 # 2. Health endpoint payload.
 body=$(curl -sf "$BASE_URL/api/health")
