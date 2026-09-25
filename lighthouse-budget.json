@@ -1,0 +1,13 @@
+{
+  "minScores": {
+    "performance": 85,
+    "accessibility": 95,
+    "best-practices": 95
+  },
+  "pages": [
+    { "path": "/login", "auth": false },
+    { "path": "/dashboard", "auth": true },
+    { "path": "/transactions", "auth": true },
+    { "path": "/accounts", "auth": true }
+  ]
+}

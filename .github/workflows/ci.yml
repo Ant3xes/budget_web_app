@@ -118,6 +118,22 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
 
+      # Same app instance (production build), audited as a signed-in user.
+      # Minimum scores: lighthouse-budget.json.
+      - name: Lighthouse
+        run: node scripts/lighthouse.mjs
+        env:
+          BASE_URL: http://localhost:3000
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lighthouse-results
+          path: lighthouse-results
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v7
