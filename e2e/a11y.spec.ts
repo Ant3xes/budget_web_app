@@ -45,7 +45,8 @@ test.describe("Accessibility (axe)", () => {
   for (const { name, path } of [
     { name: "dashboard", path: "/dashboard" },
     { name: "transactions", path: "/transactions" },
-    { name: "settings", path: "/settings" },
+    // /settings redirects to its first sub-page.
+    { name: "settings", path: "/settings/categories" },
   ]) {
     test(`${name} page`, async ({ page }) => {
       await login(page);
