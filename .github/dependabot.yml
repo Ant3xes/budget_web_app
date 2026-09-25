@@ -16,6 +16,11 @@ updates:
       # supportera TS 7.
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # ESLint 10 a supprimé context.getFilename(), encore utilisé par
+      # eslint-plugin-react (via eslint-config-next). À retirer quand le
+      # plugin supportera ESLint 10.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
     groups:
       minor-and-patch:
         update-types: [minor, patch]

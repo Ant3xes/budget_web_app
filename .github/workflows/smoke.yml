@@ -1,0 +1,34 @@
+name: Smoke test
+
+# Après chaque déploiement de production réussi (Vercel publie un événement
+# `deployment_status`), vérifie que l'app répond réellement. Les
+# prévisualisations sont protégées par Vercel et donc ignorées ici.
+# Les vérifications sont dans scripts/smoke.sh, aussi exécuté par la CI sur
+# l'app locale à chaque PR.
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL de production à tester (ex. https://mon-app.vercel.app)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run smoke test
+        env:
+          # Passed through the environment, never interpolated into the shell.
+          TARGET_URL: ${{ inputs.url || github.event.deployment_status.environment_url }}
+        run: bash scripts/smoke.sh "$TARGET_URL"
