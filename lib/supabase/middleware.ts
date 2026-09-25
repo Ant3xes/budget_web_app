@@ -37,9 +37,14 @@ export const updateSession = async (request: NextRequest) => {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() checks the JWT signature locally against the project's cached
+  // JWKS (asymmetric signing keys) instead of calling the Auth server on every
+  // request like getUser(). It still refreshes an expiring session. Trade-off:
+  // a revoked session stays valid until its access token expires; RLS still
+  // verifies the JWT on every data query, and sensitive routes re-check with
+  // getUser().
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ? { id: data.claims.sub, email: data.claims.email } : null;
 
   return { response, user };
 };
