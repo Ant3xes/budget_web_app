@@ -69,7 +69,8 @@ test.describe("Accessibility (axe)", () => {
     test(`${name} page`, async ({ page }) => {
       await login(page);
       await page.goto(path);
-      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      // Some pages add a query string (e.g. /budget?month=2026-09).
+      await expect(page).toHaveURL(new RegExp(`${path}(\\?.*)?$`));
       // Page content rendered (not a loading skeleton) before scanning.
       await expect(page.getByRole("heading").first()).toBeVisible();
       await expectNoSeriousViolations(page);
