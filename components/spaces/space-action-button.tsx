@@ -55,7 +55,7 @@ export function SpaceActionButton({
       <Button variant="destructive" size={size} onClick={() => setOpen(true)}>
         {label}
       </Button>
-      {error ? <span className="text-xs text-red-600">{error}</span> : null}
+      {error ? <span className="text-xs text-red-600 dark:text-red-400">{error}</span> : null}
       <AlertDialog
         open={open}
         onOpenChange={setOpen}

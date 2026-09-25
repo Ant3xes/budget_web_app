@@ -244,7 +244,7 @@ export function ShareTransactionModal({
                   setShareInput(e.target.value);
                 }}
               />
-              {!shareValid ? <p className="mt-1 text-xs text-red-600">{t("sharedExpenses.modal.shareInvalid")}</p> : null}
+              {!shareValid ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{t("sharedExpenses.modal.shareInvalid")}</p> : null}
             </label>
 
             {shareValid ? (
@@ -259,7 +259,7 @@ export function ShareTransactionModal({
               </div>
             ) : null}
 
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
             <div className="flex flex-wrap gap-2 pt-2">
               <Button type="submit" disabled={isSubmitting || !spaceId || !shareValid}>

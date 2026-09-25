@@ -90,7 +90,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
           className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
           {...register("name")}
         />
-        {errors.name ? <p className="mt-1 text-xs text-red-600">{errors.name.message}</p> : null}
+        {errors.name ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name.message}</p> : null}
       </label>
 
       <label className="block text-sm font-medium">
@@ -134,7 +134,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
         </div>
       </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
       <div className="flex gap-2 pt-2">
         <button

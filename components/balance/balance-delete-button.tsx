@@ -57,7 +57,7 @@ export function BalanceDeleteButton({
       <Button variant="destructive" size="xs" onClick={() => setOpen(true)}>
         {label}
       </Button>
-      {error ? <span className="text-xs text-red-600">{error}</span> : null}
+      {error ? <span className="text-xs text-red-600 dark:text-red-400">{error}</span> : null}
       <AlertDialog
         open={open}
         onOpenChange={setOpen}

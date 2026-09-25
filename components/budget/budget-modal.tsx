@@ -125,7 +125,7 @@ export function BudgetModal({ month, budgetId, defaultValues, onSuccess, onClose
               ))}
             </select>
             {errors.category_id && (
-              <p className="mt-1 text-xs text-red-500">{errors.category_id.message}</p>
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.category_id.message}</p>
             )}
           </div>
         )}
@@ -141,7 +141,7 @@ export function BudgetModal({ month, budgetId, defaultValues, onSuccess, onClose
             className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
           />
           {errors.amount && (
-            <p className="mt-1 text-xs text-red-500">{errors.amount.message}</p>
+            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.amount.message}</p>
           )}
         </div>
 
