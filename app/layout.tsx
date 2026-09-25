@@ -3,6 +3,7 @@ import "./globals.css";
 import { LocaleProvider } from "@/components/locale-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Geist } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -44,6 +45,8 @@ export default function RootLayout({
         <ThemeProvider>
           <LocaleProvider>{children}</LocaleProvider>
         </ThemeProvider>
+        {/* Web Vitals réels (LCP, INP, TTFB…) collectés en production sur Vercel. */}
+        <SpeedInsights />
       </body>
     </html>
   );
