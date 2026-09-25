@@ -11,6 +11,17 @@ async function login(page: import("@playwright/test").Page) {
   await expect(page).toHaveURL(/dashboard/);
 }
 
+// Creates accounts through the API so tests don't depend on seed ids (which
+// aren't RFC-4122 uuids) or on the order other tests ran in.
+async function createAccounts(page: import("@playwright/test").Page, names: string[]) {
+  for (const name of names) {
+    const res = await page.request.post("/api/accounts", {
+      data: { name, type: "courant", initialBalanceCents: 0 },
+    });
+    expect(res.ok()).toBeTruthy();
+  }
+}
+
 test.describe("Accounts", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
@@ -56,6 +67,7 @@ test.describe("Transactions", () => {
   });
 
   test("can create an expense via the type picker", async ({ page }) => {
+    await createAccounts(page, ["Compte dépense E2E"]);
     await page.goto("/transactions");
     await page.getByRole("button", { name: "+ Ajouter" }).click();
     await page.getByRole("menuitem", { name: "+ Dépense" }).click();
@@ -66,29 +78,22 @@ test.describe("Transactions", () => {
     await dialog.getByLabel(/montant/i).fill("25.50");
     await dialog.getByLabel(/description/i).fill("Test dépense E2E");
     await dialog.getByRole("button", { name: /créer|enregistrer/i }).click();
-    await expect(page.getByText("Test dépense E2E").first()).toBeVisible({ timeout: 10000 });
+    // Rendered twice (mobile cards + desktop table); only one is visible.
+    await expect(page.getByText("Test dépense E2E").locator("visible=true").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("can create a transfer via the type picker", async ({ page }) => {
+    await createAccounts(page, ["Compte virement A", "Compte virement B"]);
     await page.goto("/transactions");
     await page.getByRole("button", { name: "+ Ajouter" }).click();
     await page.getByRole("menuitem", { name: "+ Virement" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     const dialog = page.getByRole("dialog");
-    const source = dialog.getByLabel(/compte source/i);
-    const destination = dialog.getByLabel(/compte destination/i);
-    // Seed data includes a shared-space account with a non-RFC-4122 id that
-    // the form's uuid validation rejects, so only pick RFC-valid ids.
-    const validIds = await source
-      .locator("option")
-      .evaluateAll((options) =>
-        options
-          .map((o) => (o as HTMLOptionElement).value)
-          .filter((v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)),
-      );
-    expect(validIds.length).toBeGreaterThanOrEqual(2);
-    await source.selectOption(validIds[0]);
-    await destination.selectOption(validIds[1]);
+    // Seed accounts have non-RFC-4122 ids that the form's uuid validation
+    // rejects; the list is newest-first, so the two accounts created above
+    // (real uuids) are the first two options.
+    await dialog.getByLabel(/compte source/i).selectOption({ index: 1 });
+    await dialog.getByLabel(/compte destination/i).selectOption({ index: 2 });
     await dialog.getByLabel(/montant/i).fill("100");
     await dialog.getByRole("button", { name: /créer|enregistrer/i }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 10000 });
