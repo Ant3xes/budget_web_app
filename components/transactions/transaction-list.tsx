@@ -305,7 +305,12 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
           ))}
         </div>
 
-        <Select value={accountId} onChange={(e) => setAccountId(e.target.value)} className="w-full md:w-auto">
+        <Select
+          value={accountId}
+          onChange={(e) => setAccountId(e.target.value)}
+          aria-label={t("transactions.list.account")}
+          className="w-full md:w-auto"
+        >
           <option value="">{t("transactions.list.allAccounts")}</option>
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>
@@ -315,7 +320,12 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
         </Select>
 
         {type !== "transfer" && (
-          <Select value={categorySelection} onChange={(e) => setCategorySelection(e.target.value)} className="w-full md:w-auto">
+          <Select
+            value={categorySelection}
+            onChange={(e) => setCategorySelection(e.target.value)}
+            aria-label={t("transactions.list.category")}
+            className="w-full md:w-auto"
+          >
             <option value="">{t("transactions.list.allCategories")}</option>
             <option value={UNCATEGORIZED_CATEGORY_ID}>{t("transactions.list.uncategorizedOption")}</option>
             {filterCategories.map((c) => (
