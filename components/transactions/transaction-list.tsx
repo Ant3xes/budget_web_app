@@ -341,6 +341,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
           className="w-full md:w-auto"
+          aria-label={t("transactions.list.dateFrom")}
           title={t("transactions.list.dateFrom")}
         />
         <Input
@@ -348,6 +349,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
           className="w-full md:w-auto"
+          aria-label={t("transactions.list.dateTo")}
           title={t("transactions.list.dateTo")}
         />
 

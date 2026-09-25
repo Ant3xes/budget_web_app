@@ -17,8 +17,12 @@ interface BankTilesProps {
  * same `StatTile` format (label, semibold value, muted footer, same width)
  * so the row reads as one continuous set. Each tile links to that bank's
  * tab on /accounts (`?bank=`). The per-account detail lives in the `title`
- * tooltip and, for keyboard/screen-reader users, in the link's accessible
- * label.
+ * tooltip, which assistive technology exposes as the link's description.
+ *
+ * The link deliberately has no `aria-label`: its accessible name comes from
+ * its visible content (bank, total, account count), so the name always
+ * contains the visible text (WCAG 2.5.3 "Label in Name", flagged by
+ * Lighthouse's `label-content-name-mismatch`).
  */
 export function BankTiles({ groups }: BankTilesProps) {
   const { t } = useLocale();
@@ -36,7 +40,6 @@ export function BankTiles({ groups }: BankTilesProps) {
             key={group.bank ?? NO_BANK_PARAM}
             href={`/accounts?bank=${encodeURIComponent(group.bank ?? NO_BANK_PARAM)}`}
             title={accountsDetail}
-            aria-label={`${bankLabel} — ${formatEuros(group.totalCents)} (${accountsDetail})`}
             className="block w-[80%] shrink-0 snap-start rounded-2xl sm:w-56 focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             <StatTile
