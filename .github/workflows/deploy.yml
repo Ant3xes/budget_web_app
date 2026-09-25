@@ -11,6 +11,11 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Simulation seulement (liste les migrations en attente sans les appliquer)
+        type: boolean
+        default: true
 
 concurrency:
   group: deploy-production
@@ -57,4 +62,8 @@ jobs:
         if: steps.secrets.outputs.ready == 'true'
         run: |
           supabase link --project-ref "$SUPABASE_PROJECT_REF"
-          supabase db push
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}" = "true" ]; then
+            supabase db push --dry-run
+          else
+            supabase db push
+          fi
