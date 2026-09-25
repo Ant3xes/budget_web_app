@@ -105,7 +105,7 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
       </label>
 
       <label className="block text-sm font-medium">
-        {t("accounts.form.bank")} <span className="font-normal text-zinc-400">{t("accounts.form.optional")}</span>
+        {t("accounts.form.bank")} <span className="font-normal text-zinc-500">{t("accounts.form.optional")}</span>
         <input
           className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
           placeholder={t("accounts.form.bankPlaceholder")}

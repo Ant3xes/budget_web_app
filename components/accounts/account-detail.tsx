@@ -496,13 +496,13 @@ export function AccountDetail({
           title={t("accounts.detail.expenses")}
           transactions={expenses}
           emptyLabel={t("accounts.detail.noExpenses")}
-          amountColor={() => "text-red-500"}
+          amountColor={() => "text-red-600"}
         />
         <TxTable
           title={t("accounts.detail.incomes")}
           transactions={incomes}
           emptyLabel={t("accounts.detail.noIncomes")}
-          amountColor={() => "text-green-600"}
+          amountColor={() => "text-green-700"}
         />
       </div>
 
@@ -512,7 +512,7 @@ export function AccountDetail({
         emptyLabel={t("accounts.detail.noTransfers")}
         showSens
         amountColor={(tx) =>
-          tx.kind === "transfer_credit" ? "text-green-600" : "text-orange-500"
+          tx.kind === "transfer_credit" ? "text-green-700" : "text-orange-500"
         }
       />
 

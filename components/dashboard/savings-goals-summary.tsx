@@ -49,7 +49,7 @@ export function SavingsGoalsSummary({ goals }: SavingsGoalsSummaryProps) {
                 </span>
                 <span className="text-zinc-500">
                   {formatEuros(goal.currentCents)} / {formatEuros(goal.targetCents)}
-                  <span className="ml-1.5 font-medium text-zinc-400 dark:text-zinc-500">({pct}%)</span>
+                  <span className="ml-1.5 font-medium text-zinc-500 dark:text-zinc-500">({pct}%)</span>
                 </span>
               </div>
               <div className="mt-1.5 h-2.5 w-full rounded-full bg-zinc-100 dark:bg-zinc-700">

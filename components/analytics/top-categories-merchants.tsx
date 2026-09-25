@@ -30,7 +30,7 @@ interface TopCategoriesMerchantsProps {
 function RankedList({ title, empty, children, maxValue }: { title: string; empty: string; children: ReactNode; maxValue: number }) {
   return (
     <div>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">{title}</h3>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{title}</h3>
       {maxValue === 0 ? <p className="text-sm text-zinc-500">{empty}</p> : <ul className="space-y-2">{children}</ul>}
     </div>
   );
@@ -81,7 +81,7 @@ export function TopCategoriesMerchants({ topCategories, topMerchants }: TopCateg
             <div className="mb-1 flex items-center justify-between gap-2">
               <span className="truncate text-zinc-700 dark:text-zinc-300">
                 {m.description}
-                <span className="ml-1.5 text-xs text-zinc-400">
+                <span className="ml-1.5 text-xs text-zinc-500">
                   {t("analytics.topCategories.occurrences", { count: m.count, plural: m.count > 1 ? "s" : "" })}
                 </span>
               </span>

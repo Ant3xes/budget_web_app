@@ -424,7 +424,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                         key={`${row.hash}_${idx}`}
                         className={`border-b border-border ${
                           row.is_duplicate && !checked[row.rowId]
-                            ? "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-muted-foreground"
+                            ? "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-muted-foreground"
                             : row.is_duplicate && checked[row.rowId]
                               ? "bg-amber-50 dark:bg-amber-900/10"
                               : !categoryMap[row.rowId]
@@ -448,7 +448,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                         </td>
                         <td
                           className={`px-3 py-2 text-right font-medium whitespace-nowrap ${
-                            row.amount_cents < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"
+                            row.amount_cents < 0 ? "text-red-600 dark:text-red-400" : "text-green-700 dark:text-green-400"
                           } ${row.is_duplicate && !checked[row.rowId] ? "opacity-40" : ""}`}
                         >
                           {formatAmount(row.amount_cents)}
@@ -594,7 +594,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
                         <td className="px-3 py-2 max-w-[40vw] truncate md:max-w-[200px] cursor-help" title={row.description}>{row.description}</td>
-                        <td className={`px-3 py-2 text-right font-medium whitespace-nowrap ${row.amount_cents < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>
+                        <td className={`px-3 py-2 text-right font-medium whitespace-nowrap ${row.amount_cents < 0 ? "text-red-600 dark:text-red-400" : "text-green-700 dark:text-green-400"}`}>
                           {formatAmount(row.amount_cents)}
                         </td>
                         <td className="px-3 py-2">
@@ -630,7 +630,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
 
       {step === "done" && (
         <div className="flex flex-col items-center gap-4 py-8 text-center">
-          <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+          <CheckCircle2 className="h-10 w-10 text-green-700 dark:text-green-400" />
           <p className="text-lg font-semibold">{t("transactions.importModal.doneTitle")}</p>
           <p className="text-sm text-muted-foreground">
             {sharedCount === null

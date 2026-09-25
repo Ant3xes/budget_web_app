@@ -234,7 +234,7 @@ export function ImportRulesModal({ ruleId, defaultValues, spaceKind = "personal"
           <p className="mt-1 text-xs text-muted-foreground">
             {t("importRules.form.keywordHint")}
           </p>
-          {errors.keyword && <p className="mt-1 text-xs text-red-500">{errors.keyword.message}</p>}
+          {errors.keyword && <p className="mt-1 text-xs text-red-600">{errors.keyword.message}</p>}
         </div>
 
         <div>
@@ -270,7 +270,7 @@ export function ImportRulesModal({ ruleId, defaultValues, spaceKind = "personal"
             ))}
           </select>
           {errors.category_id && (
-            <p className="mt-1 text-xs text-red-500">{errors.category_id.message}</p>
+            <p className="mt-1 text-xs text-red-600">{errors.category_id.message}</p>
           )}
         </div>
 

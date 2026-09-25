@@ -51,14 +51,14 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
             <span className="truncate max-w-xs text-zinc-700 dark:text-zinc-300">
               {tx.description ?? t("dashboard.recentTransactions.defaultDescription")}
               {tx.categories?.name && (
-                <span className="ml-1.5 text-xs text-zinc-400">· {resolveCategoryName(tx.categories, t)}</span>
+                <span className="ml-1.5 text-xs text-zinc-500">· {resolveCategoryName(tx.categories, t)}</span>
               )}
-              <span className="ml-1.5 text-xs text-zinc-400">· {formatDate(tx.date)}</span>
+              <span className="ml-1.5 text-xs text-zinc-500">· {formatDate(tx.date)}</span>
               {(tx.kind === "transfer_debit" || tx.kind === "transfer_credit") && (
-                <span className="ml-1.5 text-xs text-zinc-400">· {t("dashboard.recentTransactions.transfer")}</span>
+                <span className="ml-1.5 text-xs text-zinc-500">· {t("dashboard.recentTransactions.transfer")}</span>
               )}
             </span>
-            <span className={`ml-4 shrink-0 font-medium ${tx.amount_cents < 0 ? "text-red-600" : "text-green-600"}`}>
+            <span className={`ml-4 shrink-0 font-medium ${tx.amount_cents < 0 ? "text-red-600" : "text-green-700"}`}>
               {tx.amount_cents < 0 ? "−" : "+"}
               {formatEuros(Math.abs(tx.amount_cents))}
             </span>

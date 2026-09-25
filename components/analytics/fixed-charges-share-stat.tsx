@@ -40,7 +40,7 @@ export function FixedChargesShareStat({ courantBalanceCents, upcomingFixedCharge
         </span>
       </div>
       <BudgetBar ratio={ratio} className="mt-2" />
-      <p className="mt-2 text-xs text-zinc-400">{t("analytics.fixedChargesShare.caption")}</p>
+      <p className="mt-2 text-xs text-zinc-500">{t("analytics.fixedChargesShare.caption")}</p>
     </div>
   );
 }

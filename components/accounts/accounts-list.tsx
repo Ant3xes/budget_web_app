@@ -148,14 +148,14 @@ export function AccountsList({ groups: allGroups, importButton, selectedBank }: 
                             <p className="truncate text-base font-semibold group-hover:text-zinc-600 dark:group-hover:text-zinc-300">
                               {account.name}
                             </p>
-                            <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                            <span className="mt-1 inline-block rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                               {t(`accounts.types.${accountType}`)}
                             </span>
                           </div>
                         </div>
 
                         <div className="mt-5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                          <p className="text-xs text-zinc-400 dark:text-zinc-500">{t("accounts.list.currentBalance")}</p>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-500">{t("accounts.list.currentBalance")}</p>
                           <p
                             className={`mt-0.5 text-2xl font-bold tracking-tight ${
                               account.balanceCents >= 0 ? "text-zinc-900 dark:text-zinc-100" : "text-red-600"
@@ -165,14 +165,14 @@ export function AccountsList({ groups: allGroups, importButton, selectedBank }: 
                           </p>
 
                           <div className="mt-3 flex items-baseline justify-between">
-                            <span className="text-xs text-zinc-400 dark:text-zinc-500">{t("accounts.list.monthExpenses")}</span>
+                            <span className="text-xs text-zinc-500 dark:text-zinc-500">{t("accounts.list.monthExpenses")}</span>
                             {/* No leading "-" (and no red) for a genuinely zero month —
                                 a minus sign on 0,00 € misreads as spending, and red is
                                 a status color reserved for an actual expense (plan
                                 §Étape 5 dark-mode/a11y polish pass). */}
                             <span
                               className={`text-sm font-medium ${
-                                account.monthExpenseCents === 0 ? "text-zinc-400 dark:text-zinc-500" : "text-red-500"
+                                account.monthExpenseCents === 0 ? "text-zinc-500 dark:text-zinc-500" : "text-red-600"
                               }`}
                             >
                               {account.monthExpenseCents === 0 ? "" : "-"}

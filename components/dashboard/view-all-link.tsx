@@ -12,7 +12,7 @@ import { useLocale } from "@/components/locale-provider";
 export function ViewAllLink({ href, className }: { href: string; className?: string }) {
   const { t } = useLocale();
   return (
-    <Link href={href} className={`text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 ${className ?? ""}`}>
+    <Link href={href} className={`text-xs text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 ${className ?? ""}`}>
       {t("common.actions.viewAll")}
     </Link>
   );

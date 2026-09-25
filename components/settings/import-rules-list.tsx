@@ -71,7 +71,7 @@ function SortableRow({
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab touch-none text-zinc-400 hover:text-zinc-600 active:cursor-grabbing dark:hover:text-zinc-300"
+        className="cursor-grab touch-none text-zinc-500 hover:text-zinc-600 active:cursor-grabbing dark:hover:text-zinc-300"
         aria-label={t("importRules.dragHandle")}
       >
         <GripVertical className="size-4" />
@@ -194,7 +194,7 @@ export function ImportRulesList({ spaceKind = "personal" }: { spaceKind?: "perso
             {rules.length} {rules.length !== 1 ? t("importRules.countPlural") : t("importRules.countSingular")}
           </p>
           {rules.length > 1 && (
-            <p className="text-xs text-zinc-400">{t("importRules.reorderHint")}</p>
+            <p className="text-xs text-zinc-500">{t("importRules.reorderHint")}</p>
           )}
         </div>
         <Button variant="default" onClick={() => setShowCreate(true)}>

@@ -185,7 +185,7 @@ export function ApplyRulesModal({ onSuccess, onClose }: ApplyRulesModalProps) {
       <p className="text-sm text-muted-foreground">{t("common.state.loading")}</p>
     ) : result !== null ? (
       <div className="flex flex-col items-center gap-4 py-8 text-center">
-        <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
+        <CheckCircle2 className="h-10 w-10 text-green-700 dark:text-green-400" />
         <p className="text-lg font-semibold">{t("transactions.applyRules.appliedTitle")}</p>
         <p className="text-sm text-muted-foreground">
           {t("transactions.applyRules.appliedDescription", {

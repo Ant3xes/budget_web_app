@@ -15,7 +15,7 @@ async function login(page: Page) {
 // Rules that are known design debt (tracked separately): still reported in the
 // attached report, but they don't fail the build yet. Remove an id from this
 // list once it's fixed so it can't regress.
-const KNOWN_DEBT = new Set(["color-contrast"]);
+const KNOWN_DEBT = new Set<string>();
 
 // Only blocks on violations that really hurt users; minor/moderate ones and
 // known debt are reported in the test output (attached below) without failing.
@@ -25,8 +25,21 @@ async function expectNoSeriousViolations(page: Page) {
   const blocking = results.violations.filter(
     (v) => (v.impact === "serious" || v.impact === "critical") && !KNOWN_DEBT.has(v.id),
   );
+  // One line per rule, then one line per offending element (with the measured
+  // colors/ratio for color-contrast) so a failure says exactly what to fix.
   const summary = (list: typeof results.violations) =>
-    list.map((v) => `${v.impact} ${v.id}: ${v.help} (${v.nodes.length} node(s)) ${v.helpUrl}`).join("\n");
+    list
+      .map((v) => {
+        const nodes = v.nodes
+          .map((n) => {
+            const d = (n.any[0]?.data ?? {}) as { fgColor?: string; bgColor?: string; contrastRatio?: number };
+            const colors = d.fgColor ? ` [${d.fgColor} on ${d.bgColor}, ${d.contrastRatio}:1]` : "";
+            return `    - ${n.html.slice(0, 120)}${colors}`;
+          })
+          .join("\n");
+        return `${v.impact} ${v.id}: ${v.help} (${v.nodes.length} node(s)) ${v.helpUrl}\n${nodes}`;
+      })
+      .join("\n");
 
   await test.info().attach("axe-all-violations", {
     body: summary(results.violations) || "none",
@@ -45,6 +58,11 @@ test.describe("Accessibility (axe)", () => {
   for (const { name, path } of [
     { name: "dashboard", path: "/dashboard" },
     { name: "transactions", path: "/transactions" },
+    { name: "accounts", path: "/accounts" },
+    { name: "budget", path: "/budget" },
+    { name: "goals", path: "/goals" },
+    { name: "fixed charges", path: "/fixed-charges" },
+    { name: "analytics", path: "/analytics" },
     // /settings redirects to its first sub-page.
     { name: "settings", path: "/settings/categories" },
   ]) {

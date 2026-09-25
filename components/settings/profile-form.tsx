@@ -128,7 +128,7 @@ export function ProfileForm({ initialFullName }: ProfileFormProps) {
 
             {nameError ? <p className="text-sm text-red-600">{nameError}</p> : null}
             {nameSuccess ? (
-              <p className="text-sm text-green-600 dark:text-green-400">{t("profile.info.updateSuccess")}</p>
+              <p className="text-sm text-green-700 dark:text-green-400">{t("profile.info.updateSuccess")}</p>
             ) : null}
 
             <Button type="submit" variant="default" disabled={nameForm.formState.isSubmitting}>
@@ -187,7 +187,7 @@ export function ProfileForm({ initialFullName }: ProfileFormProps) {
 
             {passwordError ? <p className="text-sm text-red-600">{passwordError}</p> : null}
             {passwordSuccess ? (
-              <p className="text-sm text-green-600 dark:text-green-400">
+              <p className="text-sm text-green-700 dark:text-green-400">
                 {t("profile.security.updateSuccess")}
               </p>
             ) : null}

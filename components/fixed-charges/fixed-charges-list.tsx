@@ -257,7 +257,7 @@ export function FixedChargesList() {
                     <td className={`px-4 py-3 ${dueSoon ? "font-semibold text-red-700 dark:text-red-400" : ""}`}>
                       {formatFixedChargeDate(charge.next_due_date)}
                       {dueSoon && (
-                        <span className="ml-1 inline-flex items-center gap-0.5 text-xs text-red-500">
+                        <span className="ml-1 inline-flex items-center gap-0.5 text-xs text-red-600">
                           <AlertTriangle className="h-3 w-3" /> {t("fixedCharges.dueSoon")}
                         </span>
                       )}

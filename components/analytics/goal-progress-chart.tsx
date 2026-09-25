@@ -87,7 +87,7 @@ export function GoalProgressChart({ points, series, manualGoals, height = 260 }:
 
       {manualGoals.length > 0 && (
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
             {t("analytics.goalProgress.manualHeading")}
           </h3>
           <ul className="space-y-1.5 text-sm">
