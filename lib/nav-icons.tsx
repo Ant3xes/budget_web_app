@@ -72,7 +72,9 @@ export const NAV_ACCENTS: Record<NavKey, string> = {
 export function navPillClass(active: boolean): string {
   return `rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
     active
-      ? "text-white shadow-sm"
+      ? // The dark theme's accents are lighter (--chart-*), so white text is
+        // only ~3.6:1 on them; near-black is > 5:1.
+        "text-white shadow-sm dark:text-zinc-950"
       : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
   }`;
 }

@@ -25,7 +25,7 @@ export function FixedChargesShareStat({ courantBalanceCents, upcomingFixedCharge
   const { t } = useLocale();
 
   if (courantBalanceCents <= 0) {
-    return <p className="text-sm text-zinc-500">{t("analytics.fixedChargesShare.noBalance")}</p>;
+    return <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("analytics.fixedChargesShare.noBalance")}</p>;
   }
 
   const ratio = upcomingFixedChargesCents / courantBalanceCents;
@@ -35,12 +35,12 @@ export function FixedChargesShareStat({ courantBalanceCents, upcomingFixedCharge
     <div>
       <div className="flex items-baseline justify-between">
         <span className="text-2xl font-semibold text-zinc-800 dark:text-zinc-100">{pct}%</span>
-        <span className="text-sm text-zinc-500">
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">
           {formatEuros(upcomingFixedChargesCents)} / {formatEuros(courantBalanceCents)}
         </span>
       </div>
       <BudgetBar ratio={ratio} className="mt-2" />
-      <p className="mt-2 text-xs text-zinc-400">{t("analytics.fixedChargesShare.caption")}</p>
+      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t("analytics.fixedChargesShare.caption")}</p>
     </div>
   );
 }

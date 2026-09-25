@@ -32,17 +32,17 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: oklch(0.52 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.52 0.235 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   /* Categorical chart palette (light step) — validated against this surface
      (#ffffff) with scripts/validate_palette.js from the `dataviz` skill: all
      6 checks pass. Do not reorder — see matching comment in .dark below. */
-  --chart-1: #2a78d6; /* blue */
+  --chart-1: #2572cc; /* blue */
   --chart-2: #eb6834; /* orange */
   --chart-3: #1baf7a; /* aqua */
   --chart-4: #eda100; /* yellow */
@@ -105,7 +105,9 @@
      the dataviz skill's status palette: a status/semantic color must never
      double as a categorical series, so it stays distinct from --chart-*). */
   --income: #0ca30c;
-  --expense: #d03b3b;
+  /* Lighter than the light theme's #d03b3b, which is only 3.7:1 on the dark
+     card background (WCAG AA needs 4.5:1 for text). */
+  --expense: #e55555;
   --status-good: #0ca30c;
   --status-warning: #fab219;
   --status-serious: #ec835a;
