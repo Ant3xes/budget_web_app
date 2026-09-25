@@ -1,8 +1,13 @@
 name: Smoke test
 
 # Après chaque déploiement de production réussi (Vercel publie un événement
-# `deployment_status`), vérifie que l'app répond réellement. Les
-# prévisualisations sont protégées par Vercel et donc ignorées ici.
+# `deployment_status`), vérifie que l'app répond réellement, et que c'est bien
+# le commit déployé qui est servi. Les prévisualisations sont protégées par
+# Vercel et donc ignorées ici.
+#
+# On teste l'adresse publique de production, PAS l'URL unique du déploiement
+# (`environment_url`) : celle-ci est protégée par l'authentification Vercel et
+# répond 302. Pour changer d'adresse : variable de dépôt PRODUCTION_URL.
 # Les vérifications sont dans scripts/smoke.sh, aussi exécuté par la CI sur
 # l'app locale à chaque PR.
 
@@ -11,8 +16,8 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: URL de production à tester (ex. https://mon-app.vercel.app)
-        required: true
+        description: URL à tester (par défaut, l'adresse de production)
+        required: false
 
 permissions:
   contents: read
@@ -24,11 +29,13 @@ jobs:
       (github.event.deployment_status.state == 'success' &&
        github.event.deployment.environment == 'Production')
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v7
       - name: Run smoke test
         env:
           # Passed through the environment, never interpolated into the shell.
-          TARGET_URL: ${{ inputs.url || github.event.deployment_status.environment_url }}
-        run: bash scripts/smoke.sh "$TARGET_URL"
+          TARGET_URL: ${{ inputs.url || vars.PRODUCTION_URL || 'https://budget-web-app-cyan.vercel.app' }}
+          # Only set for real deployments: wait until this commit is served.
+          EXPECTED_SHA: ${{ github.event.deployment.sha }}
+        run: bash scripts/smoke.sh "$TARGET_URL" "$EXPECTED_SHA"
