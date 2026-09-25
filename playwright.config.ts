@@ -17,6 +17,13 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // Navigation mobile (bottom nav, sheets) : uniquement les parcours qui en
+    // dépendent, pour ne pas doubler la durée de la CI.
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 7"] },
+      testMatch: /(a11y|mobile)\.spec\.ts/,
+    },
   ],
   webServer: process.env.CI
     ? undefined
