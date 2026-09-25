@@ -4,9 +4,13 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: "html",
+  // Échoue vite en CI si l'app est cassée, au lieu de 30 s x tests x retries.
+  maxFailures: process.env.CI ? 5 : undefined,
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never" }]]
+    : "html",
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
     trace: "on-first-retry",

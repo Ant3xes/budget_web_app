@@ -160,7 +160,7 @@ test.describe("Settings", () => {
 
     for (const path of ["/settings", "/settings/categories", "/settings/import-rules", "/settings/profile"]) {
       await page.goto(path);
-      await expect(settingsNavLink).toHaveClass(/bg-zinc-900/);
+      await expect(settingsNavLink).toHaveAttribute("aria-current", "page");
     }
   });
 

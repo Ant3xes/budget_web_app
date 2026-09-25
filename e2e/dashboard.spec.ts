@@ -48,19 +48,19 @@ test.describe("Dashboard (smoke)", () => {
     await login(page);
 
     // Recent transactions → unified /transactions menu
-    const recentTxCard = page.getByText("Dernières transactions").locator("xpath=ancestor::article[1]");
+    const recentTxCard = page.getByText("Dernières transactions").locator("xpath=ancestor::*[@data-slot='card'][1]");
     await expect(recentTxCard.getByRole("link", { name: "Voir tout" })).toHaveAttribute("href", "/transactions");
 
     // Savings goals → /goals
-    const goalsCard = page.getByText("Objectifs d'épargne").locator("xpath=ancestor::article[1]");
+    const goalsCard = page.getByText("Objectifs d'épargne").locator("xpath=ancestor::*[@data-slot='card'][1]");
     await expect(goalsCard.getByRole("link", { name: "Voir tout" })).toHaveAttribute("href", "/goals");
 
     // Budget widget → /goals (per the original request, not /budget)
-    const budgetCard = page.getByText("Budgets du mois en cours").locator("xpath=ancestor::article[1]");
+    const budgetCard = page.getByText("Budgets du mois en cours").locator("xpath=ancestor::*[@data-slot='card'][1]");
     await expect(budgetCard.getByRole("link", { name: "Voir tout" })).toHaveAttribute("href", "/goals");
 
     // Fixed charges → /fixed-charges (pre-existing, unchanged by #35)
-    const fixedChargesCard = page.getByText("Charges fixes (ce mois)").locator("xpath=ancestor::article[1]");
+    const fixedChargesCard = page.getByText("Charges fixes (ce mois)").locator("xpath=ancestor::*[@data-slot='card'][1]");
     await expect(fixedChargesCard.getByRole("link", { name: "Voir tout" })).toHaveAttribute("href", "/fixed-charges");
   });
 
@@ -82,7 +82,7 @@ test.describe("Dashboard (smoke)", () => {
     // own "voir tout" link (issue #35), so scope by the whole card
     // (nearest <article>, DashboardCard's own element) rather than the
     // heading's immediate parent.
-    const budgetChart = page.getByText("Budgets du mois en cours").locator("xpath=ancestor::article[1]");
+    const budgetChart = page.getByText("Budgets du mois en cours").locator("xpath=ancestor::*[@data-slot='card'][1]");
     await budgetChart.locator(".recharts-bar-rectangle").first().click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
@@ -98,6 +98,8 @@ test.describe("Dashboard (smoke)", () => {
   test("switching to English updates menus and dashboard headings", async ({ page }) => {
     await login(page);
 
+    // The locale switch lives in the sidebar's user menu.
+    await page.getByRole("button", { name: TEST_EMAIL }).click();
     await page.getByRole("button", { name: "EN", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
     await expect(page.getByText("Consolidated balance")).toBeVisible();

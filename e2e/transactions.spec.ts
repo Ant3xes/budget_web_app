@@ -11,6 +11,17 @@ async function login(page: import("@playwright/test").Page) {
   await expect(page).toHaveURL(/dashboard/);
 }
 
+// Creates accounts through the API so tests don't depend on seed ids (which
+// aren't RFC-4122 uuids) or on the order other tests ran in.
+async function createAccounts(page: import("@playwright/test").Page, names: string[]) {
+  for (const name of names) {
+    const res = await page.request.post("/api/accounts", {
+      data: { name, type: "courant", initialBalanceCents: 0 },
+    });
+    expect(res.ok()).toBeTruthy();
+  }
+}
+
 test.describe("Accounts", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
@@ -56,27 +67,35 @@ test.describe("Transactions", () => {
   });
 
   test("can create an expense via the type picker", async ({ page }) => {
+    await createAccounts(page, ["Compte dépense E2E"]);
     await page.goto("/transactions");
     await page.getByRole("button", { name: "+ Ajouter" }).click();
-    await page.getByRole("button", { name: "+ Dépense" }).click();
+    await page.getByRole("menuitem", { name: "+ Dépense" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     // Wait for accounts to load then select the first one
-    await page.getByLabel(/compte/i).selectOption({ index: 1 });
-    await page.getByLabel(/montant/i).fill("25.50");
-    await page.getByLabel(/description/i).fill("Test dépense E2E");
-    await page.getByRole("button", { name: /créer|enregistrer/i }).click();
-    await expect(page.getByText("Test dépense E2E")).toBeVisible({ timeout: 10000 });
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/compte/i).selectOption({ index: 1 });
+    await dialog.getByLabel(/montant/i).fill("25.50");
+    await dialog.getByLabel(/description/i).fill("Test dépense E2E");
+    await dialog.getByRole("button", { name: /créer|enregistrer/i }).click();
+    // Rendered twice (mobile cards + desktop table); only one is visible.
+    await expect(page.getByText("Test dépense E2E").locator("visible=true").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("can create a transfer via the type picker", async ({ page }) => {
+    await createAccounts(page, ["Compte virement A", "Compte virement B"]);
     await page.goto("/transactions");
     await page.getByRole("button", { name: "+ Ajouter" }).click();
-    await page.getByRole("button", { name: "+ Virement" }).click();
+    await page.getByRole("menuitem", { name: "+ Virement" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
-    await page.getByLabel(/compte source/i).selectOption({ index: 1 });
-    await page.getByLabel(/compte destination/i).selectOption({ index: 2 });
-    await page.getByLabel(/montant/i).fill("100");
-    await page.getByRole("button", { name: /créer|enregistrer/i }).click();
+    const dialog = page.getByRole("dialog");
+    // Seed accounts have non-RFC-4122 ids that the form's uuid validation
+    // rejects; the list is newest-first, so the two accounts created above
+    // (real uuids) are the first two options.
+    await dialog.getByLabel(/compte source/i).selectOption({ index: 1 });
+    await dialog.getByLabel(/compte destination/i).selectOption({ index: 2 });
+    await dialog.getByLabel(/montant/i).fill("100");
+    await dialog.getByRole("button", { name: /créer|enregistrer/i }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 10000 });
   });
 
