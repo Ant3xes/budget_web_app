@@ -32,6 +32,8 @@ test.describe("Auth", () => {
     await page.getByRole("button", { name: /connexion|se connecter|login|sign in/i }).click();
     await expect(page).toHaveURL(/dashboard/);
 
+    // Logout lives in the sidebar's user menu.
+    await page.getByRole("button", { name: TEST_EMAIL }).click();
     await page.getByRole("button", { name: /déconnexion|logout|se déconnecter/i }).click();
     await expect(page).toHaveURL(/login/);
   });
