@@ -66,7 +66,7 @@ test.describe("Transactions", () => {
     await dialog.getByLabel(/montant/i).fill("25.50");
     await dialog.getByLabel(/description/i).fill("Test dépense E2E");
     await dialog.getByRole("button", { name: /créer|enregistrer/i }).click();
-    await expect(page.getByText("Test dépense E2E")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Test dépense E2E").first()).toBeVisible({ timeout: 10000 });
   });
 
   test("can create a transfer via the type picker", async ({ page }) => {
@@ -77,13 +77,18 @@ test.describe("Transactions", () => {
     const dialog = page.getByRole("dialog");
     const source = dialog.getByLabel(/compte source/i);
     const destination = dialog.getByLabel(/compte destination/i);
-    await source.selectOption({ index: 1 });
-    // Pick any destination that differs from the chosen source.
-    const sourceValue = await source.inputValue();
-    const destinationValues = await destination
+    // Seed data includes a shared-space account with a non-RFC-4122 id that
+    // the form's uuid validation rejects, so only pick RFC-valid ids.
+    const validIds = await source
       .locator("option")
-      .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).value).filter(Boolean));
-    await destination.selectOption(destinationValues.find((v) => v !== sourceValue)!);
+      .evaluateAll((options) =>
+        options
+          .map((o) => (o as HTMLOptionElement).value)
+          .filter((v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)),
+      );
+    expect(validIds.length).toBeGreaterThanOrEqual(2);
+    await source.selectOption(validIds[0]);
+    await destination.selectOption(validIds[1]);
     await dialog.getByLabel(/montant/i).fill("100");
     await dialog.getByRole("button", { name: /créer|enregistrer/i }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 10000 });
