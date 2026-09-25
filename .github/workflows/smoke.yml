@@ -39,3 +39,50 @@ jobs:
           # Only set for real deployments: wait until this commit is served.
           EXPECTED_SHA: ${{ github.event.deployment.sha }}
         run: bash scripts/smoke.sh "$TARGET_URL" "$EXPECTED_SHA"
+
+  # Connexion réelle avec un compte de test dédié (lecture seule). Nécessite les
+  # secrets SMOKE_EMAIL et SMOKE_PASSWORD ; sans eux, le test est ignoré avec un
+  # avertissement. C'est ce test qui détecte des variables NEXT_PUBLIC_SUPABASE_*
+  # absentes ou erronées côté Vercel (l'app répond, mais personne ne peut se
+  # connecter).
+  signed-in:
+    needs: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+      SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+      TARGET_URL: ${{ inputs.url || vars.PRODUCTION_URL || 'https://budget-web-app-cyan.vercel.app' }}
+    steps:
+      - name: Check credentials
+        id: creds
+        run: |
+          if [ -z "$SMOKE_EMAIL" ] || [ -z "$SMOKE_PASSWORD" ]; then
+            echo "::warning::Test avec connexion ignoré : secrets SMOKE_EMAIL / SMOKE_PASSWORD absents."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.creds.outputs.ready == 'true'
+        uses: actions/checkout@v7
+      - if: steps.creds.outputs.ready == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - if: steps.creds.outputs.ready == 'true'
+        run: npm ci --ignore-scripts
+      - if: steps.creds.outputs.ready == 'true'
+        run: npx playwright install chromium --with-deps
+      - name: Signed-in smoke test
+        if: steps.creds.outputs.ready == 'true'
+        run: node scripts/smoke-login.mjs "$TARGET_URL"
+      - name: Upload failure screenshot
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-login-failure
+          path: smoke-login-failure.png
+          if-no-files-found: ignore
+          retention-days: 7

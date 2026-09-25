@@ -42,3 +42,6 @@ next-env.d.ts
 
 # lighthouse
 /lighthouse-results
+
+# signed-in smoke test
+/smoke-login-failure.png
