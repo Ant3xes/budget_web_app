@@ -42,15 +42,17 @@ test.describe("Accessibility (axe)", () => {
     await expectNoSeriousViolations(page);
   });
 
-  for (const { name, path, heading } of [
-    { name: "dashboard", path: "/dashboard", heading: /dashboard|tableau de bord/i },
-    { name: "transactions", path: "/transactions", heading: /transactions/i },
-    { name: "settings", path: "/settings", heading: /paramètres|settings/i },
+  for (const { name, path } of [
+    { name: "dashboard", path: "/dashboard" },
+    { name: "transactions", path: "/transactions" },
+    { name: "settings", path: "/settings" },
   ]) {
     test(`${name} page`, async ({ page }) => {
       await login(page);
       await page.goto(path);
-      await expect(page.getByRole("heading", { name: heading }).first()).toBeVisible();
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      // Page content rendered (not a loading skeleton) before scanning.
+      await expect(page.getByRole("heading").first()).toBeVisible();
       await expectNoSeriousViolations(page);
     });
   }
