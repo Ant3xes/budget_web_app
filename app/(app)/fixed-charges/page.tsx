@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
+
 import { FixedChargesList } from "@/components/fixed-charges/fixed-charges-list";
 import { T } from "@/components/i18n/t";
+
+export const metadata: Metadata = {
+  title: "Charges fixes",
+  description: "Vos charges récurrentes et leurs prochaines échéances.",
+};
 
 export default function FixedChargesPage() {
   return (

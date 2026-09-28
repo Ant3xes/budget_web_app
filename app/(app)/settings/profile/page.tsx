@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
+
 import { ProfileForm } from "@/components/settings/profile-form";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { T } from "@/components/i18n/t";
+
+export const metadata: Metadata = {
+  title: "Profil",
+  description: "Nom et mot de passe de votre compte.",
+};
 
 export default async function ProfileSettingsPage() {
   const supabase = await createServerSupabaseClient();

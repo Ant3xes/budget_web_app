@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
+
 import { BudgetList } from "@/components/budget/budget-list";
 import { T } from "@/components/i18n/t";
+
+export const metadata: Metadata = {
+  title: "Budget",
+  description: "Enveloppes budgétaires mensuelles par catégorie.",
+};
 
 export default async function BudgetPage({
   searchParams,

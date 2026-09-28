@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { T } from "@/components/i18n/t";
 import { InvitationStatusLabel } from "@/components/invitations/invitation-status-label";
 import { InviteForm } from "@/components/invitations/invite-form";
@@ -12,6 +14,11 @@ type MemberRow = {
   user_id: string;
   role: "owner" | "member";
   profiles: { full_name: string | null } | { full_name: string | null }[] | null;
+};
+
+export const metadata: Metadata = {
+  title: "Partage",
+  description: "Invitations et membres de vos espaces partagés.",
 };
 
 export default async function SharingPage() {

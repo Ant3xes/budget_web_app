@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
+
 import { AccountsList } from "@/components/accounts/accounts-list";
 import { AccountsImportButton } from "@/components/accounts/accounts-import-button";
 import { groupAccountsByBank } from "@/lib/accounts/group-accounts-by-bank";
 import { requireSpaceContext } from "@/lib/spaces/context";
+
+export const metadata: Metadata = {
+  title: "Comptes",
+  description: "Vos comptes bancaires regroupés par banque, avec soldes à jour.",
+};
 
 type AccountWithTransactions = {
   id: string;

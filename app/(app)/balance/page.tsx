@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { BalanceCard } from "@/components/balance/balance-card";
@@ -34,6 +35,11 @@ type ExpenseRow = {
   category_id: string | null;
   shares: Shares;
   categories: CategoryRow | CategoryRow[] | null;
+};
+
+export const metadata: Metadata = {
+  title: "Solde",
+  description: "Dépenses partagées et règlements avec les membres de l'espace.",
 };
 
 export default async function BalancePage() {

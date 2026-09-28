@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AuthMessage } from "@/components/auth-message";
@@ -7,6 +8,11 @@ import { nextQuery, safeNext } from "@/lib/auth/safe-next";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 
 import { login } from "../actions";
+
+export const metadata: Metadata = {
+  title: "Connexion",
+  description: "Connectez-vous à votre espace Budget & Comptes.",
+};
 
 export default async function LoginPage({
   searchParams,

@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
+
 import { ImportRulesList } from "@/components/settings/import-rules-list";
 import { T } from "@/components/i18n/t";
 import { requireSpaceContext } from "@/lib/spaces/context";
+
+export const metadata: Metadata = {
+  title: "Règles d'import",
+  description: "Règles de catégorisation automatique appliquées lors de l'import.",
+};
 
 export default async function ImportRulesPage() {
   const { space } = await requireSpaceContext();
