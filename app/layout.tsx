@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { CookieBanner } from "@/components/cookie-banner";
 import { LocaleProvider } from "@/components/locale-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Geist } from "next/font/google";
@@ -65,7 +66,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-full bg-background text-foreground">
         <ThemeProvider>
-          <LocaleProvider>{children}</LocaleProvider>
+          <LocaleProvider>
+            {children}
+            <CookieBanner />
+          </LocaleProvider>
         </ThemeProvider>
         {/* Web Vitals réels (LCP, INP, TTFB…) collectés en production sur Vercel. */}
         <SpeedInsights />

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AuthMessage } from "@/components/auth-message";
 import { LogoMark } from "@/components/brand/logo";
 import { T } from "@/components/i18n/t";
+import { LegalConsentNotice } from "@/components/legal-consent-notice";
 import { nextQuery, safeNext } from "@/lib/auth/safe-next";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 
@@ -75,6 +76,7 @@ export default async function SignupPage({
             <T k="auth.signup.signIn" />
           </Link>
         </p>
+        <LegalConsentNotice />
       </section>
     </main>
   );

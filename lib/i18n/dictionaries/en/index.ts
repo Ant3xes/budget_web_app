@@ -10,6 +10,7 @@ import { fixedCharges } from "./fixedCharges";
 import { goals } from "./goals";
 import { importRules } from "./importRules";
 import { invitations } from "./invitations";
+import { legal } from "./legal";
 import { nav } from "./nav";
 import { periodSelector } from "./period-selector";
 import { profile } from "./profile";
@@ -37,4 +38,5 @@ export const en = {
   profile,
   importRules,
   analytics,
+  legal,
 } as const;
