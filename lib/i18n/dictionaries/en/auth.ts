@@ -15,4 +15,5 @@ export const auth = {
     signIn: "Sign in",
   },
   signupSuccessMessage: "Signup successful. Confirm your email before logging in.",
+  rateLimitedMessage: "Too many attempts. Try again in a few minutes.",
 } as const;
