@@ -11,6 +11,10 @@ export const dashboard = {
   accountsOverview: {
     heading: "Accounts overview",
   },
+  filters: {
+    periodLabel: "Period",
+    accountsLabel: "Accounts",
+  },
   remainingToLive: {
     label: "Left to live on — this month (before charges)",
     afterChargesLabel: "With upcoming charges",

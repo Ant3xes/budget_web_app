@@ -62,7 +62,7 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam, tabPara
         value={from}
         onChange={(e) => setFrom(e.target.value)}
         aria-label={t("periodSelector.custom.fromLabel")}
-        className="h-9 min-w-0 flex-1 rounded border border-border bg-background px-1 text-xs text-foreground md:h-auto md:w-auto md:py-0.5"
+        className="h-9 min-w-36 flex-1 rounded border border-border bg-background px-1 text-xs text-foreground md:h-auto md:w-auto md:min-w-0 md:py-0.5"
       />
       <span aria-hidden>–</span>
       <input
@@ -70,7 +70,7 @@ export function PeriodSelectorCustom({ current, basePath, accountsParam, tabPara
         value={to}
         onChange={(e) => setTo(e.target.value)}
         aria-label={t("periodSelector.custom.toLabel")}
-        className="h-9 min-w-0 flex-1 rounded border border-border bg-background px-1 text-xs text-foreground md:h-auto md:w-auto md:py-0.5"
+        className="h-9 min-w-36 flex-1 rounded border border-border bg-background px-1 text-xs text-foreground md:h-auto md:w-auto md:min-w-0 md:py-0.5"
       />
       <button
         type="button"

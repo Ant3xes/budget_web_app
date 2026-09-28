@@ -1,5 +1,6 @@
 import { requireSpaceContext } from "@/lib/spaces/context";
 import { T } from "@/components/i18n/t";
+import { FilterSheet } from "@/components/ui/filter-sheet";
 import { PeriodSelector } from "@/components/period-selector";
 import { AccountSelector } from "@/components/dashboard/account-selector";
 import { BankTiles } from "@/components/dashboard/bank-tiles";
@@ -569,7 +570,28 @@ export default async function DashboardPage({
         <h1 className="text-2xl font-semibold">
           <T k="dashboard.title" />
         </h1>
-        <PeriodSelector current={period} basePath="/dashboard" accountsParam={accountsParam} />
+        <div className="hidden md:block">
+          <PeriodSelector current={period} basePath="/dashboard" accountsParam={accountsParam} />
+        </div>
+        <FilterSheet className="md:hidden" triggerLabelKey="common.filters.trigger" titleKey="common.filters.title">
+          <div>
+            <p className="mb-2 text-sm font-medium text-muted-foreground">
+              <T k="dashboard.filters.periodLabel" />
+            </p>
+            <PeriodSelector current={period} basePath="/dashboard" accountsParam={accountsParam} />
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium text-muted-foreground">
+              <T k="dashboard.filters.accountsLabel" />
+            </p>
+            <AccountSelector
+              accounts={courantAccounts}
+              selectedIds={selectedCourantIds}
+              basePath="/dashboard"
+              periodParam={periodParam}
+            />
+          </div>
+        </FilterSheet>
       </div>
       {space.kind === "shared" ? (
         <p className="-mt-2 text-sm text-muted-foreground">
@@ -590,16 +612,21 @@ export default async function DashboardPage({
           <T k="dashboard.accountsOverview.heading" />
         </h2>
 
-        {/* Solde consolidé + bulles banques (remplace l'ancien bloc "Comptes par banque") */}
-        <div className="-mx-4 flex snap-x snap-mandatory items-stretch gap-3 no-scrollbar overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+        {/* Solde consolidé + bulles banques (remplace l'ancien bloc "Comptes par banque").
+            `-my-1`/`py-1` (removed again at `sm:`, where overflow switches to
+            visible) give the tiles' ring/shadow room to paint — without it,
+            `overflow-x-auto`'s implicit `overflow-y: auto` clips it top and
+            bottom on mobile. */}
+        <div className="-mx-4 -my-1 flex snap-x snap-mandatory items-stretch gap-3 no-scrollbar overflow-x-auto px-4 py-1 sm:mx-0 sm:my-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:py-0">
           <ConsolidatedBalanceTile amountCents={consolidatedBalance} />
           <BankTiles groups={bankGroups} />
         </div>
       </div>
 
       {/* Barre de filtre — distincte du panneau "vue d'ensemble" ci-dessus,
-          collée à la grille de widgets qu'elle filtre effectivement. */}
-      <div className="flex flex-wrap items-center gap-2">
+          collée à la grille de widgets qu'elle filtre effectivement. Sur
+          mobile, ce même sélecteur vit dans le FilterSheet ci-dessus. */}
+      <div className="hidden md:flex md:flex-wrap md:items-center md:gap-2">
         <AccountSelector
           accounts={courantAccounts}
           selectedIds={selectedCourantIds}

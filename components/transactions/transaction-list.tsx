@@ -15,6 +15,7 @@ import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { FilterSheet } from "@/components/ui/filter-sheet";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
@@ -256,6 +257,125 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
     );
   };
 
+  // Filter controls, extracted so they can be rendered once in the desktop
+  // bar and once (stacked full-width) inside the mobile `FilterSheet` —
+  // same state/handlers either way, just two places in the render tree.
+  const typeToggle = (
+    <div className="flex overflow-hidden rounded-lg border border-border text-sm">
+      {(["all", "expense", "income", "transfer"] as const).map((tp) => (
+        <button
+          key={tp}
+          onClick={() => {
+            setType(tp);
+            // A category only applies within its own kind (and a
+            // transfer has none at all) — drop any selection made under
+            // a different tab instead of silently filtering by it.
+            setCategorySelection("");
+          }}
+          className={`flex-1 px-3 py-2.5 transition-colors md:flex-none md:py-1.5 ${
+            type === tp ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          {t(`transactions.list.type.${tp}`)}
+        </button>
+      ))}
+    </div>
+  );
+
+  const accountSelect = (
+    <Select
+      value={accountId}
+      onChange={(e) => setAccountId(e.target.value)}
+      aria-label={t("transactions.list.account")}
+      className="w-full md:w-auto"
+    >
+      <option value="">{t("transactions.list.allAccounts")}</option>
+      {accounts.map((a) => (
+        <option key={a.id} value={a.id}>
+          {a.name}
+        </option>
+      ))}
+    </Select>
+  );
+
+  const categorySelect = type !== "transfer" && (
+    <Select
+      value={categorySelection}
+      onChange={(e) => setCategorySelection(e.target.value)}
+      aria-label={t("transactions.list.category")}
+      className="w-full md:w-auto"
+    >
+      <option value="">{t("transactions.list.allCategories")}</option>
+      <option value={UNCATEGORIZED_CATEGORY_ID}>{t("transactions.list.uncategorizedOption")}</option>
+      {filterCategories.map((c) => (
+        <option key={c.id} value={c.id}>
+          {resolveCategoryName(c, t)}
+        </option>
+      ))}
+    </Select>
+  );
+
+  const dateFromInput = (
+    <Input
+      type="date"
+      value={dateFrom}
+      onChange={(e) => setDateFrom(e.target.value)}
+      className="w-full md:w-auto"
+      aria-label={t("transactions.list.dateFrom")}
+      title={t("transactions.list.dateFrom")}
+    />
+  );
+
+  const dateToInput = (
+    <Input
+      type="date"
+      value={dateTo}
+      onChange={(e) => setDateTo(e.target.value)}
+      className="w-full md:w-auto"
+      aria-label={t("transactions.list.dateTo")}
+      title={t("transactions.list.dateTo")}
+    />
+  );
+
+  const searchBlock = (
+    <div className="flex min-w-0 flex-1 gap-1 md:flex-none">
+      <Input
+        type="text"
+        value={qInput}
+        onChange={(e) => setQInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") setQ(qInput);
+        }}
+        placeholder={t("transactions.list.searchPlaceholder")}
+        className="min-w-0 flex-1 md:w-auto md:flex-none"
+      />
+      <Button variant="outline" size="icon" onClick={() => setQ(qInput)} aria-label={t("transactions.list.search")}>
+        <Search />
+      </Button>
+      {q && (
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => {
+            setQ("");
+            setQInput("");
+          }}
+          aria-label={t("transactions.list.clearSearch")}
+        >
+          <X />
+        </Button>
+      )}
+    </div>
+  );
+
+  const activeFilterCount = [
+    type !== "all",
+    !!accountId,
+    type !== "transfer" && !!categorySelection,
+    !!dateFrom,
+    !!dateTo,
+  ].filter(Boolean).length;
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -283,105 +403,33 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
         </div>
       </div>
 
-      {/* Filters */}
-      <Card className="grid grid-cols-2 gap-2 p-3 md:flex md:flex-row md:flex-wrap md:items-center md:gap-3">
-        <div className="col-span-2 flex overflow-hidden rounded-lg border border-border text-sm md:col-span-1">
-          {(["all", "expense", "income", "transfer"] as const).map((tp) => (
-            <button
-              key={tp}
-              onClick={() => {
-                setType(tp);
-                // A category only applies within its own kind (and a
-                // transfer has none at all) — drop any selection made under
-                // a different tab instead of silently filtering by it.
-                setCategorySelection("");
-              }}
-              className={`flex-1 px-3 py-2.5 transition-colors md:flex-none md:py-1.5 ${
-                type === tp ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              {t(`transactions.list.type.${tp}`)}
-            </button>
-          ))}
-        </div>
-
-        <Select
-          value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          aria-label={t("transactions.list.account")}
-          className="w-full md:w-auto"
-        >
-          <option value="">{t("transactions.list.allAccounts")}</option>
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </Select>
-
-        {type !== "transfer" && (
-          <Select
-            value={categorySelection}
-            onChange={(e) => setCategorySelection(e.target.value)}
-            aria-label={t("transactions.list.category")}
-            className="w-full md:w-auto"
-          >
-            <option value="">{t("transactions.list.allCategories")}</option>
-            <option value={UNCATEGORIZED_CATEGORY_ID}>{t("transactions.list.uncategorizedOption")}</option>
-            {filterCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {resolveCategoryName(c, t)}
-              </option>
-            ))}
-          </Select>
-        )}
-
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          className="w-full md:w-auto"
-          aria-label={t("transactions.list.dateFrom")}
-          title={t("transactions.list.dateFrom")}
-        />
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          className="w-full md:w-auto"
-          aria-label={t("transactions.list.dateTo")}
-          title={t("transactions.list.dateTo")}
-        />
-
-        <div className="col-span-2 flex gap-1 md:col-span-1">
-          <Input
-            type="text"
-            value={qInput}
-            onChange={(e) => setQInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") setQ(qInput);
-            }}
-            placeholder={t("transactions.list.searchPlaceholder")}
-            className="min-w-0 flex-1 md:w-auto md:flex-none"
-          />
-          <Button variant="outline" size="icon" onClick={() => setQ(qInput)} aria-label={t("transactions.list.search")}>
-            <Search />
-          </Button>
-          {q && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                setQ("");
-                setQInput("");
-              }}
-              aria-label={t("transactions.list.clearSearch")}
-            >
-              <X />
-            </Button>
-          )}
-        </div>
+      {/* Filters — desktop */}
+      <Card className="hidden gap-2 p-3 md:flex md:flex-row md:flex-wrap md:items-center md:gap-3">
+        {typeToggle}
+        {accountSelect}
+        {categorySelect}
+        {dateFromInput}
+        {dateToInput}
+        {searchBlock}
       </Card>
+
+      {/* Filters — mobile: search stays front-and-center, the rest lives in the sheet */}
+      <div className="flex items-center gap-2 md:hidden">
+        {searchBlock}
+        <FilterSheet
+          triggerLabelKey="common.filters.trigger"
+          titleKey="common.filters.title"
+          activeCount={activeFilterCount}
+        >
+          {typeToggle}
+          {accountSelect}
+          {categorySelect}
+          <div className="flex gap-2">
+            {dateFromInput}
+            {dateToInput}
+          </div>
+        </FilterSheet>
+      </div>
 
       {isLoading || transactions.length === 0 ? (
         <div className="rounded-2xl border border-border bg-card shadow-sm ring-1 ring-foreground/10">
