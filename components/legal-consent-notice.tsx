@@ -21,11 +21,11 @@ export function LegalConsentNotice() {
   return (
     <p className="mt-4 text-xs text-muted-foreground">
       {beforeCgu}
-      <Link href="/legal/cgu" className="underline underline-offset-2 hover:text-foreground">
+      <Link href="/cgu" className="underline underline-offset-2 hover:text-foreground">
         {t("legal.consentNotice.cgu")}
       </Link>
       {betweenCguRgpd}
-      <Link href="/legal/rgpd" className="underline underline-offset-2 hover:text-foreground">
+      <Link href="/rgpd" className="underline underline-offset-2 hover:text-foreground">
         {t("legal.consentNotice.rgpd")}
       </Link>
       {afterRgpd}

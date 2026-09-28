@@ -49,11 +49,11 @@ export default async function AppLayout({
             Plan
           </Link>{" "}
           ·{" "}
-          <Link href="/legal/cgu" className="underline underline-offset-2 hover:text-foreground">
+          <Link href="/cgu" className="underline underline-offset-2 hover:text-foreground">
             CGU
           </Link>{" "}
           ·{" "}
-          <Link href="/legal/rgpd" className="underline underline-offset-2 hover:text-foreground">
+          <Link href="/rgpd" className="underline underline-offset-2 hover:text-foreground">
             Confidentialité
           </Link>
         </footer>

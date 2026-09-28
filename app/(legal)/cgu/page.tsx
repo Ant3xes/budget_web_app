@@ -53,7 +53,7 @@ export default function CguPage() {
         <p className="text-sm text-foreground/80">
           Vous restez propriétaire des données que vous saisissez ou importez. Vous pouvez à tout
           moment en demander l&apos;export ou la suppression complète (voir la{" "}
-          <Link href="/legal/rgpd" className="underline underline-offset-2">
+          <Link href="/rgpd" className="underline underline-offset-2">
             politique de confidentialité
           </Link>
           ).
@@ -91,7 +91,7 @@ export default function CguPage() {
       </section>
 
       <p className="text-sm text-muted-foreground">
-        <Link href="/legal/rgpd" className="underline underline-offset-2">
+        <Link href="/rgpd" className="underline underline-offset-2">
           Politique de confidentialité
         </Link>{" "}
         ·{" "}

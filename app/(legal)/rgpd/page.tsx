@@ -103,7 +103,7 @@ export default function RgpdPage() {
       </section>
 
       <p className="text-sm text-muted-foreground">
-        <Link href="/legal/cgu" className="underline underline-offset-2">
+        <Link href="/cgu" className="underline underline-offset-2">
           Conditions d&apos;utilisation
         </Link>{" "}
         ·{" "}

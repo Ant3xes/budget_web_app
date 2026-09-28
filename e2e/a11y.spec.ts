@@ -98,14 +98,14 @@ for (const theme of ["light", "dark"] as const) {
 
     // Legal pages are static and public (no auth, outside the `(app)` group).
     test("rgpd page", async ({ page }) => {
-      await page.goto("/legal/rgpd");
+      await page.goto("/rgpd");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expectTheme(page, theme);
       await expectNoSeriousViolations(page);
     });
 
     test("cgu page", async ({ page }) => {
-      await page.goto("/legal/cgu");
+      await page.goto("/cgu");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await expectTheme(page, theme);
       await expectNoSeriousViolations(page);
