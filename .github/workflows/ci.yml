@@ -113,6 +113,24 @@ jobs:
       - name: Smoke test (same checks as the post-deploy one)
         run: bash scripts/smoke.sh http://localhost:3000
 
+      # Crawls the app actually running (not just source files), so it catches
+      # real broken Next.js routes — not just typos in markdown links. Scoped
+      # to the public, unauthenticated pages: protected routes 302-redirect
+      # anonymous requests to /login, which a plain HTTP crawler can't get
+      # past, so they're covered by e2e/a11y.spec.ts's own navigation instead.
+      - name: Link checker (public pages)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --base-url http://localhost:3000
+            --no-progress
+            http://localhost:3000
+            http://localhost:3000/login
+            http://localhost:3000/signup
+            http://localhost:3000/plan
+          fail: true
+          jobSummary: true
+
       - name: Run E2E tests
         run: npx playwright test
         env:

@@ -27,4 +27,10 @@ export const common = {
     trigger: "Filters",
     title: "Filters",
   },
+  notFound: {
+    title: "Page not found",
+    description: "The page you are looking for does not exist or has moved.",
+    backAuthenticated: "Back to dashboard",
+    backAnonymous: "Back to login",
+  },
 } as const;
