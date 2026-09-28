@@ -47,6 +47,14 @@ export default async function AppLayout({
         <footer className="hidden border-t border-border px-4 py-3 text-xs text-muted-foreground md:block md:px-6">
           <Link href="/plan" className="underline underline-offset-2 hover:text-foreground">
             Plan
+          </Link>{" "}
+          ·{" "}
+          <Link href="/legal/cgu" className="underline underline-offset-2 hover:text-foreground">
+            CGU
+          </Link>{" "}
+          ·{" "}
+          <Link href="/legal/rgpd" className="underline underline-offset-2 hover:text-foreground">
+            Confidentialité
           </Link>
         </footer>
       </div>
