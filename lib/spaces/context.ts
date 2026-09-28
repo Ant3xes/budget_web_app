@@ -47,13 +47,17 @@ export const pickActiveSpace = (spaces: SpaceSummary[], cookieValue: string | un
 
 const loadSpaceContext = async (): Promise<SpaceContext | null> => {
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Local JWT verification (no Auth-server round-trip) — see lib/supabase/middleware.ts.
+  // This runs on every navigation; routes that mutate or expose account
+  // details re-check with getUser().
+  const { data: authData } = await supabase.auth.getClaims();
+  const claims = authData?.claims;
 
-  if (!user) {
+  if (!claims) {
     return null;
   }
+
+  const user = { id: claims.sub, email: claims.email };
 
   const { data, error } = await supabase
     .from("space_members")
