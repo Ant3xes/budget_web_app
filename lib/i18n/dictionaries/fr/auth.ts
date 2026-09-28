@@ -20,4 +20,6 @@ export const auth = {
   },
   /** Matches the `?message=signupSuccess` sentinel `(auth)/actions.ts` redirects with — the login page resolves it via this key instead of a raw (unlocalizable) literal in the server action. Any other `?message=` value is Supabase's own auth error text, shown as-is (untranslated — it comes from the auth library, not this app). */
   signupSuccessMessage: "Inscription réussie. Confirmez votre e-mail avant de vous connecter.",
+  /** Matches the `?message=rateLimited` sentinel `(auth)/actions.ts` redirects with after too many failed attempts — deliberately generic (doesn't say whether the account exists). */
+  rateLimitedMessage: "Trop de tentatives. Réessayez dans quelques minutes.",
 } as const;
