@@ -23,4 +23,8 @@ export const common = {
     next: "Next",
     pageOf: "page {page} / {totalPages}",
   },
+  filters: {
+    trigger: "Filters",
+    title: "Filters",
+  },
 } as const;

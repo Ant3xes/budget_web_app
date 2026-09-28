@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { requireSpaceContext } from "@/lib/spaces/context";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { PeriodSelector } from "@/components/period-selector";
+import { FilterSheet } from "@/components/ui/filter-sheet";
 import { T } from "@/components/i18n/t";
 import { AnalyticsTabs, ANALYTICS_TABS, type AnalyticsTab } from "@/components/analytics/analytics-tabs";
 import { NetWorthChart } from "@/components/analytics/net-worth-chart";
@@ -593,12 +594,22 @@ export default async function AnalyticsPage({
         <h1 className="text-2xl font-semibold">
           <T k="nav.items.analytics" />
         </h1>
-        <PeriodSelector
-          current={period}
-          basePath="/analytics"
-          presets={["6m", "1a", "tout"]}
-          tabParam={tab === "overview" ? undefined : tab}
-        />
+        <div className="hidden md:block">
+          <PeriodSelector
+            current={period}
+            basePath="/analytics"
+            presets={["6m", "1a", "tout"]}
+            tabParam={tab === "overview" ? undefined : tab}
+          />
+        </div>
+        <FilterSheet className="md:hidden" triggerLabelKey="common.filters.trigger" titleKey="common.filters.title">
+          <PeriodSelector
+            current={period}
+            basePath="/analytics"
+            presets={["6m", "1a", "tout"]}
+            tabParam={tab === "overview" ? undefined : tab}
+          />
+        </FilterSheet>
       </div>
 
       {includeShared ? (
