@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
+
 import { GoalsList } from "@/components/goals/goals-list";
 import { T } from "@/components/i18n/t";
+
+export const metadata: Metadata = {
+  title: "Objectifs",
+  description: "Suivi de vos objectifs d'épargne.",
+};
 
 export default function GoalsPage() {
   return (

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 
 import { requireSpaceContext } from "@/lib/spaces/context";
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
@@ -87,6 +88,11 @@ function Section({ titleKey, vars, children }: { titleKey: string; vars?: Record
  * chacun de leurs liens (`tabParam`) pour que changer de période ne
  * réinitialise plus l'onglet actif.
  */
+export const metadata: Metadata = {
+  title: "Analyses",
+  description: "Graphiques et tendances : flux, catégories, épargne, patrimoine.",
+};
+
 export default async function AnalyticsPage({
   searchParams,
 }: {

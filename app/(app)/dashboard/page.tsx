@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { requireSpaceContext } from "@/lib/spaces/context";
 import { T } from "@/components/i18n/t";
 import { FilterSheet } from "@/components/ui/filter-sheet";
@@ -55,6 +57,11 @@ function sumAbsByCategoryId(rows: { category_id: string | null; amount_cents: nu
     return acc;
   }, {});
 }
+
+export const metadata: Metadata = {
+  title: "Tableau de bord",
+  description: "Vue d'ensemble de vos comptes, dépenses et objectifs du mois.",
+};
 
 export default async function DashboardPage({
   searchParams,

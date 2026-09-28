@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { acceptInvitation } from "@/app/invite/[token]/actions";
@@ -6,6 +7,13 @@ import { T } from "@/components/i18n/t";
 import { Button } from "@/components/ui/button";
 import { nextQuery } from "@/lib/auth/safe-next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = {
+  title: "Invitation",
+  description: "Rejoindre un espace partagé Budget & Comptes.",
+  // URL à usage unique porteuse d'un token secret : jamais indexable, même si robots.ts est contourné.
+  robots: { index: false, follow: false },
+};
 
 const shellClass =
   "mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-4 px-4 py-8 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))]";

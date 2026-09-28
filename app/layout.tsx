@@ -8,9 +8,31 @@ import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const siteDescription = "Suivi de budget et de comptes bancaires personnel";
+
 export const metadata: Metadata = {
-  title: "Budget & Comptes",
-  description: "Suivi de budget et de comptes bancaires personnel",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Budget & Comptes",
+    // S'applique aux pages enfants qui définissent leur propre `title` (ex. "Transactions — Budget & Comptes") ;
+    // sans effet sur les pages qui n'exportent pas de `title` (elles gardent `default` ci-dessus).
+    template: "%s — Budget & Comptes",
+  },
+  description: siteDescription,
+  openGraph: {
+    title: "Budget & Comptes",
+    description: siteDescription,
+    url: siteUrl,
+    siteName: "Budget & Comptes",
+    locale: "fr_FR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Budget & Comptes",
+    description: siteDescription,
+  },
 };
 
 // `viewport-fit=cover` : nécessaire pour que `env(safe-area-inset-*)` soit non nul (barre du bas sur iPhone).

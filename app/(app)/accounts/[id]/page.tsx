@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AccountDetail } from "@/components/accounts/account-detail";
@@ -14,6 +15,11 @@ type TxRow = {
   description: string;
   notes: string | null;
   categories: { name: string; color: string | null; icon: string | null } | null;
+};
+
+export const metadata: Metadata = {
+  title: "Détail du compte",
+  description: "Historique et évolution du solde d'un compte.",
 };
 
 export default async function AccountDetailPage({
