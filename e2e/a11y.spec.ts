@@ -88,6 +88,14 @@ for (const theme of ["light", "dark"] as const) {
       await expectNoSeriousViolations(page);
     });
 
+    test("404 page", async ({ page }) => {
+      await page.goto("/this-route-does-not-exist");
+      await expect(page.getByRole("heading")).toBeVisible();
+      await expect(page.getByRole("link", { name: /connexion|dashboard|login|tableau de bord/i })).toBeVisible();
+      await expectTheme(page, theme);
+      await expectNoSeriousViolations(page);
+    });
+
     for (const { name, path } of PAGES) {
       test(`${name} page`, async ({ page }) => {
         await login(page);

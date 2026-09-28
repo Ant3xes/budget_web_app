@@ -32,4 +32,10 @@ export const common = {
     trigger: "Filtres",
     title: "Filtres",
   },
+  notFound: {
+    title: "Page introuvable",
+    description: "La page que vous cherchez n'existe pas ou a été déplacée.",
+    backAuthenticated: "Retour au tableau de bord",
+    backAnonymous: "Retour à la connexion",
+  },
 } as const;
