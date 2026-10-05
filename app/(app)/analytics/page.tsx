@@ -23,6 +23,7 @@ import { YearOverYearChart } from "@/components/analytics/year-over-year-chart";
 import { GoalProgressChart } from "@/components/analytics/goal-progress-chart";
 import { WeekdayExpenseChart } from "@/components/analytics/weekday-expense-chart";
 import { DivergingBarChart } from "@/components/analytics/diverging-bar-chart";
+import { filterTransactionsAfterAnchor } from "@/lib/accounts/balance-after-anchor";
 import { computeBalanceSeries } from "@/lib/accounts/compute-balance-series";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { computeTransferVolumeSeries } from "@/lib/accounts/compute-transfer-volume-series";
@@ -115,7 +116,7 @@ export default async function AnalyticsPage({
   // Active accounts — every tab needs at least the id list.
   const accountsRes = await supabase
     .from("accounts")
-    .select("id, name, type, bank, initial_balance_cents")
+    .select("id, name, type, bank, initial_balance_cents, balance_anchor_date")
     .eq("space_id", spaceId)
     .is("deleted_at", null);
   const accounts = accountsRes.data ?? [];
@@ -149,8 +150,8 @@ export default async function AnalyticsPage({
   if (tab === "overview") {
     const [allTxRes, windowTxRes, transferTxRes, windowShared] = await Promise.all([
       // Balance/snapshot (net worth): shared expenses are on no account, so excluded.
-      runScopedQuery<{ amount_cents: number; date: string }>([accountIds], () =>
-        supabase.from("transactions").select("amount_cents, date").eq("space_id", spaceId).in("account_id", accountIds).is("deleted_at", null),
+      runScopedQuery<{ account_id: string; amount_cents: number; date: string }>([accountIds], () =>
+        supabase.from("transactions").select("account_id, amount_cents, date").eq("space_id", spaceId).in("account_id", accountIds).is("deleted_at", null),
       ),
       runScopedQuery<{ kind: string; amount_cents: number; date: string }>([accountIds], () =>
         supabase
@@ -179,7 +180,10 @@ export default async function AnalyticsPage({
     ]);
 
     const initialBalanceTotal = accounts.reduce((sum, a) => sum + a.initial_balance_cents, 0);
-    const fullNetWorthSeries = computeBalanceSeries(allTxRes.data ?? [], initialBalanceTotal, now, windowToMonth);
+    // Issue 104: filter each transaction against the anchor date of ITS account, then sum.
+    const anchorByAccountId = new Map(accounts.map((a) => [a.id, a.balance_anchor_date]));
+    const balanceTxs = filterTransactionsAfterAnchor(allTxRes.data ?? [], anchorByAccountId);
+    const fullNetWorthSeries = computeBalanceSeries(balanceTxs, initialBalanceTotal, now, windowToMonth);
     const netWorthSeries = windowMonthCount === null ? fullNetWorthSeries : fullNetWorthSeries.slice(-windowMonthCount);
     // Shared expenses count as expenses in the cashflow/savings-rate series (activity, not a balance).
     const windowSeries = computeIncomeExpenseSeries([...(windowTxRes.data ?? []), ...windowShared], windowMonthCount, now, windowToMonth);
@@ -401,7 +405,9 @@ export default async function AnalyticsPage({
         .lte("next_due_date", currentMonthEnd)
         .is("deleted_at", null),
     ]);
-    const accountTx = accountTxRes.data ?? [];
+    // Issue 104: only operations after each account's balance anchor date move its balance.
+    const anchorByAccountId = new Map(accounts.map((a) => [a.id, a.balance_anchor_date]));
+    const accountTx = filterTransactionsAfterAnchor(accountTxRes.data ?? [], anchorByAccountId);
     const accountTxTotals = accountTx.reduce<Record<string, number>>((acc, tx) => {
       if (tx.date > windowTo) return acc; // breakdown charts stay windowTo-bounded, not today-bounded
       acc[tx.account_id] = (acc[tx.account_id] ?? 0) + tx.amount_cents;

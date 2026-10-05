@@ -20,6 +20,10 @@ export function AccountModal({ accountId, defaultValues, onClose, onSuccess }: A
       title={accountId ? t("accounts.form.editTitle") : t("accounts.form.newTitle")}
       closeLabel={t("common.actions.close")}
     >
+      {!accountId && (
+        // Issue 104 (ADR 0003): explains the balance anchor date at creation.
+        <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">{t("accounts.list.balanceAnchorHelp")}</p>
+      )}
       <AccountForm accountId={accountId} defaultValues={defaultValues} onSuccess={onSuccess} />
     </Modal>
   );

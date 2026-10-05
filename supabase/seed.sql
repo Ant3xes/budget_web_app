@@ -125,10 +125,10 @@ begin
   -- ============================================================
   -- 3. Comptes
   -- ============================================================
-  insert into public.accounts (id, space_id, user_id, name, type, initial_balance_cents, currency) values
-    (acc_courant, spc, uid, 'BNP Compte courant',  'courant', 150000,  'EUR'),
-    (acc_epargne, spc, uid, 'Livret A',             'livret',  500000,  'EUR'),
-    (acc_livret,  spc, uid, 'PEL CIC',              'PEL',     1200000, 'EUR')
+  insert into public.accounts (id, space_id, user_id, name, type, initial_balance_cents, currency, balance_anchor_date) values
+    (acc_courant, spc, uid, 'BNP Compte courant',  'courant', 150000,  'EUR', '1900-01-01'),
+    (acc_epargne, spc, uid, 'Livret A',             'livret',  500000,  'EUR', '1900-01-01'),
+    (acc_livret,  spc, uid, 'PEL CIC',              'PEL',     1200000, 'EUR', '1900-01-01')
   on conflict (id) do nothing;
 
   -- ============================================================
@@ -388,6 +388,16 @@ begin
     (spc, uid, cat_abo,    '2026-09-01', 5000)
   on conflict (space_id, category_id, month) do nothing;
 
+  -- Mois réellement en cours (relatif à la date du seed) : le dashboard et
+  -- les tests e2e attendent des budgets sur le mois courant, quel qu'il soit.
+  insert into public.budgets (space_id, user_id, category_id, month, amount_cents) values
+    (spc, uid, cat_alim,   date_trunc('month', current_date)::date, 30000),
+    (spc, uid, cat_loge,   date_trunc('month', current_date)::date, 90000),
+    (spc, uid, cat_trans,  date_trunc('month', current_date)::date, 15000),
+    (spc, uid, cat_resto,  date_trunc('month', current_date)::date, 12000),
+    (spc, uid, cat_abo,    date_trunc('month', current_date)::date, 5000)
+  on conflict (space_id, category_id, month) do nothing;
+
   -- ============================================================
   -- 6. Charges fixes
   -- ============================================================
@@ -484,9 +494,9 @@ select public.seed_default_categories(
   'a0000000-0000-0000-0000-000000000001'
 );
 
-insert into public.accounts (id, space_id, user_id, name, type, initial_balance_cents, currency) values
+insert into public.accounts (id, space_id, user_id, name, type, initial_balance_cents, currency, balance_anchor_date) values
   ('b0000000-0000-0000-0000-000000000010', 'c0000000-0000-0000-0000-000000000001',
-   'a0000000-0000-0000-0000-000000000001', 'Compte joint', 'courant', 200000, 'EUR')
+   'a0000000-0000-0000-0000-000000000001', 'Compte joint', 'courant', 200000, 'EUR', '1900-01-01')
 on conflict (id) do nothing;
 
 insert into public.invitations

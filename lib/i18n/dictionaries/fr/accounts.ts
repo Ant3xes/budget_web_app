@@ -4,7 +4,9 @@
 export const accounts = {
   list: {
     title: "Comptes",
-    subtitle: "Solde = solde initial + somme des transactions non supprimées.",
+    subtitle: "Solde = solde initial + opérations postérieures à la création du compte.",
+    balanceAnchorHelp:
+      "Le solde saisi est celui du jour de création. Les opérations importées datées d'avant ce jour (ou du jour même) restent dans l'historique mais ne modifient pas le solde.",
     newAccount: "Nouveau compte",
     noBank: "Sans banque",
     allBanks: "Toutes les banques",
@@ -13,6 +15,7 @@ export const accounts = {
     currentBalance: "Solde actuel",
     monthExpenses: "Dépenses ce mois",
     importButton: "Importer",
+    importNeedsAccount: "Crée d'abord un compte",
   },
   types: {
     courant: "Courant",
@@ -60,7 +63,8 @@ export const accounts = {
     bank: "Banque",
     optional: "(optionnel)",
     bankPlaceholder: "BNP, N26…",
-    initialBalance: "Solde initial (centimes)",
+    initialBalance: "Solde initial (€)",
+    initialBalanceInvalid: "Montant invalide (ex. 1234,56)",
     currency: "Devise",
     saveError: "Impossible d'enregistrer le compte",
     createButton: "Créer le compte",

@@ -4,7 +4,9 @@
 export const accounts = {
   list: {
     title: "Accounts",
-    subtitle: "Balance = initial balance + sum of non-deleted transactions.",
+    subtitle: "Balance = initial balance + transactions after the account was created.",
+    balanceAnchorHelp:
+      "The balance you enter is the balance on the creation day. Imported operations dated before that day (or on it) stay in the history but do not change the balance.",
     newAccount: "New account",
     noBank: "No bank",
     allBanks: "All banks",
@@ -13,6 +15,7 @@ export const accounts = {
     currentBalance: "Current balance",
     monthExpenses: "This month's expenses",
     importButton: "Import",
+    importNeedsAccount: "Create an account first",
   },
   types: {
     courant: "Checking",
@@ -60,7 +63,8 @@ export const accounts = {
     bank: "Bank",
     optional: "(optional)",
     bankPlaceholder: "BNP, N26…",
-    initialBalance: "Initial balance (cents)",
+    initialBalance: "Initial balance (€)",
+    initialBalanceInvalid: "Invalid amount (e.g. 1234.56)",
     currency: "Currency",
     saveError: "Unable to save the account",
     createButton: "Create account",

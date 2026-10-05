@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AccountDetail } from "@/components/accounts/account-detail";
+import { balanceAfterAnchor } from "@/lib/accounts/balance-after-anchor";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { periodToParam, parsePeriodParam } from "@/lib/dates/period";
 import { requireSpaceContext } from "@/lib/spaces/context";
@@ -37,7 +38,7 @@ export default async function AccountDetailPage({
   const { supabase, spaceId, space } = await requireSpaceContext();
   const { data: account } = await supabase
     .from("accounts")
-    .select("id, name, type, bank, initial_balance_cents, currency")
+    .select("id, name, type, bank, initial_balance_cents, balance_anchor_date, currency")
     .eq("id", id)
     .eq("space_id", spaceId)
     .is("deleted_at", null)
@@ -78,9 +79,8 @@ export default async function AccountDetailPage({
     };
   });
 
-  const balanceCents =
-    Number(account.initial_balance_cents) +
-    transactions.reduce((sum, t) => sum + Number(t.amount_cents), 0);
+  // Issue 104: only operations after the balance anchor date move the balance.
+  const balanceCents = balanceAfterAnchor(account.initial_balance_cents, account.balance_anchor_date, transactions);
 
   const incomeExpenseData = computeIncomeExpenseSeries(
     transactions.map((t) => ({
@@ -104,6 +104,7 @@ export default async function AccountDetailPage({
         bank: account.bank,
         currency: account.currency,
         initial_balance_cents: account.initial_balance_cents,
+        balance_anchor_date: account.balance_anchor_date,
       }}
       balanceCents={balanceCents}
       spaceKind={space.kind}

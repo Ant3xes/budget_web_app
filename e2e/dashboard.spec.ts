@@ -30,7 +30,9 @@ test.describe("Dashboard (smoke)", () => {
     await expect(page.getByText("Reste à vivre — mois en cours (hors charges)")).toBeVisible();
 
     // Charts
-    await expect(page.getByText("Dépenses par catégorie (septembre 2026)")).toBeVisible();
+    // Le libellé de période suit le mois courant (plus de mois codé en dur).
+    const currentMonthLabel = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(new Date());
+    await expect(page.getByText(`Dépenses par catégorie (${currentMonthLabel})`)).toBeVisible();
     await expect(page.getByText("Revenus vs Dépenses (6 mois)")).toBeVisible();
 
     // "Charges fixes" now covers both upcoming and already-paid charges (issue #35)

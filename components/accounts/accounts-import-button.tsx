@@ -1,25 +1,48 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { AccountModal } from "@/components/accounts/account-modal";
+import { ImportButton } from "@/components/import/import-button";
 import { ImportModal } from "@/components/import/import-modal";
 import { useLocale } from "@/components/locale-provider";
-import { Button } from "@/components/ui/button";
 
-export function AccountsImportButton({ spaceKind = "personal" }: { spaceKind?: "personal" | "shared" }) {
+export function AccountsImportButton({
+  spaceKind = "personal",
+  hasAccount,
+}: {
+  spaceKind?: "personal" | "shared";
+  /** Calculé dans app/(app)/accounts/page.tsx (issue 102). */
+  hasAccount: boolean;
+}) {
   const { t } = useLocale();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   return (
     <>
-      <Button variant="outline" onClick={() => setIsOpen(true)}>
-        {t("accounts.list.importButton")}
-      </Button>
+      <ImportButton
+        label={t("accounts.list.importButton")}
+        hasAccount={hasAccount}
+        onImport={() => setIsOpen(true)}
+        onCreateAccount={() => setCreateOpen(true)}
+      />
       {isOpen && (
         <ImportModal
           spaceKind={spaceKind}
           onSuccess={() => setIsOpen(false)}
           onClose={() => setIsOpen(false)}
+        />
+      )}
+      {createOpen && (
+        <AccountModal
+          onClose={() => setCreateOpen(false)}
+          onSuccess={() => {
+            setCreateOpen(false);
+            router.refresh();
+          }}
         />
       )}
     </>

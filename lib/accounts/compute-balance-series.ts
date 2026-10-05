@@ -1,3 +1,5 @@
+import { isCountedInBalance } from "@/lib/accounts/balance-after-anchor";
+
 export type BalanceSeriesTx = {
   date: string; // YYYY-MM-DD
   amount_cents: number;
@@ -61,6 +63,11 @@ function formatDayLabel(isoDate: string): string {
  * (or `endMonth` if none) through `endMonth` (defaults to `now`'s month),
  * balance = initialBalanceCents + SUM(amount_cents where date <= end of month).
  *
+ * `anchorDate` (issue 104): only transactions strictly after it move the
+ * balance; before it the curve stays flat at the initial balance. Omitted =
+ * every transaction counts. Multi-account callers pre-filter with
+ * filterTransactionsAfterAnchor and pass the summed initial balance.
+ *
  * `endMonth` matters when a caller slices the tail of this series for a
  * window that doesn't end "now" (e.g. /analytics' net-worth chart for a
  * past custom date range) — without it, the series always ran through
@@ -71,6 +78,7 @@ export function computeBalanceSeries(
   initialBalanceCents: number,
   now: Date = new Date(),
   endMonth?: string,
+  anchorDate?: string,
 ): BalanceSeriesPoint[] {
   const currentMonth = endMonth ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -88,6 +96,7 @@ export function computeBalanceSeries(
     const cutoff = endOfMonth(month);
     const sum = transactions
       .filter((tx) => toDateOnly(tx.date) <= cutoff)
+      .filter((tx) => anchorDate === undefined || isCountedInBalance(tx.date, anchorDate))
       .reduce((acc, tx) => acc + tx.amount_cents, 0);
     points.push({
       month: formatMonthLabel(month),
@@ -107,12 +116,14 @@ export function computeDailyBalanceSeries(
   initialBalanceCents: number,
   from: string,
   to: string,
+  anchorDate?: string,
 ): DailyBalancePoint[] {
   if (from > to) return [];
 
   const byDay = new Map<string, number>();
   let before = 0;
   for (const tx of transactions) {
+    if (anchorDate !== undefined && !isCountedInBalance(tx.date, anchorDate)) continue;
     const dayKey = toDateOnly(tx.date);
     if (dayKey < from) {
       before += tx.amount_cents;
