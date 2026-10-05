@@ -4,9 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
+import { createAccountFormSchema } from "@/lib/accounts/account-form-schema";
+import { formatCentsToEuros } from "@/lib/accounts/parse-euros-to-cents";
 import { ACCOUNT_TYPES } from "@/lib/constants";
 
 export type AccountFormValues = {
@@ -14,6 +15,15 @@ export type AccountFormValues = {
   type: (typeof ACCOUNT_TYPES)[number];
   bank?: string;
   initialBalanceCents: number;
+  currency: string;
+};
+
+// What the inputs hold: the balance is a text typed in euros.
+type AccountFormInput = {
+  name: string;
+  type: (typeof ACCOUNT_TYPES)[number];
+  bank?: string;
+  initialBalance: string;
   currency: string;
 };
 
@@ -33,12 +43,9 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
   // the component (memoized on the locale) rather than at module scope.
   const accountSchema = useMemo(
     () =>
-      z.object({
-        name: z.string().trim().min(1, t("accounts.form.nameRequired")).max(80),
-        type: z.enum(ACCOUNT_TYPES),
-        bank: z.string().trim().max(80).optional().or(z.literal("")),
-        initialBalanceCents: z.number().int(),
-        currency: z.string().length(3),
+      createAccountFormSchema({
+        nameRequired: t("accounts.form.nameRequired"),
+        invalidBalance: t("accounts.form.initialBalanceInvalid"),
       }),
     [t],
   );
@@ -47,15 +54,17 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<AccountFormValues>({
+  } = useForm<AccountFormInput, unknown, AccountFormValues>({
     resolver: zodResolver(accountSchema),
-    defaultValues: defaultValues ?? {
-      name: "",
-      type: "courant",
-      bank: "",
-      initialBalanceCents: 0,
-      currency: "EUR",
-    },
+    defaultValues: defaultValues
+      ? {
+          name: defaultValues.name,
+          type: defaultValues.type,
+          bank: defaultValues.bank ?? "",
+          initialBalance: formatCentsToEuros(defaultValues.initialBalanceCents),
+          currency: defaultValues.currency,
+        }
+      : { name: "", type: "courant", bank: "", initialBalance: "", currency: "EUR" },
   });
 
   const onSubmit = handleSubmit(async (values) => {
@@ -117,9 +126,12 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
         {t("accounts.form.initialBalance")}
         <input
           className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          type="number"
-          {...register("initialBalanceCents", { valueAsNumber: true })}
+          type="text"
+          inputMode="decimal"
+          placeholder="0,00"
+          {...register("initialBalance")}
         />
+        {errors.initialBalance ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.initialBalance.message}</p> : null}
       </label>
 
       <label className="block text-sm font-medium">
