@@ -4,7 +4,9 @@
 export const accounts = {
   list: {
     title: "Comptes",
-    subtitle: "Solde = solde initial + somme des transactions non supprimées.",
+    subtitle: "Solde = solde initial + opérations postérieures à la création du compte.",
+    balanceAnchorHelp:
+      "Le solde saisi est celui du jour de création. Les opérations importées datées d'avant ce jour (ou du jour même) restent dans l'historique mais ne modifient pas le solde.",
     newAccount: "Nouveau compte",
     noBank: "Sans banque",
     allBanks: "Toutes les banques",

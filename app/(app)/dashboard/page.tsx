@@ -16,6 +16,7 @@ import { SavingsGoalsSummary } from "@/components/dashboard/savings-goals-summar
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { RemainingToLive } from "@/components/dashboard/remaining-to-live";
 import { SavingsThisMonth } from "@/components/dashboard/savings-this-month";
+import { filterTransactionsAfterAnchor } from "@/lib/accounts/balance-after-anchor";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { computeExpenseByCategory } from "@/lib/accounts/compute-expense-by-category";
 import { groupAccountBalancesByBank, type AccountBalance } from "@/lib/accounts/group-account-balances";
@@ -99,7 +100,7 @@ export default async function DashboardPage({
   // not just the balance (accountTxRes further below).
   const accountsRes = await supabase
     .from("accounts")
-    .select("id, name, type, bank, initial_balance_cents")
+    .select("id, name, type, bank, initial_balance_cents, balance_anchor_date")
     .eq("space_id", spaceId)
     .is("deleted_at", null);
   const accountIds = (accountsRes.data ?? []).map((a) => a.id);
@@ -355,10 +356,10 @@ export default async function DashboardPage({
   const linkedCategoryIds = goals.map((g) => g.linked_category_id).filter((id): id is string => Boolean(id));
 
   const [accountTxRes, budgetConsumptionRes, goalTxRes, sharedBudgetRows] = await Promise.all([
-    runScopedQuery<{ account_id: string; amount_cents: number }>([accountIds], () =>
+    runScopedQuery<{ account_id: string; amount_cents: number; date: string }>([accountIds], () =>
       supabase
         .from("transactions")
-        .select("account_id, amount_cents")
+        .select("account_id, amount_cents, date")
         .eq("space_id", spaceId)
         .in("account_id", accountIds)
         .is("deleted_at", null),
@@ -397,7 +398,9 @@ export default async function DashboardPage({
   ]);
 
   // ── Per-account balances (correct: initial + own transactions) ───────────
-  const accountTxTotals = (accountTxRes.data ?? []).reduce<Record<string, number>>((acc, tx) => {
+  // Issue 104: each transaction is filtered against the anchor date of ITS account.
+  const anchorByAccountId = new Map((accountsRes.data ?? []).map((a) => [a.id, a.balance_anchor_date]));
+  const accountTxTotals = filterTransactionsAfterAnchor(accountTxRes.data ?? [], anchorByAccountId).reduce<Record<string, number>>((acc, tx) => {
     acc[tx.account_id] = (acc[tx.account_id] ?? 0) + tx.amount_cents;
     return acc;
   }, {});
