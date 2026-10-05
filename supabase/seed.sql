@@ -388,6 +388,16 @@ begin
     (spc, uid, cat_abo,    '2026-09-01', 5000)
   on conflict (space_id, category_id, month) do nothing;
 
+  -- Mois réellement en cours (relatif à la date du seed) : le dashboard et
+  -- les tests e2e attendent des budgets sur le mois courant, quel qu'il soit.
+  insert into public.budgets (space_id, user_id, category_id, month, amount_cents) values
+    (spc, uid, cat_alim,   date_trunc('month', current_date)::date, 30000),
+    (spc, uid, cat_loge,   date_trunc('month', current_date)::date, 90000),
+    (spc, uid, cat_trans,  date_trunc('month', current_date)::date, 15000),
+    (spc, uid, cat_resto,  date_trunc('month', current_date)::date, 12000),
+    (spc, uid, cat_abo,    date_trunc('month', current_date)::date, 5000)
+  on conflict (space_id, category_id, month) do nothing;
+
   -- ============================================================
   -- 6. Charges fixes
   -- ============================================================
