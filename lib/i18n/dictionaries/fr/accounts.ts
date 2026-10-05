@@ -13,6 +13,7 @@ export const accounts = {
     currentBalance: "Solde actuel",
     monthExpenses: "Dépenses ce mois",
     importButton: "Importer",
+    importNeedsAccount: "Crée d'abord un compte",
   },
   types: {
     courant: "Courant",

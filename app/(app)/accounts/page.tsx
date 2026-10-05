@@ -64,7 +64,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
 
   return (
     <section className="space-y-4">
-      <AccountsList groups={groups} selectedBank={selectedBank}importButton={<AccountsImportButton spaceKind={space.kind} />} />
+      <AccountsList groups={groups} selectedBank={selectedBank}importButton={<AccountsImportButton spaceKind={space.kind} hasAccount={accounts.length > 0} />} />
     </section>
   );
 }

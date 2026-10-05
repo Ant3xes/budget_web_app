@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Pencil, Search, Split, Trash2, X } from "lucide-react";
 
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
+import { AccountModal } from "@/components/accounts/account-modal";
+import { ImportButton } from "@/components/import/import-button";
 import { ImportModal } from "@/components/import/import-modal";
 import { ShareTransactionModal } from "@/components/transactions/share-transaction-modal";
 import { TransactionModal } from "@/components/transactions/transaction-modal";
@@ -93,6 +95,9 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
 
   // Reference data
   const [accounts, setAccounts] = useState<Account[]>([]);
+  // Évite d'afficher « Crée d'abord un compte » avant la fin du chargement (issue 102).
+  const [accountsLoaded, setAccountsLoaded] = useState(false);
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
 
   // Modals
@@ -114,6 +119,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
     if (accRes.ok) {
       const d = (await accRes.json()) as { accounts: Account[] };
       setAccounts(d.accounts ?? []);
+      setAccountsLoaded(true);
     }
     if (catRes.ok) {
       const d = (await catRes.json()) as { categories: Category[] };
@@ -385,9 +391,12 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
           <Button variant="outline" onClick={() => setShowApplyRules(true)} title={t("transactions.list.categorizeTitle")}>
             {t("transactions.list.categorize")}
           </Button>
-          <Button variant="outline" onClick={() => setShowImport(true)}>
-            {t("transactions.list.import")}
-          </Button>
+          <ImportButton
+            label={t("transactions.list.import")}
+            hasAccount={!accountsLoaded || accounts.length > 0}
+            onImport={() => setShowImport(true)}
+            onCreateAccount={() => setShowCreateAccount(true)}
+          />
           <DropdownMenu>
             <DropdownMenuTrigger className={buttonVariants({ variant: "default" })}>
               {t("transactions.list.add")}
@@ -634,6 +643,15 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
         />
       )}
 
+      {showCreateAccount && (
+        <AccountModal
+          onClose={() => setShowCreateAccount(false)}
+          onSuccess={() => {
+            setShowCreateAccount(false);
+            void loadRefData();
+          }}
+        />
+      )}
       {showImport && (
         <ImportModal
           spaceKind={spaceKind}
