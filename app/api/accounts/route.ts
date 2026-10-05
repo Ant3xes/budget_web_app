@@ -13,6 +13,11 @@ const accountSchema = z.object({
   currency: z.string().length(3).default("EUR"),
 });
 
+// en-CA formats as YYYY-MM-DD.
+function todayInParis(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(now);
+}
+
 const deleteSchema = z.object({ id: z.string().uuid() });
 
 export async function GET() {
@@ -23,7 +28,7 @@ export async function GET() {
 
   const { data, error } = await auth.supabase
     .from("accounts")
-    .select("id, name, type, bank, currency, initial_balance_cents")
+    .select("id, name, type, bank, currency, initial_balance_cents, balance_anchor_date")
     .eq("space_id", auth.spaceId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
@@ -54,6 +59,8 @@ export async function POST(request: Request) {
     bank: payload.data.bank || null,
     initial_balance_cents: payload.data.initialBalanceCents,
     currency: payload.data.currency.toUpperCase(),
+    // Issue 104 (ADR 0003): anchor fixed at creation, today's date in Europe/Paris.
+    balance_anchor_date: todayInParis(),
   });
 
   if (error) {

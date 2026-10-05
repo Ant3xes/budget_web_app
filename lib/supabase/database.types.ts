@@ -36,6 +36,7 @@ export type Database = {
     Tables: {
       accounts: {
         Row: {
+          balance_anchor_date: string
           bank: string | null
           created_at: string
           currency: string
@@ -49,6 +50,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          balance_anchor_date?: string
           bank?: string | null
           created_at?: string
           currency?: string
@@ -62,6 +64,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          balance_anchor_date?: string
           bank?: string | null
           created_at?: string
           currency?: string

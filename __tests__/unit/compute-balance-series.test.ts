@@ -146,3 +146,42 @@ describe("computeDailyBalanceSeries", () => {
     expect(balances[balances.length - 1]).toBe(350_000); // + salaire
   });
 });
+
+describe("ancrage du solde (issue 104)", () => {
+  it("computeBalanceSeries : solde initial constant avant l'ancrage, puis évolution", () => {
+    const now = new Date(2026, 3, 10); // avril 2026
+    const series = computeBalanceSeries(
+      [
+        { date: "2026-02-15", amount_cents: -1000 },
+        { date: "2026-03-10", amount_cents: -700 },
+        { date: "2026-04-02", amount_cents: 500 },
+      ],
+      10_000,
+      now,
+      undefined,
+      "2026-03-10",
+    );
+    expect(series.map((p) => p.balance)).toEqual([10_000, 10_000, 10_500]);
+  });
+
+  it("computeBalanceSeries : sans ancrage, comportement inchangé", () => {
+    const now = new Date(2026, 1, 10);
+    const series = computeBalanceSeries([{ date: "2026-01-15", amount_cents: -1000 }], 10_000, now);
+    expect(series.map((p) => p.balance)).toEqual([9_000, 9_000]);
+  });
+
+  it("computeDailyBalanceSeries : plat jusqu'à l'ancrage inclus, puis évolue", () => {
+    const series = computeDailyBalanceSeries(
+      [
+        { date: "2026-03-08", amount_cents: -1000 },
+        { date: "2026-03-10", amount_cents: -700 },
+        { date: "2026-03-11", amount_cents: 500 },
+      ],
+      10_000,
+      "2026-03-09",
+      "2026-03-12",
+      "2026-03-10",
+    );
+    expect(series.map((p) => p.balance)).toEqual([10_000, 10_000, 10_500, 10_500]);
+  });
+});

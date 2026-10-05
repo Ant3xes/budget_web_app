@@ -52,6 +52,7 @@ type AccountInfo = {
   bank: string | null;
   currency: string;
   initial_balance_cents: number;
+  balance_anchor_date: string;
 };
 
 type IncomeExpensePoint = {
@@ -253,6 +254,7 @@ export function AccountDetail({
     account.initial_balance_cents,
     from,
     to,
+    account.balance_anchor_date,
   );
   const visibleIncomeExpenseData = (() => {
     if (period.type === "month") {

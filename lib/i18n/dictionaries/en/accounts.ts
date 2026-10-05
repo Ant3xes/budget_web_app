@@ -4,7 +4,9 @@
 export const accounts = {
   list: {
     title: "Accounts",
-    subtitle: "Balance = initial balance + sum of non-deleted transactions.",
+    subtitle: "Balance = initial balance + transactions after the account was created.",
+    balanceAnchorHelp:
+      "The balance you enter is the balance on the creation day. Imported operations dated before that day (or on it) stay in the history but do not change the balance.",
     newAccount: "New account",
     noBank: "No bank",
     allBanks: "All banks",
