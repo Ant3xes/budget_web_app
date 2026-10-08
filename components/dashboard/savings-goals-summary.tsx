@@ -3,6 +3,7 @@
 import { DashboardCard } from "@/components/dashboard/dashboard-card";
 import { ViewAllLink } from "@/components/dashboard/view-all-link";
 import { useLocale } from "@/components/locale-provider";
+import { progressFillTransform } from "@/lib/dashboard/progress-fill";
 import { formatEuros } from "@/lib/format";
 
 interface GoalSummary {
@@ -52,10 +53,10 @@ export function SavingsGoalsSummary({ goals }: SavingsGoalsSummaryProps) {
                   <span className="ml-1.5 font-medium text-zinc-500 dark:text-zinc-400">({pct}%)</span>
                 </span>
               </div>
-              <div className="mt-1.5 h-2.5 w-full rounded-full bg-zinc-100 dark:bg-zinc-700">
+              <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-700">
                 <div
-                  className="h-2.5 rounded-full transition-all"
-                  style={{ width: `${pct}%`, backgroundColor: fillColor }}
+                  className="h-full w-full rounded-full transition-transform duration-300 ease-out motion-reduce:transition-none"
+                  style={{ transform: progressFillTransform(pct), backgroundColor: fillColor }}
                 />
               </div>
             </div>
