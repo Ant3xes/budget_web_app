@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Search, Split, Trash2, X } from "lucide-react";
 
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
@@ -231,22 +231,27 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
         ? t("transactions.reimbursements.linkedBadge")
         : null;
 
-  // Whole row opens the edit modal (issue 114). Keyboard: Enter/Space only when
-  // the row itself has focus, so inner buttons keep their own behaviour.
+  // Whole row opens the edit modal on click (issue 114). The row itself is not
+  // an interactive role: it contains the share and delete buttons and nested
+  // interactive controls are an a11y error. Keyboard and screen-reader users
+  // get a real button on the description instead (see openButton).
   const rowProps = (tx: Transaction) => ({
-    role: "button" as const,
-    tabIndex: 0,
     onClick: () => setEditingTransaction(tx),
-    onKeyDown: (e: KeyboardEvent) => {
-      if (e.target !== e.currentTarget) return;
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        setEditingTransaction(tx);
-      }
-    },
   });
+  const openButton = (tx: Transaction, children: ReactNode) => (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditingTransaction(tx);
+      }}
+      className="min-w-0 max-w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {children}
+    </button>
+  );
   const rowClass =
-    "cursor-pointer outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset";
+    "cursor-pointer transition-colors hover:bg-muted/50";
 
   const shareBadge = (tx: Transaction) => {
     const share = canShare ? getShare(tx) : null;
@@ -483,7 +488,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
                 <li key={tx.id} {...rowProps(tx)} className={`rounded-2xl bg-card p-3 ring-1 ring-foreground/10 ${rowClass}`}>
                   <div className="flex items-start justify-between gap-3">
                     <p className="min-w-0 flex-1 break-words text-sm font-medium">
-                      {tx.description}
+                      {openButton(tx, tx.description)}
                       {tx.is_imported && (
                         <span className="ml-1 rounded bg-muted px-1 py-0.5 text-xs font-normal text-muted-foreground">
                           {t("transactions.list.imported")}
@@ -541,7 +546,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
                   <tr key={tx.id} {...rowProps(tx)} className={`border-b border-border ${rowClass}`}>
                     <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{formatDate(tx.date)}</td>
                     <td className="px-4 py-3 max-w-xs truncate">
-                      {tx.description}
+                      {openButton(tx, tx.description)}
                       {tx.is_imported && (
                         <span className="ml-1 rounded bg-muted px-1 py-0.5 text-xs text-muted-foreground">
                           {t("transactions.list.imported")}

@@ -45,7 +45,7 @@ function setup() {
 // jsdom renders both the mobile cards and the desktop table: use the table rows.
 const rows = async () => {
   await waitFor(() => expect(screen.getAllByText("Synthetic expense").length).toBeGreaterThan(0));
-  return screen.getAllByRole("button").filter((el) => el.tagName === "TR");
+  return screen.getAllByRole("row").filter((el) => el.tagName === "TR" && el.querySelector("td"));
 };
 
 afterEach(() => {
@@ -63,24 +63,18 @@ describe("TransactionList clickable rows (issue 114)", () => {
     expect(JSON.parse(modal.dataset.values!)).toMatchObject({ account_id: acc1, amount: "12.34" });
   });
 
-  it("opens the modal on Enter and Space, not on other keys", async () => {
+  it("the description is a real button that opens the modal (keyboard and screen reader)", async () => {
     setup();
     const [row] = await rows();
-    fireEvent.keyDown(row, { key: "a" });
-    expect(screen.queryByTestId("tx-modal")).toBeNull();
-    fireEvent.keyDown(row, { key: "Enter" });
-    expect(screen.getByTestId("tx-modal")).toBeTruthy();
-    cleanup();
-    setup();
-    const [row2] = await rows();
-    fireEvent.keyDown(row2, { key: " " });
+    fireEvent.click(within(row).getByRole("button", { name: "Synthetic expense" }));
     expect(screen.getByTestId("tx-modal")).toBeTruthy();
   });
 
-  it("rows are focusable and the pencil button is gone", async () => {
+  it("the row is not itself an interactive role (no nested interactive controls) and the pencil is gone", async () => {
     setup();
     const [row] = await rows();
-    expect(row.getAttribute("tabindex")).toBe("0");
+    expect(row.getAttribute("role")).toBeNull();
+    expect(row.getAttribute("tabindex")).toBeNull();
     expect(screen.queryAllByRole("button", { name: /^(Modifier|Edit)$/ })).toHaveLength(0);
   });
 
