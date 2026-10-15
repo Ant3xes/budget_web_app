@@ -17,7 +17,7 @@ select set_config('t.cat_a', (select id::text from public.categories
 
 insert into public.accounts (id, space_id, user_id, name, type) values
   ('e1000000-0000-4000-8000-000000000001', current_setting('t.space_a')::uuid, 'aaaaaaaa-0000-0000-0000-00000000000a', 'Compte A1', 'courant'),
-  ('e1000000-0000-4000-8000-000000000002', current_setting('t.space_a')::uuid, 'aaaaaaaa-0000-0000-0000-00000000000a', 'Compte A2', 'epargne'),
+  ('e1000000-0000-4000-8000-000000000002', current_setting('t.space_a')::uuid, 'aaaaaaaa-0000-0000-0000-00000000000a', 'Compte A2', 'épargne'),
   ('e2000000-0000-4000-8000-000000000001', current_setting('t.space_b')::uuid, 'bbbbbbbb-0000-0000-0000-00000000000b', 'Compte B1', 'courant');
 
 insert into public.transactions (id, space_id, user_id, account_id, kind, amount_cents, date, description, transfer_id) values

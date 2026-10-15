@@ -22,7 +22,7 @@ select set_config('t.cat_d', (select id::text from public.categories
 -- A1: anchor 2026-08-31. A2: anchor far in the past. A3: no transaction.
 insert into public.accounts (id, space_id, user_id, name, type, balance_anchor_date) values
   ('e1000000-0000-4000-8000-000000000001', current_setting('t.space_a')::uuid, 'aaaaaaaa-0000-0000-0000-00000000000a', 'Compte A1', 'courant', '2026-08-31'),
-  ('e1000000-0000-4000-8000-000000000002', current_setting('t.space_a')::uuid, 'aaaaaaaa-0000-0000-0000-00000000000a', 'Compte A2', 'epargne', '1900-01-01'),
+  ('e1000000-0000-4000-8000-000000000002', current_setting('t.space_a')::uuid, 'aaaaaaaa-0000-0000-0000-00000000000a', 'Compte A2', 'épargne', '1900-01-01'),
   ('e1000000-0000-4000-8000-000000000003', current_setting('t.space_a')::uuid, 'aaaaaaaa-0000-0000-0000-00000000000a', 'Compte A3', 'courant', '1900-01-01');
 
 insert into public.transactions (space_id, user_id, account_id, kind, amount_cents, date, description, category_id, deleted_at) values
