@@ -1,8 +1,8 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { Pencil, Search, Split, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
+import { Search, Split, Trash2, X } from "lucide-react";
 
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
 import { AccountModal } from "@/components/accounts/account-modal";
@@ -39,7 +39,7 @@ type Transaction = {
   category_id: string | null;
   accounts: { name: string } | null;
   categories: { name: string; color: string | null; icon: string | null } | null;
-  to_account: { name: string } | null;
+  to_account: { id: string; name: string } | null;
   // PostgREST returns an object (1:1) or an array depending on the relation
   // cardinality; normalised by getShare().
   shared_expenses?: SharedRef | SharedRef[] | null;
@@ -199,8 +199,9 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
     }
   };
 
-  const editKind: "expense" | "income" | null =
-    editingTransaction && !editingTransaction.transfer_id ? (editingTransaction.kind as "expense" | "income") : null;
+  const editKind: "expense" | "income" | "transfer" = editingTransaction?.transfer_id
+    ? "transfer"
+    : ((editingTransaction?.kind as "expense" | "income" | undefined) ?? "expense");
 
   // Category options for the filter dropdown follow the type filter (a
   // transfer has no category, so the dropdown itself is hidden for that type
@@ -212,6 +213,24 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
     tx.transfer_id ? "text-blue-600 dark:text-blue-400" : tx.kind === "expense" ? "text-expense" : "text-income";
   const amountText = (tx: Transaction) =>
     `${tx.transfer_id ? "" : tx.kind === "expense" ? "−" : "+"}${formatEuros(Math.abs(tx.amount_cents), tx.currency)}`;
+
+  // Whole row opens the edit modal (issue 114). Keyboard: Enter/Space only when
+  // the row itself has focus, so inner buttons keep their own behaviour.
+  const rowProps = (tx: Transaction) => ({
+    role: "button" as const,
+    tabIndex: 0,
+    "aria-label": `${t("common.actions.edit")} — ${tx.description}`,
+    onClick: () => setEditingTransaction(tx),
+    onKeyDown: (e: KeyboardEvent) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        setEditingTransaction(tx);
+      }
+    },
+  });
+  const rowClass =
+    "cursor-pointer outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset";
 
   const shareBadge = (tx: Transaction) => {
     const share = canShare ? getShare(tx) : null;
@@ -229,7 +248,8 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
     const shared = canShareRow && getShare(tx) !== null;
     const shareLabel = t(shared ? "sharedExpenses.row.manage" : "sharedExpenses.row.share");
     return (
-    <div className="flex shrink-0 gap-1">
+    // Clicks inside the action cluster never reach the row (issue 114).
+    <div className="flex shrink-0 gap-1" onClick={(e) => e.stopPropagation()}>
       {canShareRow && (
         <Button
           variant="ghost"
@@ -241,15 +261,6 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
           <Split />
         </Button>
       )}
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => setEditingTransaction(tx)}
-        aria-label={t("common.actions.edit")}
-        title={t("common.actions.edit")}
-      >
-        <Pencil />
-      </Button>
       <Button
         variant="destructive"
         size="icon-sm"
@@ -453,7 +464,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
             {transactions.map((tx) => {
               const isTransfer = !!tx.transfer_id;
               return (
-                <li key={tx.id} className="rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
+                <li key={tx.id} {...rowProps(tx)} className={`rounded-2xl bg-card p-3 ring-1 ring-foreground/10 ${rowClass}`}>
                   <div className="flex items-start justify-between gap-3">
                     <p className="min-w-0 flex-1 break-words text-sm font-medium">
                       {tx.description}
@@ -508,7 +519,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
               {transactions.map((tx) => {
                 const isTransfer = !!tx.transfer_id;
                 return (
-                  <tr key={tx.id} className="border-b border-border hover:bg-muted/50">
+                  <tr key={tx.id} {...rowProps(tx)} className={`border-b border-border ${rowClass}`}>
                     <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{formatDate(tx.date)}</td>
                     <td className="px-4 py-3 max-w-xs truncate">
                       {tx.description}
@@ -571,34 +582,29 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
         />
       )}
 
-      {editingTransaction && !editingTransaction.transfer_id && editKind && (
+      {editingTransaction && (
         <TransactionModal
           kind={editKind}
           transactionId={editingTransaction.id}
-          defaultValues={{
-            account_id: editingTransaction.account_id,
-            amount: String(Math.abs(editingTransaction.amount_cents) / 100),
-            date: editingTransaction.date.slice(0, 10),
-            description: editingTransaction.description,
-            category_id: editingTransaction.category_id ?? "",
-            notes: editingTransaction.notes ?? "",
-          }}
-          onSuccess={() => {
-            setEditingTransaction(null);
-            void load(page);
-          }}
-          onClose={() => setEditingTransaction(null)}
-        />
-      )}
-
-      {editingTransaction && editingTransaction.transfer_id && (
-        <TransferModal
-          transferId={editingTransaction.transfer_id}
-          defaultValues={{
-            amount: String(Math.abs(editingTransaction.amount_cents) / 100),
-            date: editingTransaction.date.slice(0, 10),
-            description: editingTransaction.description,
-          }}
+          defaultValues={
+            editingTransaction.transfer_id
+              ? {
+                  from_account_id: editingTransaction.account_id,
+                  to_account_id: editingTransaction.to_account?.id ?? "",
+                  amount: String(Math.abs(editingTransaction.amount_cents) / 100),
+                  date: editingTransaction.date.slice(0, 10),
+                  description: editingTransaction.description,
+                  notes: editingTransaction.notes ?? "",
+                }
+              : {
+                  account_id: editingTransaction.account_id,
+                  amount: String(Math.abs(editingTransaction.amount_cents) / 100),
+                  date: editingTransaction.date.slice(0, 10),
+                  description: editingTransaction.description,
+                  category_id: editingTransaction.category_id ?? "",
+                  notes: editingTransaction.notes ?? "",
+                }
+          }
           onSuccess={() => {
             setEditingTransaction(null);
             void load(page);
