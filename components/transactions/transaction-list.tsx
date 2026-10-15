@@ -236,7 +236,6 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
   const rowProps = (tx: Transaction) => ({
     role: "button" as const,
     tabIndex: 0,
-    "aria-label": `${t("common.actions.edit")} — ${tx.description}`,
     onClick: () => setEditingTransaction(tx),
     onKeyDown: (e: KeyboardEvent) => {
       if (e.target !== e.currentTarget) return;

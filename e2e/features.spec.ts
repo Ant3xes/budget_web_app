@@ -119,8 +119,10 @@ test.describe("Import", () => {
   test("shows preview table after uploading valid N26 CSV", async ({ page }) => {
     await page.goto("/transactions");
     await page.getByRole("button", { name: /importer/i }).click();
-    // Wait for the account list to load and auto-select a destination account
-    // before uploading, otherwise the analyse can race ahead of the fetch.
+    // No account is preselected from the Transactions page (issue 117): wait for
+    // the list to load, then pick one before uploading.
+    await expect(page.getByLabel(/compte de destination/i).locator("option")).not.toHaveCount(1);
+    await page.getByLabel(/compte de destination/i).selectOption({ index: 1 });
     await expect(page.getByLabel(/compte de destination/i)).not.toHaveValue("");
 
     const csvContent = [
