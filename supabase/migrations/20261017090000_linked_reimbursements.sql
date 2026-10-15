@@ -66,7 +66,10 @@ language plpgsql
 set search_path = public
 as $$
 begin
+  -- Only an EXISTING link is cleared. A link being set or changed on an
+  -- invalid source is left for validate_transaction_reimbursement() to reject.
   if new.reimburses_transaction_id is not null
+     and new.reimburses_transaction_id is not distinct from old.reimburses_transaction_id
      and (new.deleted_at is not null or new.kind not in ('income', 'transfer_credit') or new.amount_cents <= 0) then
     new.reimburses_transaction_id := null;
   end if;
