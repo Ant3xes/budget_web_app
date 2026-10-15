@@ -13,6 +13,7 @@ import { ExpenseTrendChart } from "@/components/analytics/expense-trend-chart";
 import { SavingsRateChart } from "@/components/analytics/savings-rate-chart";
 import { CategoryTrendChart } from "@/components/analytics/category-trend-chart";
 import { CategoryBreakdownToggle } from "@/components/analytics/category-breakdown-toggle";
+import { CategoryHistogramChart } from "@/components/analytics/category-histogram-chart";
 import { BudgetVsActualChart } from "@/components/analytics/budget-vs-actual-chart";
 import { TopCategoriesMerchants, type TopCategoryRow, type TopMerchantRow } from "@/components/analytics/top-categories-merchants";
 import { AccountBalanceBreakdownChart } from "@/components/analytics/account-balance-breakdown-chart";
@@ -383,7 +384,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
         return { amount_cents: tx.amount_cents, categoryName: cat?.name ?? null, categoryColor: cat?.color ?? null, categoryIcon: cat?.icon ?? null, categoryId: tx.category_id };
       });
     const categoryMetaById = new Map(
-      yearExpenseTx.filter((tx) => tx.category_id).map((tx) => [tx.category_id as string, toCategoryMeta(tx.categories)]),
+      [...yearExpenseTx, ...categoryTx].filter((tx) => tx.category_id).map((tx) => [tx.category_id as string, toCategoryMeta(tx.categories)]),
     );
     const withDonutMeta = (points: ReturnType<typeof computeExpenseByCategory>) =>
       points.map((p) => {
@@ -418,6 +419,8 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
         });
       }
     }
+    // Issue 122: every expense category of the window (same data as the top list, uncapped).
+    const histogramData = withDonutMeta(computeExpenseByCategory(toDonutInput(categoryTx)));
     const topCategories = [...categoryTotals.values()].sort((a, b) => b.value - a.value).slice(0, 5);
     const topMerchants = [...merchantTotals.values()]
       .filter((m) => m.count > 1) // "récurrents" — a one-off purchase isn't a recurring merchant
@@ -439,6 +442,10 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
             <BudgetVsActualChart rows={budgetRows} />
           </Section>
         </div>
+
+        <Section titleKey="analytics.categoryHistogram.heading" vars={{ period: windowLabel }}>
+          <CategoryHistogramChart data={histogramData} />
+        </Section>
 
         <Section titleKey="analytics.topCategories.heading" vars={{ period: windowLabel }}>
           <TopCategoriesMerchants topCategories={topCategories} topMerchants={topMerchants} />
