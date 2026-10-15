@@ -22,7 +22,7 @@ export function NewCategoryForm({ kind, onCreated, onCancel }: NewCategoryFormPr
   const submit = async () => {
     setError(null);
     setIsSaving(true);
-    const result = await createCategoryForImport(name, kind);
+    const result = await createCategoryForImport(name, kind).catch(() => ({ ok: false as const, reason: "error" as const }));
     setIsSaving(false);
     if (result.ok) {
       onCreated(result.category, result.categories);
