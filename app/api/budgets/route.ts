@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { withSpace } from "@/lib/spaces/with-space";
+import { fetchReimbursementIndex } from "@/lib/transactions/fetch-reimbursements";
+import { applyReimbursements, netExpenseCents } from "@/lib/transactions/net-amount";
 
 const budgetSchema = z.object({
   category_id: z.string().uuid(),
@@ -56,7 +58,7 @@ export async function GET(request: Request) {
   if (month && monthStart && nextMonthStart) {
     const { data: txData, error: txError } = await auth.supabase
       .from("transactions")
-      .select("category_id, amount_cents")
+      .select("id, category_id, amount_cents")
       .eq("space_id", auth.spaceId)
       .eq("kind", "expense")
       .gte("date", monthStart)
@@ -64,7 +66,9 @@ export async function GET(request: Request) {
       .is("deleted_at", null);
 
     if (!txError && txData) {
-      consumption = txData.reduce<Record<string, number>>((acc, tx) => {
+      // Issue 123: an expense consumes its budget for its net (ADR 0004).
+      const reimbursements = await fetchReimbursementIndex(auth.supabase, auth.spaceId);
+      consumption = applyReimbursements(txData, reimbursements).reduce<Record<string, number>>((acc, tx) => {
         if (tx.category_id) {
           acc[tx.category_id] = (acc[tx.category_id] ?? 0) + Math.abs(tx.amount_cents);
         }
@@ -78,7 +82,7 @@ export async function GET(request: Request) {
   if (auth.space.kind === "shared" && month && monthStart && nextMonthStart) {
     const { data: sharedData, error: sharedError } = await auth.supabase
       .from("shared_expenses")
-      .select("category_id, amount_cents")
+      .select("category_id, amount_cents, reimbursed_cents")
       .eq("space_id", auth.spaceId)
       .gte("date", monthStart)
       .lt("date", nextMonthStart);
@@ -86,7 +90,8 @@ export async function GET(request: Request) {
     if (!sharedError && sharedData) {
       for (const row of sharedData) {
         if (row.category_id) {
-          consumption[row.category_id] = (consumption[row.category_id] ?? 0) + row.amount_cents;
+          consumption[row.category_id] =
+            (consumption[row.category_id] ?? 0) + netExpenseCents(row.amount_cents, row.reimbursed_cents ?? 0);
         }
       }
     }

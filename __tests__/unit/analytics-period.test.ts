@@ -43,6 +43,9 @@ beforeEach(() => {
             return query;
           },
           is: () => query,
+          not: () => query,
+          order: () => query,
+          range: () => query,
           in: () => query,
           gte: (_key: string, date: string) => {
             rows = rows.filter((row) => typeof row.date === "string" && row.date >= date);

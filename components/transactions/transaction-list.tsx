@@ -36,6 +36,10 @@ type Transaction = {
   is_imported: boolean;
   raw_import_data?: { raw_label?: string } | null;
   transfer_id: string | null;
+  // Issue 123: reimbursement links. `amount_cents` is the real amount; `net_cents` the net of an expense.
+  reimburses_transaction_id?: string | null;
+  reimbursed_cents?: number;
+  net_cents?: number | null;
   account_id: string;
   category_id: string | null;
   accounts: { name: string } | null;
@@ -212,8 +216,20 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
 
   const amountClass = (tx: Transaction) =>
     tx.transfer_id ? "text-blue-600 dark:text-blue-400" : tx.kind === "expense" ? "text-expense" : "text-income";
+  // Issue 123 (ADR 0004): an expense with linked reimbursements shows its net.
+  const isReimbursed = (tx: Transaction) => tx.kind === "expense" && (tx.reimbursed_cents ?? 0) > 0;
+  const shownCents = (tx: Transaction) => (isReimbursed(tx) ? (tx.net_cents ?? 0) : Math.abs(tx.amount_cents));
   const amountText = (tx: Transaction) =>
-    `${tx.transfer_id ? "" : tx.kind === "expense" ? "−" : "+"}${formatEuros(Math.abs(tx.amount_cents), tx.currency)}`;
+    `${tx.transfer_id ? "" : tx.kind === "expense" ? "−" : "+"}${formatEuros(shownCents(tx), tx.currency)}`;
+  const reimbursementNote = (tx: Transaction) =>
+    isReimbursed(tx)
+      ? t("transactions.reimbursements.netOf", {
+          net: formatEuros(shownCents(tx), tx.currency),
+          gross: formatEuros(Math.abs(tx.amount_cents), tx.currency),
+        })
+      : tx.reimburses_transaction_id
+        ? t("transactions.reimbursements.linkedBadge")
+        : null;
 
   // Whole row opens the edit modal (issue 114). Keyboard: Enter/Space only when
   // the row itself has focus, so inner buttons keep their own behaviour.
@@ -478,6 +494,9 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
                     </p>
                     <p className={`shrink-0 text-sm font-semibold whitespace-nowrap ${amountClass(tx)}`}>
                       {amountText(tx)}
+                      {reimbursementNote(tx) && (
+                        <span className="block text-xs font-normal text-muted-foreground">{reimbursementNote(tx)}</span>
+                      )}
                     </p>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-2">
@@ -545,6 +564,9 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
                     <td className="px-4 py-3 text-muted-foreground">{tx.accounts?.name ?? "—"}</td>
                     <td className={`px-4 py-3 text-left font-medium whitespace-nowrap ${amountClass(tx)}`}>
                       {amountText(tx)}
+                      {reimbursementNote(tx) && (
+                        <span className="block text-xs font-normal text-muted-foreground">{reimbursementNote(tx)}</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {renderActions(tx)}

@@ -6,6 +6,7 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
+import { ExpenseReimbursements, IncomeReimburses } from "@/components/transactions/reimbursements-section";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -375,6 +376,10 @@ export function TransactionModal({ kind, transactionId, defaultValues, rawLabel,
             {...register("notes")}
           />
         </label>
+
+        {/* Reimbursement links (issue 123): only on a saved row of its current type. */}
+        {transactionId && type === kind && kind === "expense" ? <ExpenseReimbursements expenseId={transactionId} /> : null}
+        {transactionId && type === kind && kind === "income" ? <IncomeReimburses incomeId={transactionId} /> : null}
 
         {confirmingMirrorDelete ? (
           <p role="alert" className="rounded-md border border-border bg-muted p-3 text-sm">

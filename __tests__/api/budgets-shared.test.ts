@@ -17,7 +17,7 @@ function buildSupabase(results: Record<string, { data: unknown; error: unknown }
   const from = vi.fn((table: string) => {
     const result = results[table] ?? { data: [], error: null };
     const chain: Chain = {};
-    for (const method of ["select", "eq", "is", "order", "gte", "lt"]) {
+    for (const method of ["select", "eq", "is", "not", "order", "range", "gte", "lt"]) {
       chain[method] = vi.fn(() => chain);
     }
     Object.defineProperty(chain, "then", {

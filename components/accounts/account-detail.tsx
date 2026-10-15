@@ -43,6 +43,8 @@ type Transaction = {
   description: string;
   notes: string | null;
   categories: { name: string; color: string | null; icon: string | null } | null;
+  /** Original amount when `amount_cents` is the net of linked reimbursements (issue 123). */
+  gross_cents?: number;
 };
 
 type AccountInfo = {
@@ -102,6 +104,12 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
   const currentPage = Math.min(page, totalPages);
   const pageItems = transactions.slice((currentPage - 1) * TX_PER_PAGE, currentPage * TX_PER_PAGE);
   const operationLabel = t("accounts.detail.operationLabel");
+  // Issue 123: "30 € sur 90 €" under an expense that has linked reimbursements.
+  const netNote = (tx: Transaction) =>
+    t("transactions.reimbursements.netOf", {
+      net: formatEuros(Math.abs(tx.amount_cents), tx.currency),
+      gross: formatEuros(Math.abs(tx.gross_cents ?? 0), tx.currency),
+    });
 
   return (
     <div className="rounded-2xl bg-card shadow-sm ring-1 ring-foreground/10">
@@ -131,6 +139,9 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                   <span className="whitespace-nowrap">{formatDate(tx.date)}</span>
+                  {tx.gross_cents !== undefined && (
+                    <span className="whitespace-nowrap">{netNote(tx)}</span>
+                  )}
                   {tx.categories && (
                     <span className="flex min-w-0 items-center gap-1">
                       {tx.categories.icon && <span className="text-sm">{tx.categories.icon}</span>}
@@ -198,6 +209,9 @@ function TxTable({ title, transactions, emptyLabel, showSens, amountColor }: TxT
                   <td className={`px-3 py-2 text-right text-xs font-medium ${amountColor(tx)}`}>
                     {tx.amount_cents >= 0 ? "+" : "−"}
                     {formatEuros(Math.abs(tx.amount_cents), tx.currency)}
+                    {tx.gross_cents !== undefined && (
+                      <span className="block text-[10px] font-normal text-muted-foreground">{netNote(tx)}</span>
+                    )}
                   </td>
                 </tr>
               ))}
