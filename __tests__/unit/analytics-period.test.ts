@@ -1,4 +1,4 @@
-import { Children, isValidElement, type ReactElement, type ReactNode } from "react";
+import { Children, Suspense, isValidElement, type ReactElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AnalyticsPage from "@/app/(app)/analytics/page";
@@ -30,6 +30,8 @@ beforeEach(() => {
     spaceId: "space-test",
     space: { kind: "personal" },
     supabase: {
+      // Issue 121: net worth reads SQL aggregates through rpc.
+      rpc: () => Promise.resolve({ data: [] }),
       from(table: string) {
         let rows: Array<Record<string, unknown>> = table === "accounts"
           ? [{ id: "account-test", initial_balance_cents: 0, balance_anchor_date: "1900-01-01" }]
@@ -62,7 +64,12 @@ afterEach(() => vi.useRealTimers());
 
 describe("analytics period (issue 120)", () => {
   it("defaults to the current month with only month-to-date activity", async () => {
-    const tree = elements(await AnalyticsPage({ searchParams: Promise.resolve({}) }));
+    const page = await AnalyticsPage({ searchParams: Promise.resolve({}) });
+    // The tab's charts stream in a Suspense child (issue 121): render it too.
+    const header = elements(page);
+    const content = header.find((element) => element.type === Suspense)?.props.children as ReactElement<Record<string, unknown>>;
+    const body = await (content.type as (props: Record<string, unknown>) => Promise<ReactNode>)(content.props);
+    const tree = [...header, ...elements(body)];
     const chart = tree.find((element) => element.type === CashflowChart);
     expect(chart?.props.data).toEqual([{ key: "2026-03", month: "Mar 26", income: 5000, expense: 1200 }]);
     const selectors = tree.filter((element) => element.type === PeriodSelector);
