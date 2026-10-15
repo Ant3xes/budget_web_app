@@ -5,6 +5,13 @@ import {
   filterRowsByCategory,
   NO_CATEGORY_FILTER,
 } from "@/lib/import/category-filter";
+import {
+  buildKindFields,
+  markAllExternal,
+  markAllInternal,
+  pendingTransferRows,
+  type TransferChoice,
+} from "@/lib/import/transfer-choice";
 import { useEffect, useRef, useState } from "react";
 import { Check, CheckCircle2 } from "lucide-react";
 
@@ -61,6 +68,9 @@ interface ImportModalProps {
 // manually, move here instead of appearing inline in the other two steps).
 type Step = "upload" | "preview_expense" | "preview_income" | "preview_transfer" | "done";
 
+const transferChoiceValue = (choice: TransferChoice | undefined) =>
+  !choice ? "" : choice.type === "external" ? "external" : `internal:${choice.accountId}`;
+
 const formatAmount = (cents: number) => {
   const sign = cents < 0 ? "−" : "+";
   return `${sign}${(Math.abs(cents) / 100).toFixed(2)} €`;
@@ -82,7 +92,9 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
   const [expensePreview, setExpensePreview] = useState<PreviewRow[]>([]);
   const [incomePreview, setIncomePreview] = useState<PreviewRow[]>([]);
   const [isTransfer, setIsTransfer] = useState<Record<string, boolean>>({}); // hash -> treat as transfer
-  const [transferAccountMap, setTransferAccountMap] = useState<Record<string, string>>({}); // hash -> counterpart account_id
+  // issue 129: explicit internal/external choice per transfer row, never guessed.
+  const [transferChoice, setTransferChoice] = useState<Record<string, TransferChoice | undefined>>({});
+  const [bulkInternalAccountId, setBulkInternalAccountId] = useState("");
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({}); // hash -> category_id
   const [checked, setChecked] = useState<Record<string, boolean>>({}); // hash -> selected
   const [categoryFilter, setCategoryFilter] = useState(""); // list filter only, never edits rows
@@ -175,7 +187,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
     for (const row of [...expenses, ...incomes]) {
       initCats[row.rowId] = row.suggested_category_id ?? "";
       initChecked[row.rowId] = !row.is_duplicate;
-      initTransfer[row.rowId] = row.is_transfer_candidate;
+      initTransfer[row.rowId] = row.is_transfer_candidate && !row.is_duplicate;
       if (row.kind === "expense") {
         initShare[row.rowId] = spaceKind === "personal" ? (row.suggested_share ?? null) : null;
       }
@@ -184,7 +196,8 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
     setCategoryMap(initCats);
     setChecked(initChecked);
     setIsTransfer(initTransfer);
-    setTransferAccountMap({});
+    setTransferChoice({});
+    setBulkInternalAccountId("");
     setStep("preview_expense");
   };
 
@@ -193,6 +206,12 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
     const selected = allRows.filter((r) => checked[r.rowId]);
     if (selected.length === 0) {
       setError(t("transactions.importModal.noTransactionSelected"));
+      return;
+    }
+
+    const pending = pendingTransferRows(allRows, isTransfer, checked, transferChoice, selectedAccountId);
+    if (pending.length > 0) {
+      setError(t("transactions.importModal.transferChoiceBlocked", { count: pending.length }));
       return;
     }
 
@@ -210,23 +229,24 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
       };
     };
 
-    // issue 117: a transfer needs an explicit counterpart account; otherwise the
-    // row is a plain expense/income and keeps its category.
-    const transactions = selected.map((r) => {
-      const counterpart = isTransfer[r.rowId] ? (transferAccountMap[r.rowId] || null) : null;
-      return {
+    // issue 129: the kind comes from the explicit choice (internal => transfer
+    // with counterpart, external => expense/income with its category).
+    const transactions = selected.map((r) => ({
       hash: r.hash,
       source_type: r.source_type ?? null,
       source_category: r.source_category ?? null,
       date: r.date,
       description: r.description,
       amount_cents: r.amount_cents,
-      kind: counterpart ? "transfer" as const : r.kind,
-      category_id: counterpart ? null : (categoryMap[r.rowId] || null),
-      transfer_account_id: counterpart ?? undefined,
+      ...buildKindFields(
+        r,
+        !!isTransfer[r.rowId],
+        transferChoice[r.rowId],
+        categoryMap[r.rowId] || null,
+        selectedAccountId,
+      ),
       share: shareFor(r),
-      };
-    });
+    }));
 
     const res = await fetch("/api/import/confirm", {
       method: "POST",
@@ -277,6 +297,13 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
     expensePreview.some((r) => !!r.suggested_share);
   const checkedInView = displayedPreview.filter((r) => !!checked[r.rowId]);
   const otherAccounts = accounts.filter((a) => a.id !== selectedAccountId);
+  const pendingTransfers = pendingTransferRows(
+    [...expensePreview, ...incomePreview],
+    isTransfer,
+    checked,
+    transferChoice,
+    selectedAccountId,
+  );
   // Every row is either an expense/income or (once marked) a transfer, so
   // this total matches exactly what handleConfirm submits — no need to sum
   // three separately-filtered per-type counts that are never shown on their own.
@@ -592,6 +619,11 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
               </div>
             </>
           )}
+          {pendingTransfers.length > 0 && (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              {t("transactions.importModal.transferChoicePending", { count: pendingTransfers.length })}
+            </p>
+          )}
           {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
         </div>
       )}
@@ -612,36 +644,46 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                 </p>
               </div>
 
-              {checkedInView.length > 0 && otherAccounts.length > 0 && (
-                <div className="flex flex-wrap items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs dark:border-blue-800 dark:bg-blue-900/20">
-                  <span className="font-medium text-zinc-700 dark:text-zinc-200">
-                    {t("transactions.importModal.rowsSelected", {
-                      count: checkedInView.length,
-                      plural: checkedInView.length > 1 ? "s" : "",
-                    })}
-                  </span>
-                  <span className="text-muted-foreground">{t("transactions.importModal.counterpartyLabel")} :</span>
-                  <select
-                    defaultValue=""
-                    onChange={(e) => {
-                      if (!e.target.value) return;
-                      const val = e.target.value;
-                      setTransferAccountMap((prev) => {
-                        const next = { ...prev };
-                        checkedInView.forEach((r) => { next[r.rowId] = val; });
-                        return next;
-                      });
-                      e.target.value = "";
-                    }}
-                    className="rounded border border-blue-300 bg-blue-50 px-2 py-0.5 dark:border-blue-700 dark:bg-blue-900/30 dark:text-zinc-100"
-                  >
-                    <option value="">{t("transactions.importModal.chooseOption")}</option>
-                    {otherAccounts.map((a) => (
-                      <option key={a.id} value={a.id}>{a.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {pendingTransfers.length > 0 ? (
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                  {t("transactions.importModal.transferChoicePending", { count: pendingTransfers.length })}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs dark:border-blue-800 dark:bg-blue-900/20">
+                <button
+                  type="button"
+                  onClick={() => setTransferChoice((prev) => markAllExternal(prev, displayedPreview))}
+                  className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  {t("transactions.importModal.markAllExternal")}
+                </button>
+                <span className="text-zinc-300 dark:text-muted-foreground">|</span>
+                <select
+                  value={bulkInternalAccountId}
+                  onChange={(e) => setBulkInternalAccountId(e.target.value)}
+                  className="rounded border border-blue-300 bg-blue-50 px-2 py-0.5 dark:border-blue-700 dark:bg-blue-900/30 dark:text-zinc-100"
+                >
+                  <option value="">{t("transactions.importModal.chooseOption")}</option>
+                  {otherAccounts.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!bulkInternalAccountId}
+                  onClick={() =>
+                    setTransferChoice((prev) =>
+                      markAllInternal(prev, displayedPreview, bulkInternalAccountId, selectedAccountId),
+                    )
+                  }
+                  className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  {t("transactions.importModal.markAllInternal", {
+                    account: accounts.find((a) => a.id === bulkInternalAccountId)?.name ?? "…",
+                  })}
+                </button>
+              </div>
 
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="min-w-full text-xs">
@@ -653,7 +695,8 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                       <th className="px-3 py-2">{t("transactions.importModal.colDate")}</th>
                       <th className="px-3 py-2">{t("transactions.importModal.colDescription")}</th>
                       <th className="px-3 py-2 text-right">{t("transactions.importModal.colAmount")}</th>
-                      <th className="px-3 py-2 min-w-32">{t("transactions.importModal.counterpartyLabel")}</th>
+                      <th className="px-3 py-2 min-w-32">{t("transactions.importModal.transferTypeLabel")}</th>
+                      <th className="px-3 py-2 min-w-32">{t("transactions.importModal.categoryLabel")}</th>
                       <th className="px-3 py-2" />
                     </tr>
                   </thead>
@@ -674,19 +717,56 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                         </td>
                         <td className="px-3 py-2">
                           <select
-                            value={transferAccountMap[row.rowId] ?? ""}
-                            onChange={(e) => setTransferAccountMap((prev) => ({ ...prev, [row.rowId]: e.target.value }))}
-                            className="w-full rounded border px-2 py-1 text-xs border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/20 dark:text-zinc-100"
+                            value={transferChoiceValue(transferChoice[row.rowId])}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setTransferChoice((prev) => ({
+                                ...prev,
+                                [row.rowId]: !v
+                                  ? undefined
+                                  : v === "external"
+                                    ? { type: "external" }
+                                    : { type: "internal", accountId: v.slice("internal:".length) },
+                              }));
+                            }}
+                            className={`w-full rounded border px-2 py-1 text-xs ${
+                              transferChoice[row.rowId]
+                                ? "border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/20 dark:text-zinc-100"
+                                : "border-orange-300 bg-orange-50 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100"
+                            }`}
                           >
-                            <option value="">{t("transactions.importModal.unknownAccountOption")}</option>
+                            <option value="">{t("transactions.importModal.transferToChoose")}</option>
+                            <option value="external">{t("transactions.importModal.transferExternal")}</option>
                             {otherAccounts.map((a) => (
-                              <option key={a.id} value={a.id}>{a.name}</option>
+                              <option key={a.id} value={`internal:${a.id}`}>
+                                {t("transactions.importModal.transferInternalTo", { account: a.name })}
+                              </option>
                             ))}
                           </select>
                         </td>
                         <td className="px-3 py-2">
+                          {transferChoice[row.rowId]?.type === "external" && (
+                            <select
+                              value={categoryMap[row.rowId] ?? ""}
+                              onChange={(e) => setCategoryMap((prev) => ({ ...prev, [row.rowId]: e.target.value }))}
+                              className="w-full rounded border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                            >
+                              <option value="">{t("transactions.importModal.toCategorize")}</option>
+                              {(row.kind === "expense" ? expenseCategories : incomeCategories).map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.icon ? `${c.icon} ` : ""}
+                                  {resolveCategoryName(c, t)}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
                           <button
-                            onClick={() => setIsTransfer((prev) => ({ ...prev, [row.rowId]: false }))}
+                            onClick={() => {
+                              setIsTransfer((prev) => ({ ...prev, [row.rowId]: false }));
+                              setTransferChoice((prev) => ({ ...prev, [row.rowId]: undefined }));
+                            }}
                             className="whitespace-nowrap rounded px-2 py-0.5 text-xs font-medium bg-zinc-100 text-muted-foreground hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-600"
                           >
                             {t("transactions.importModal.unmarkTransfer")}
@@ -771,7 +851,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
             </button>
             <button
               onClick={() => void handleConfirm()}
-              disabled={isLoading || totalSelectedCount === 0}
+              disabled={isLoading || totalSelectedCount === 0 || pendingTransfers.length > 0}
               className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
             >
               {isLoading
