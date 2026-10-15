@@ -9,7 +9,9 @@ import { useEffect, useRef, useState } from "react";
 import { Check, CheckCircle2 } from "lucide-react";
 
 import { useLocale } from "@/components/locale-provider";
+import { NewCategoryForm } from "@/components/import/new-category-form";
 import { Modal } from "@/components/ui/modal";
+import { NEW_CATEGORY_OPTION } from "@/lib/import/create-category";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 
 type ShareSuggestion = {
@@ -85,6 +87,8 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
   const [checked, setChecked] = useState<Record<string, boolean>>({}); // hash -> selected
   const [categoryFilter, setCategoryFilter] = useState(""); // list filter only, never edits rows
   const [bulkCategoryId, setBulkCategoryId] = useState(""); // category used by "Apply to selection"
+  // issue 119: where the inline "new category" form was opened from.
+  const [newCategoryTarget, setNewCategoryTarget] = useState<{ rowId: string | "bulk"; step: Step } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importedCount, setImportedCount] = useState(0);
@@ -111,6 +115,16 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
     };
     void load();
   }, [defaultAccountId]);
+
+  const handleCategoryCreated = (category: Category, list: Category[]) => {
+    setCategories(list);
+    if (newCategoryTarget?.rowId === "bulk") setBulkCategoryId(category.id);
+    else if (newCategoryTarget) {
+      const { rowId } = newCategoryTarget;
+      setCategoryMap((prev) => ({ ...prev, [rowId]: category.id }));
+    }
+    setNewCategoryTarget(null);
+  };
 
   const handleUpload = async () => {
     const file = fileRef.current?.files?.[0];
@@ -423,7 +437,11 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                   <span className="text-muted-foreground">{t("transactions.importModal.categoryLabel")} :</span>
                   <select
                     value={bulkCategoryId}
-                    onChange={(e) => setBulkCategoryId(e.target.value)}
+                    onChange={(e) =>
+                      e.target.value === NEW_CATEGORY_OPTION
+                        ? setNewCategoryTarget({ rowId: "bulk", step })
+                        : setBulkCategoryId(e.target.value)
+                    }
                     className="rounded border border-zinc-300 px-2 py-0.5 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
                   >
                     <option value="">{t("transactions.importModal.chooseOption")}</option>
@@ -432,6 +450,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                         {c.icon ? `${c.icon} ` : ""}{resolveCategoryName(c, t)}
                       </option>
                     ))}
+                    <option value={NEW_CATEGORY_OPTION}>{t("transactions.importModal.newCategoryOption")}</option>
                   </select>
                   <button
                     type="button"
@@ -446,6 +465,14 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                     {t("transactions.importModal.applyToSelection")}
                   </button>
                 </div>
+              )}
+
+              {newCategoryTarget?.step === step && (
+                <NewCategoryForm
+                  kind={step === "preview_expense" ? "expense" : "income"}
+                  onCreated={handleCategoryCreated}
+                  onCancel={() => setNewCategoryTarget(null)}
+                />
               )}
 
               <div className="overflow-x-auto rounded-lg border border-border">
@@ -513,7 +540,9 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                             <select
                               value={categoryMap[row.rowId] ?? ""}
                               onChange={(e) =>
-                                setCategoryMap((prev) => ({ ...prev, [row.rowId]: e.target.value }))
+                                e.target.value === NEW_CATEGORY_OPTION
+                                  ? setNewCategoryTarget({ rowId: row.rowId, step })
+                                  : setCategoryMap((prev) => ({ ...prev, [row.rowId]: e.target.value }))
                               }
                               className={`w-full rounded border px-2 py-1 text-xs ${
                                 !categoryMap[row.rowId]
@@ -528,6 +557,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                                   {resolveCategoryName(c, t)}
                                 </option>
                               ))}
+                              <option value={NEW_CATEGORY_OPTION}>{t("transactions.importModal.newCategoryOption")}</option>
                             </select>
                           )}
                         </td>
