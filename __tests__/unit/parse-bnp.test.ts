@@ -90,3 +90,20 @@ describe("parseBnpXls", () => {
     expect(result[0]?.amount_cents).toBe(-1599);
   });
 });
+
+describe("parseBnpXls source_category (issue 125)", () => {
+  it("keeps the sub-category", () => {
+    const result = parseBnpXls(makeBnpBuffer(SAMPLE_ROWS));
+    expect(result.map((r) => r.source_category)).toEqual(["Streaming", "Salaire", "Courses"]);
+  });
+
+  it("works without the sub-category column", () => {
+    const rows = [
+      ["Date operation", "Libelle operation", "Montant operation"],
+      ["15-01-2026", "SHOP", "-5.00"],
+    ];
+    const result = parseBnpXls(makeBnpBuffer(rows));
+    expect(result).toHaveLength(1);
+    expect(result[0]?.source_category).toBeUndefined();
+  });
+});

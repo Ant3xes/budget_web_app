@@ -295,6 +295,24 @@ describe("POST /api/import/preview — preview content", () => {
     expect(regular?.is_transfer_candidate).toBe(false);
   });
 
+  it("returns source_type and flags transfer-like types as candidates (issue 125)", async () => {
+    vi.mocked(detectTransfer).mockReturnValue(false);
+    const types = ["Presentment", "Presentment Refund", "Debit Transfer", "Credit Transfer", "MoneyBeam"];
+    const csv = [
+      `"Booking Date","Value Date","Partner Name","Partner Iban",Type,"Payment Reference","Account Name","Amount (EUR)","Original Amount","Original Currency","Exchange Rate"`,
+      ...types.map((t, i) => `"2026-03-0${i + 1}","2026-03-0${i + 1}","Shop ${i}","","${t}","","Main","${t === "Presentment Refund" ? "" : "-"}9.00","","",""`),
+    ].join("\n");
+
+    const res = await POST(makeRequest(makeFormData(new File([csv], "export.csv"))));
+    const body = (await res.json()) as {
+      preview: { source_type: string | null; is_transfer_candidate: boolean; kind: string }[];
+    };
+
+    expect(body.preview.map((r) => r.source_type)).toEqual(types);
+    expect(body.preview.map((r) => r.is_transfer_candidate)).toEqual([false, false, true, true, true]);
+    expect(body.preview[1]?.kind).toBe("income");
+  });
+
   it("does NOT set suggested_category_id for transfer candidates", async () => {
     vi.mocked(detectTransfer).mockReturnValue(true);           // all are transfers
     vi.mocked(buildRuleMatcher).mockResolvedValue(() => "cat-id-from-rule");
