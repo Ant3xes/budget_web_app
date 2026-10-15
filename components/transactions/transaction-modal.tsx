@@ -40,13 +40,15 @@ interface TransactionModalProps {
   kind: TransactionType;
   transactionId?: string;
   defaultValues?: Partial<TransactionFormValues>;
+  /** Bank label as imported (issue 127), shown read-only. */
+  rawLabel?: string | null;
   onSuccess: () => void;
   onClose: () => void;
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export function TransactionModal({ kind, transactionId, defaultValues, onSuccess, onClose }: TransactionModalProps) {
+export function TransactionModal({ kind, transactionId, defaultValues, rawLabel, onSuccess, onClose }: TransactionModalProps) {
   const { t } = useLocale();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -333,6 +335,13 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
           <Input className="mt-1" {...register("description")} />
           {errors.description ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.description.message}</p> : null}
         </label>
+
+        {rawLabel ? (
+          <div className="text-sm">
+            <p className="font-medium">{t("transactions.form.rawLabel")}</p>
+            <p className="mt-1 break-words text-xs text-gray-500 dark:text-gray-400">{rawLabel}</p>
+          </div>
+        ) : null}
 
         {type !== "transfer" ? (
         <>

@@ -13,7 +13,9 @@ const importRowSchema = z.object({
   source_type: z.string().max(100).nullable().optional(),
   source_category: z.string().max(100).nullable().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  // Clean label (issue 127); the raw bank label goes to raw_import_data.raw_label.
   description: z.string().trim().min(1).max(255),
+  raw_label: z.string().trim().min(1).max(1000).nullable().optional(),
   amount_cents: z.number().int(),
   kind: z.enum(["expense", "income", "transfer"]),
   category_id: z.guid().nullable().optional(),
@@ -170,6 +172,7 @@ export async function POST(request: Request) {
       is_imported: true,
       raw_import_data: {
         hash: tx.hash,
+        ...(tx.raw_label ? { raw_label: tx.raw_label } : {}),
         ...(tx.source_type ? { source_type: tx.source_type } : {}),
         ...(tx.source_category ? { source_category: tx.source_category } : {}),
       },

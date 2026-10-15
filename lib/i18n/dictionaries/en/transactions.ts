@@ -57,6 +57,7 @@ export const transactions = {
     dateInvalid: "Invalid date",
     description: "Description",
     descriptionRequired: "Description is required",
+    rawLabel: "Original bank label",
     category: "Category",
     noCategoryOption: "— No category —",
     notes: "Notes",
