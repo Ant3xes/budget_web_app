@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useLocale } from "@/components/locale-provider";
@@ -64,6 +64,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
   );
 
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
@@ -154,14 +155,20 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="block text-sm font-medium">
           {t("transactions.form.account")}
-          <Select className="mt-1" {...register("account_id")}>
-            <option value="">{t("transactions.form.selectPlaceholder")}</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            control={control}
+            name="account_id"
+            render={({ field }) => (
+              <Select className="mt-1" {...field}>
+                <option value="">{t("transactions.form.selectPlaceholder")}</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
           {errors.account_id ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.account_id.message}</p> : null}
         </label>
 
@@ -191,15 +198,21 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
 
         <label className="block text-sm font-medium">
           {t("transactions.form.category")}
-          <Select className="mt-1" {...register("category_id")}>
-            <option value="">{t("transactions.form.noCategoryOption")}</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.icon ? `${c.icon} ` : ""}
-                {resolveCategoryName(c, t)}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            control={control}
+            name="category_id"
+            render={({ field }) => (
+              <Select className="mt-1" {...field}>
+                <option value="">{t("transactions.form.noCategoryOption")}</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.icon ? `${c.icon} ` : ""}
+                    {resolveCategoryName(c, t)}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
         </label>
 
         <label className="block text-sm font-medium">
