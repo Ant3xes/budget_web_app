@@ -9,6 +9,9 @@ import { withSpace } from "@/lib/spaces/with-space";
 
 const importRowSchema = z.object({
   hash: z.string(),
+  // Bank-provided type/sub-category, kept in raw_import_data (issue 125).
+  source_type: z.string().max(100).nullable().optional(),
+  source_category: z.string().max(100).nullable().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   description: z.string().trim().min(1).max(255),
   amount_cents: z.number().int(),
@@ -165,7 +168,11 @@ export async function POST(request: Request) {
       category_id: isTransfer ? null : (tx.category_id ?? null),
       transfer_id: transferId,
       is_imported: true,
-      raw_import_data: { hash: tx.hash },
+      raw_import_data: {
+        hash: tx.hash,
+        ...(tx.source_type ? { source_type: tx.source_type } : {}),
+        ...(tx.source_category ? { source_category: tx.source_category } : {}),
+      },
     });
 
     // If a counterpart account was selected, create the mirror transaction

@@ -7,7 +7,7 @@ import { buildDefaultMatcher, buildHistoryMatcher, buildRuleMatcher, buildRuleSh
 import { buildFileHashes, findExistingHashes, findTransferMirrorMatches } from "@/lib/import/deduplicate";
 import { detectFormat } from "@/lib/import/detect-format";
 import { parseBnpXls } from "@/lib/import/parse-bnp";
-import { parseN26Csv } from "@/lib/import/parse-n26";
+import { isTransferSourceType, parseN26Csv } from "@/lib/import/parse-n26";
 import { withSpace } from "@/lib/spaces/with-space";
 
 export async function POST(request: Request) {
@@ -144,7 +144,7 @@ export async function POST(request: Request) {
     const isMirror = mirrorIndexes.has(index);
     const isDuplicate = existingHashes.has(tx.hash) || isMirror;
 
-    const is_transfer_candidate = detectTransfer(tx.description);
+    const is_transfer_candidate = detectTransfer(tx.description) || isTransferSourceType(tx.source_type);
     const kind: "expense" | "income" = tx.amount_cents < 0 ? "expense" : "income";
     const suggestedCategoryId = isDuplicate || is_transfer_candidate
       ? null
@@ -179,6 +179,8 @@ export async function POST(request: Request) {
       amount_cents: tx.amount_cents,
       kind,
       suggested_category_id: suggestedCategoryId,
+      source_type: tx.source_type ?? null,
+      source_category: tx.source_category ?? null,
       is_transfer_candidate,
       is_duplicate: isDuplicate,
       duplicate_reason: isMirror ? ("transfer_mirror" as const) : isDuplicate ? ("already_imported" as const) : null,

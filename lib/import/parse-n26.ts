@@ -5,7 +5,18 @@ export type ParsedTransaction = {
   description: string;
   amount_cents: number; // negative = expense, positive = income
   raw: Record<string, string>;
+  /** N26 `Type` column (Presentment, Debit Transfer, ...). Absent when the column is. */
+  source_type?: string;
+  /** BNP `Sous Categorie operation`. Absent when the column is. */
+  source_category?: string;
 };
+
+const TRANSFER_SOURCE_TYPES = new Set(["debit transfer", "credit transfer", "moneybeam"]);
+
+/** N26 types that move money between people/accounts: suggestion only (issue 125). */
+export function isTransferSourceType(sourceType: string | undefined): boolean {
+  return !!sourceType && TRANSFER_SOURCE_TYPES.has(sourceType.trim().toLowerCase());
+}
 
 /**
  * Parses N26 CSV content.
@@ -20,6 +31,7 @@ export function parseN26Csv(content: string): ParsedTransaction[] {
   const descIdx = headers.findIndex(
     (h) => h.trim().toLowerCase() === "payee" || h.trim().toLowerCase() === "partner name",
   );
+  const typeIdx = headers.findIndex((h) => h.trim().toLowerCase() === "type");
   const amountIdx = headers.findIndex((h) => h.trim().toLowerCase() === "amount (eur)");
 
   if (dateIdx === -1 || amountIdx === -1) return [];
@@ -47,11 +59,14 @@ export function parseN26Csv(content: string): ParsedTransaction[] {
       raw[h] = cols[idx] ?? "";
     });
 
+    const sourceType = typeIdx >= 0 ? (cols[typeIdx]?.trim() ?? "") : "";
+
     transactions.push({
       date: dateRaw, // already YYYY-MM-DD
       description: descRaw || "N26 transaction",
       amount_cents,
       raw,
+      ...(sourceType ? { source_type: sourceType } : {}),
     });
   }
 

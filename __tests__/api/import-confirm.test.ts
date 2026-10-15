@@ -211,6 +211,24 @@ describe("POST /api/import/confirm — success paths", () => {
     expect((inserted[0] as Record<string, unknown>).user_id).toBe("user-test-id");
   });
 
+  it("stores source_type and source_category in raw_import_data (issue 125)", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(makeRequest({
+      account_id: ACCOUNT_ID,
+      transactions: [
+        { hash: "h-typed", date: "2026-01-15", description: "Shop", amount_cents: -100, kind: "expense", source_type: "MoneyBeam", source_category: "Courses" },
+        { hash: "h-plain", date: "2026-01-16", description: "Shop2", amount_cents: -100, kind: "expense" },
+      ],
+    }));
+
+    expect(res.status).toBe(200);
+    const rows = rpcArgs(rpc).p_rows as Record<string, unknown>[];
+    expect(rows[0]?.raw_import_data).toEqual({ hash: "h-typed", source_type: "MoneyBeam", source_category: "Courses" });
+    expect(rows[1]?.raw_import_data).toEqual({ hash: "h-plain" });
+  });
+
   it("sends 1 row for a valid income", async () => {
     const { supabase, rpc } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
