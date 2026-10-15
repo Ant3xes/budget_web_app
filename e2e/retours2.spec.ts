@@ -60,8 +60,8 @@ async function createTransaction(page: Page, accountId: string, description: str
 async function openTransaction(page: Page, description: string) {
   await page.goto("/transactions");
   // Search avoids pagination and other tests' transactions, including on mobile.
-  await page.getByPlaceholder("Rechercher…").fill(description);
-  await page.getByPlaceholder("Rechercher…").press("Enter");
+  await page.locator('input[placeholder="Rechercher…"]:visible').fill(description);
+  await page.locator('input[placeholder="Rechercher…"]:visible').press("Enter");
   await page.getByRole("button", { name: description, exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   return page.getByRole("dialog");
@@ -70,7 +70,7 @@ async function openTransaction(page: Page, description: string) {
 function transactionRow(page: Page, description: string) {
   const label = page.getByRole("button", { name: description, exact: true });
   return page.getByRole("row").filter({ has: label })
-    .or(page.getByRole("listitem").filter({ has: label })).locator("visible=true");
+    .or(page.getByRole("listitem").filter({ has: label })).filter({ visible: true });
 }
 
 async function analyzeImport(page: Page, tag: string, includeTransfer: boolean) {
@@ -78,7 +78,7 @@ async function analyzeImport(page: Page, tag: string, includeTransfer: boolean) 
   await page.goto("/transactions");
   await page.getByRole("button", { name: "Importer", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Compte de destination", { exact: true }).selectOption({ index: 1 });
+  await dialog.getByLabel(/compte de destination/i).selectOption({ index: 1 });
   const date = today();
   const rows = [
     '"Booking Date","Value Date","Partner Name","Partner Iban",Type,"Payment Reference","Account Name","Amount (EUR)","Original Amount","Original Currency","Exchange Rate"',
@@ -87,7 +87,7 @@ async function analyzeImport(page: Page, tag: string, includeTransfer: boolean) 
   if (includeTransfer) {
     rows.push(`${date},${date},Camille Exemple ${tag},,Debit Transfer,Virement synthétique,Compte fictif,-23.45,-23.45,EUR,1`);
   }
-  await dialog.getByLabel("Fichier", { exact: true }).setInputFiles({
+  await dialog.getByLabel(/fichier/i).setInputFiles({
     name: `n26-synthetique-${tag}.csv`, mimeType: "text/csv", buffer: Buffer.from(rows.join("\n")),
   });
   await dialog.getByRole("button", { name: "Analyser le fichier", exact: true }).click();
@@ -104,8 +104,8 @@ test.describe("Retours 2", () => {
     const description = `Ouverture F ${tag}`;
     await createTransaction(page, account.id, description, -2500);
     await page.goto("/transactions");
-    await page.getByPlaceholder("Rechercher…").fill(description);
-    await page.getByPlaceholder("Rechercher…").press("Enter");
+    await page.locator('input[placeholder="Rechercher…"]:visible').fill(description);
+    await page.locator('input[placeholder="Rechercher…"]:visible').press("Enter");
     await expect(transactionRow(page, description)).toBeVisible();
     await expect(transactionRow(page, description)).not.toHaveAttribute("role", "button");
     await expect(page.getByRole("button", { name: /^Modifier$/ })).toHaveCount(0);
@@ -133,8 +133,8 @@ test.describe("Retours 2", () => {
     await createTransaction(page, source.id, description, -3500);
     const dialog = await openTransaction(page, description);
     await dialog.getByRole("group", { name: "Type", exact: true }).getByRole("button", { name: "Virements", exact: true }).click();
-    await dialog.getByLabel("Compte source", { exact: true }).selectOption(source.id);
-    await dialog.getByLabel("Compte destination", { exact: true }).selectOption(destination.id);
+    await dialog.getByLabel(/compte source/i).selectOption(source.id);
+    await dialog.getByLabel(/compte destination/i).selectOption(destination.id);
     await dialog.getByRole("button", { name: "Enregistrer", exact: true }).click();
     await expect(dialog).not.toBeVisible();
     const row = transactionRow(page, description);
