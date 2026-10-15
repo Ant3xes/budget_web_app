@@ -89,12 +89,10 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
       if (accRes.ok) {
         const d = (await accRes.json()) as { accounts: Account[] };
         setAccounts(d.accounts ?? []);
-        if (d.accounts.length > 0) {
-          const preferred =
-            defaultAccountId && d.accounts.some((a) => a.id === defaultAccountId)
-              ? defaultAccountId
-              : d.accounts[0]!.id;
-          setSelectedAccountId(preferred);
+        // issue 117: no preselection from the Transactions page; only the
+        // account page's own account is preselected.
+        if (defaultAccountId && d.accounts.some((a) => a.id === defaultAccountId)) {
+          setSelectedAccountId(defaultAccountId);
         }
       }
       if (catRes.ok) {
@@ -189,16 +187,21 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
       };
     };
 
-    const transactions = selected.map((r) => ({
+    // issue 117: a transfer needs an explicit counterpart account; otherwise the
+    // row is a plain expense/income and keeps its category.
+    const transactions = selected.map((r) => {
+      const counterpart = isTransfer[r.rowId] ? (transferAccountMap[r.rowId] || null) : null;
+      return {
       hash: r.hash,
       date: r.date,
       description: r.description,
       amount_cents: r.amount_cents,
-      kind: isTransfer[r.rowId] ? "transfer" as const : r.kind,
-      category_id: isTransfer[r.rowId] ? null : (categoryMap[r.rowId] || null),
-      transfer_account_id: isTransfer[r.rowId] ? (transferAccountMap[r.rowId] || null) : undefined,
+      kind: counterpart ? "transfer" as const : r.kind,
+      category_id: counterpart ? null : (categoryMap[r.rowId] || null),
+      transfer_account_id: counterpart ?? undefined,
       share: shareFor(r),
-    }));
+      };
+    });
 
     const res = await fetch("/api/import/confirm", {
       method: "POST",
