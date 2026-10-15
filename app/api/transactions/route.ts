@@ -68,7 +68,7 @@ export async function GET(request: Request) {
   let builder = auth.supabase
     .from("transactions")
     .select(
-      "id, kind, amount_cents, currency, date, description, notes, is_imported, transfer_id, account_id, category_id, accounts(name), categories(name, color, icon), shared_expenses(id, space_id, category_id, paid_by, shares)",
+      "id, kind, amount_cents, currency, date, description, notes, is_imported, raw_import_data, transfer_id, account_id, category_id, accounts(name), categories(name, color, icon), shared_expenses(id, space_id, category_id, paid_by, shares)",
       { count: "exact" },
     )
     .eq("space_id", auth.spaceId)

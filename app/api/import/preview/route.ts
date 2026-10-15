@@ -6,6 +6,7 @@ import { z } from "zod";
 import { buildDefaultMatcher, buildHistoryMatcher, buildRuleMatcher, buildRuleShareMatcher, detectTransfer } from "@/lib/import/apply-rules";
 import { buildFileHashes, findExistingHashes, findTransferMirrorMatches } from "@/lib/import/deduplicate";
 import { detectFormat } from "@/lib/import/detect-format";
+import { normalizeLabel, type LabelSource } from "@/lib/import/normalize-label";
 import { parseBnpXls } from "@/lib/import/parse-bnp";
 import { isTransferSourceType, parseN26Csv } from "@/lib/import/parse-n26";
 import { withSpace } from "@/lib/spaces/with-space";
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
 
   // Parse the file based on extension + content
   let parsed;
+  let source: LabelSource;
 
   if (fileName.endsWith(".csv")) {
     const text = new TextDecoder("utf-8").decode(buffer);
@@ -48,6 +50,7 @@ export async function POST(request: Request) {
 
     if (format === "n26") {
       parsed = parseN26Csv(text);
+      source = "n26";
     } else {
       return NextResponse.json({ error: "Format CSV non reconnu. Formats supportés : N26." }, { status: 400 });
     }
@@ -67,6 +70,7 @@ export async function POST(request: Request) {
 
       if (format === "bnp") {
         parsed = parseBnpXls(buffer);
+        source = "bnp";
       } else {
         return NextResponse.json({ error: "Format XLS non reconnu. Formats supportés : BNP." }, { status: 400 });
       }
@@ -172,10 +176,16 @@ export async function POST(request: Request) {
       }
     }
 
+    // issue 127: `description` stays the raw bank label (the import modal moves to
+    // clean_description later); the hash above is built on the raw label too.
+    const { clean, raw } = normalizeLabel(tx.description, { source });
+
     return {
       hash: tx.hash,
       date: tx.date,
       description: tx.description,
+      clean_description: clean,
+      raw_description: raw,
       amount_cents: tx.amount_cents,
       kind,
       suggested_category_id: suggestedCategoryId,

@@ -34,6 +34,7 @@ type Transaction = {
   description: string;
   notes: string | null;
   is_imported: boolean;
+  raw_import_data?: { raw_label?: string } | null;
   transfer_id: string | null;
   account_id: string;
   category_id: string | null;
@@ -583,6 +584,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
             category_id: editingTransaction.category_id ?? "",
             notes: editingTransaction.notes ?? "",
           }}
+          rawLabel={editingTransaction.raw_import_data?.raw_label ?? null}
           onSuccess={() => {
             setEditingTransaction(null);
             void load(page);
