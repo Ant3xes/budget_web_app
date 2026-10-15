@@ -171,7 +171,7 @@ test.describe("Retours 2", () => {
     await expect(submit).toBeEnabled();
     await submit.click();
     await expect(dialog.getByText("Import terminé", { exact: true })).toBeVisible();
-    await expect(dialog.getByText(/importées? avec succès/)).toBeVisible();
+    await expect(dialog.getByText(/2 transactions importées/)).toBeVisible();
     // Both lines exist after the import (the external transfer became an expense).
     const listed = await page.request.get(`/api/transactions?q=${encodeURIComponent(tag)}&per_page=100`);
     expect(listed.ok()).toBeTruthy();
