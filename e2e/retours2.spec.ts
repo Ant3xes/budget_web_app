@@ -121,7 +121,7 @@ test.describe("Retours 2", () => {
     await createTransaction(page, account.id, description, -2500);
     const dialog = await openTransaction(page, description);
     await dialog.getByRole("group", { name: "Type", exact: true }).getByRole("button", { name: "Revenus", exact: true }).click();
-    await dialog.getByRole("button", { name: "Enregistrer", exact: true }).click();
+    await dialog.getByRole("button", { name: "Mettre à jour", exact: true }).click();
     await expect(dialog).not.toBeVisible();
     await expect(transactionRow(page, description)).toContainText(/\+25,00\s*€/);
   });
@@ -135,7 +135,7 @@ test.describe("Retours 2", () => {
     await dialog.getByRole("group", { name: "Type", exact: true }).getByRole("button", { name: "Virements", exact: true }).click();
     await dialog.getByLabel(/compte source/i).selectOption(source.id);
     await dialog.getByLabel(/compte destination/i).selectOption(destination.id);
-    await dialog.getByRole("button", { name: "Enregistrer", exact: true }).click();
+    await dialog.getByRole("button", { name: "Mettre à jour", exact: true }).click();
     await expect(dialog).not.toBeVisible();
     const row = transactionRow(page, description);
     await expect(row).toContainText(`${source.name} → ${destination.name}`);
@@ -153,13 +153,14 @@ test.describe("Retours 2", () => {
     await section.getByRole("combobox", { name: "Lier un remboursement", exact: true }).selectOption(refund.id);
     await section.getByRole("button", { name: "Lier un remboursement", exact: true }).click();
     await expect(section.getByText(/Remboursé : 60,00\s*€/)).toBeVisible();
-    await dialog.getByRole("button", { name: "Enregistrer", exact: true }).click();
+    await dialog.getByRole("button", { name: "Mettre à jour", exact: true }).click();
     await expect(dialog).not.toBeVisible();
     await expect(transactionRow(page, description)).toContainText(/30,00\s*€ sur 90,00\s*€/);
   });
 
   test("un import N26 attend le choix Externe du virement", async ({ page }) => {
-    const dialog = await analyzeImport(page, unique(), true);
+    const tag = unique();
+    const dialog = await analyzeImport(page, tag, true);
     await dialog.getByRole("button", { name: "Suivant →", exact: true }).click();
     await dialog.getByRole("button", { name: "Suivant →", exact: true }).click();
     const submit = dialog.getByRole("button", { name: "Importer 2 transactions", exact: true });
@@ -170,7 +171,14 @@ test.describe("Retours 2", () => {
     await expect(submit).toBeEnabled();
     await submit.click();
     await expect(dialog.getByText("Import terminé", { exact: true })).toBeVisible();
-    await expect(dialog.getByText("2 transactions importées avec succès.", { exact: true })).toBeVisible();
+    await expect(dialog.getByText(/importées? avec succès/)).toBeVisible();
+    // Both lines exist after the import (the external transfer became an expense).
+    const listed = await page.request.get(`/api/transactions?q=${encodeURIComponent(tag)}&per_page=100`);
+    expect(listed.ok()).toBeTruthy();
+    const body = await listed.json();
+    const found = (body.transactions ?? []).map((t: { description: string }) => t.description.toLowerCase());
+    expect(found.some((d: string) => d.includes("boutique fictive"))).toBeTruthy();
+    expect(found.some((d: string) => d.includes("camille exemple"))).toBeTruthy();
   });
 
   test("créer une catégorie depuis l'import la sélectionne et la persiste", async ({ page }) => {
