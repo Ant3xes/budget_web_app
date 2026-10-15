@@ -1,0 +1,3575 @@
+[
+  {
+    "name": "Carrefour",
+    "patterns": [
+      "Carrefour",
+      "Carrefour Market",
+      "Carrefour City",
+      "Carrefour Contact",
+      "Carrefour Express",
+      "CarrefourMarket"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Franprix",
+    "patterns": [
+      "Franprix"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Monoprix",
+    "patterns": [
+      "Monoprix"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Monop'",
+    "patterns": [
+      "Monop",
+      "Monopdaily"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Intermarché",
+    "patterns": [
+      "Intermarche",
+      "Bigem"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "E.Leclerc",
+    "patterns": [
+      "Leclerc"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Auchan",
+    "patterns": [
+      "Auchan"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Cocci Market",
+    "patterns": [
+      "Cocci Market"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Lidl",
+    "patterns": [
+      "Lidl"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Aldi",
+    "patterns": [
+      "Aldi"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Picard",
+    "patterns": [
+      "Picard"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Super U",
+    "patterns": [
+      "Super U",
+      "Systeme U",
+      "Hyper U",
+      "U Express"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Naturalia",
+    "patterns": [
+      "Naturalia"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Biocoop",
+    "patterns": [
+      "Biocoop"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Grand Frais",
+    "patterns": [
+      "Grand Frais"
+    ],
+    "category_key": "supermarche",
+    "kind": "expense"
+  },
+  {
+    "name": "Tabac",
+    "patterns": [
+      "Tabac",
+      "Tabaccheria",
+      "Bureau de Tabac"
+    ],
+    "category_key": "commerces_proximite",
+    "kind": "expense"
+  },
+  {
+    "name": "Boulangerie",
+    "patterns": [
+      "Boulangerie",
+      "Boulanger Artisan"
+    ],
+    "category_key": "commerces_proximite",
+    "kind": "expense"
+  },
+  {
+    "name": "Épicerie",
+    "patterns": [
+      "Epicerie",
+      "Votre Epicier",
+      "Superette",
+      "Minimarket",
+      "Alimentation Generale"
+    ],
+    "category_key": "commerces_proximite",
+    "kind": "expense"
+  },
+  {
+    "name": "Navigo",
+    "patterns": [
+      "Navigo"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Service Navigo",
+    "patterns": [
+      "Service Navigo"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "SNCF",
+    "patterns": [
+      "SNCF"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "SNCF Voyageurs",
+    "patterns": [
+      "SNCF-Voyageurs",
+      "SNCF Voyageurs"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "ATAC",
+    "patterns": [
+      "ATAC"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "RATP",
+    "patterns": [
+      "RATP"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Transilien",
+    "patterns": [
+      "Transilien"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Ouigo",
+    "patterns": [
+      "Ouigo"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Trenitalia",
+    "patterns": [
+      "Trenitalia"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Italo",
+    "patterns": [
+      "Italo"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Eurostar",
+    "patterns": [
+      "Eurostar"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Thalys",
+    "patterns": [
+      "Thalys"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Flixbus",
+    "patterns": [
+      "Flixbus"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "BlaBlaCar",
+    "patterns": [
+      "BlaBlaCar"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Newrest Wagons-Lits",
+    "patterns": [
+      "Newrest Wagons-Lits"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Trambus",
+    "patterns": [
+      "Trambus"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Tisseo",
+    "patterns": [
+      "Tisseo"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "TCL Lyon",
+    "patterns": [
+      "TCL Lyon"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Keolis",
+    "patterns": [
+      "Keolis"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Transdev",
+    "patterns": [
+      "Transdev"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Ile-de-France Mobilites",
+    "patterns": [
+      "Ile-de-France Mobilites"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Velib Navigo",
+    "patterns": [
+      "Velib Navigo"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Moovit",
+    "patterns": [
+      "Moovit"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Bus Verts",
+    "patterns": [
+      "Bus Verts"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Orlyval",
+    "patterns": [
+      "Orlyval"
+    ],
+    "category_key": "transports_en_commun",
+    "kind": "expense"
+  },
+  {
+    "name": "Uber",
+    "patterns": [
+      "UBR*",
+      "Uber*",
+      "Uber Trip"
+    ],
+    "category_key": "taxi_vtc",
+    "kind": "expense"
+  },
+  {
+    "name": "Bolt",
+    "patterns": [
+      "Bolt"
+    ],
+    "category_key": "taxi_vtc",
+    "kind": "expense"
+  },
+  {
+    "name": "G7",
+    "patterns": [
+      "G7"
+    ],
+    "category_key": "taxi_vtc",
+    "kind": "expense"
+  },
+  {
+    "name": "FREE NOW",
+    "patterns": [
+      "FREE NOW"
+    ],
+    "category_key": "taxi_vtc",
+    "kind": "expense"
+  },
+  {
+    "name": "Uber Eats",
+    "patterns": [
+      "UBER * EATS",
+      "UBR* EATS",
+      "Uber Eats"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Deliveroo",
+    "patterns": [
+      "Deliveroo"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Just Eat",
+    "patterns": [
+      "Just Eat"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Too Good To Go",
+    "patterns": [
+      "Too Good To Go"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "KFC",
+    "patterns": [
+      "KFC"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "McDonald's",
+    "patterns": [
+      "McDonald's"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Burger King",
+    "patterns": [
+      "Burger King"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Subway",
+    "patterns": [
+      "Subway"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Pret A Manger",
+    "patterns": [
+      "Pret A Manger"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Paris Baguette",
+    "patterns": [
+      "Paris Baguette"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Domino's",
+    "patterns": [
+      "Domino's"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Five Guys",
+    "patterns": [
+      "Five Guys"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Starbucks",
+    "patterns": [
+      "Starbucks"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Brioche Dorée",
+    "patterns": [
+      "Brioche Doree"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Pizza Hut",
+    "patterns": [
+      "Pizza Hut"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Amorino",
+    "patterns": [
+      "Amorino"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Chamas Tacos",
+    "patterns": [
+      "Chamas Tacos"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Big Fernand",
+    "patterns": [
+      "Big Fernand"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Alice Pizza",
+    "patterns": [
+      "Alice Pizza"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "L'Osteria",
+    "patterns": [
+      "L'Osteria"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Pizza Pino",
+    "patterns": [
+      "Pizza Pino"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Cojean",
+    "patterns": [
+      "Cojean"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Exki",
+    "patterns": [
+      "Exki"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Le Pain Quotidien",
+    "patterns": [
+      "Le Pain Quotidien"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Columbus Cafe",
+    "patterns": [
+      "Columbus Cafe"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Flunch",
+    "patterns": [
+      "Flunch"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Hippopotamus",
+    "patterns": [
+      "Hippopotamus"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Buffalo Grill",
+    "patterns": [
+      "Buffalo Grill"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Courtepaille",
+    "patterns": [
+      "Courtepaille"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Leon de Bruxelles",
+    "patterns": [
+      "Leon de Bruxelles"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Wagamama",
+    "patterns": [
+      "Wagamama"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Sushi Shop",
+    "patterns": [
+      "Sushi Shop"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Itsu",
+    "patterns": [
+      "Itsu"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Bagelstein",
+    "patterns": [
+      "Bagelstein"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Areas",
+    "patterns": [
+      "Areas"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Relais H",
+    "patterns": [
+      "Relais H"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Ben & Jerry's",
+    "patterns": [
+      "Ben & Jerry's"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Haagen-Dazs",
+    "patterns": [
+      "Haagen-Dazs"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "La Boucherie",
+    "patterns": [
+      "La Boucherie"
+    ],
+    "category_key": "restaurants",
+    "kind": "expense"
+  },
+  {
+    "name": "Total",
+    "patterns": [
+      "Total",
+      "TotalEnergies",
+      "Station Total"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "Esso",
+    "patterns": [
+      "Esso"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "Certas",
+    "patterns": [
+      "Certas"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "Esso Express",
+    "patterns": [
+      "Esso Express"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "Q8",
+    "patterns": [
+      "Q8"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "BP",
+    "patterns": [
+      "BP"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "Shell",
+    "patterns": [
+      "Shell"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "Avia",
+    "patterns": [
+      "Avia"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "Repsol",
+    "patterns": [
+      "Repsol"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "Intermarche Carburant",
+    "patterns": [
+      "Intermarche Carburant"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "Dyneff",
+    "patterns": [
+      "Dyneff"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "Tamoil",
+    "patterns": [
+      "Tamoil"
+    ],
+    "category_key": "carburant",
+    "kind": "expense"
+  },
+  {
+    "name": "EasyPark",
+    "patterns": [
+      "EasyPark"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Yespark",
+    "patterns": [
+      "Yespark"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Saemes",
+    "patterns": [
+      "Saemes"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Q-Park",
+    "patterns": [
+      "Q-Park"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "OnePark",
+    "patterns": [
+      "OnePark"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Mairie de Paris",
+    "patterns": [
+      "Mairie de Paris"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Zenpark",
+    "patterns": [
+      "Zenpark"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Parkopoly",
+    "patterns": [
+      "Parkopoly"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "PayByPhone",
+    "patterns": [
+      "PayByPhone"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Flowbird",
+    "patterns": [
+      "Flowbird"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Parcmetre",
+    "patterns": [
+      "Parcmetre"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Effia",
+    "patterns": [
+      "Effia"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Vinci Park",
+    "patterns": [
+      "Vinci Park"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "ParkNow",
+    "patterns": [
+      "ParkNow"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Lime",
+    "patterns": [
+      "Lime"
+    ],
+    "category_key": "velo_trottinette",
+    "kind": "expense"
+  },
+  {
+    "name": "Lime Pass",
+    "patterns": [
+      "Lime*Pass"
+    ],
+    "category_key": "velo_trottinette",
+    "kind": "expense"
+  },
+  {
+    "name": "Velib",
+    "patterns": [
+      "Velib"
+    ],
+    "category_key": "velo_trottinette",
+    "kind": "expense"
+  },
+  {
+    "name": "UCPA",
+    "patterns": [
+      "UCPA"
+    ],
+    "category_key": "sport",
+    "kind": "expense"
+  },
+  {
+    "name": "NCD Fitness",
+    "patterns": [
+      "NCD Fitness"
+    ],
+    "category_key": "sport",
+    "kind": "expense"
+  },
+  {
+    "name": "Vertical Art",
+    "patterns": [
+      "Vertical Art"
+    ],
+    "category_key": "sport",
+    "kind": "expense"
+  },
+  {
+    "name": "Stadium",
+    "patterns": [
+      "Stadium"
+    ],
+    "category_key": "sport",
+    "kind": "expense"
+  },
+  {
+    "name": "Decathlon",
+    "patterns": [
+      "Decathlon"
+    ],
+    "category_key": "sport",
+    "kind": "expense"
+  },
+  {
+    "name": "Basic-Fit",
+    "patterns": [
+      "Basic-Fit"
+    ],
+    "category_key": "sport",
+    "kind": "expense"
+  },
+  {
+    "name": "Fitness Park",
+    "patterns": [
+      "Fitness Park"
+    ],
+    "category_key": "sport",
+    "kind": "expense"
+  },
+  {
+    "name": "Keepcool",
+    "patterns": [
+      "Keepcool"
+    ],
+    "category_key": "sport",
+    "kind": "expense"
+  },
+  {
+    "name": "Club du Sporting",
+    "patterns": [
+      "Club du Sporting"
+    ],
+    "category_key": "sport",
+    "kind": "expense"
+  },
+  {
+    "name": "Intersport",
+    "patterns": [
+      "Intersport"
+    ],
+    "category_key": "sport",
+    "kind": "expense"
+  },
+  {
+    "name": "Shotgun",
+    "patterns": [
+      "Shotgun"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Weezevent",
+    "patterns": [
+      "Weezevent"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "UGC",
+    "patterns": [
+      "UGC",
+      "UGC Reservation"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "WeBook",
+    "patterns": [
+      "WeBook"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Ticketmaster",
+    "patterns": [
+      "Ticketmaster"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "See Tickets",
+    "patterns": [
+      "See Tickets"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "BilletReduc",
+    "patterns": [
+      "BilletReduc"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Pathe",
+    "patterns": [
+      "Pathe"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "MK2",
+    "patterns": [
+      "MK2"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Fnac Spectacles",
+    "patterns": [
+      "Fnac Spectacles"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Digitick",
+    "patterns": [
+      "Digitick"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Eventbrite",
+    "patterns": [
+      "Eventbrite"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Billetweb",
+    "patterns": [
+      "Billetweb"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Yurplan",
+    "patterns": [
+      "Yurplan"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Philharmonie",
+    "patterns": [
+      "Philharmonie"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Accor Arena",
+    "patterns": [
+      "Accor Arena"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Zenith",
+    "patterns": [
+      "Zenith"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Olympia",
+    "patterns": [
+      "Olympia"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Seetickets",
+    "patterns": [
+      "Seetickets"
+    ],
+    "category_key": "sorties_concerts",
+    "kind": "expense"
+  },
+  {
+    "name": "Amazon",
+    "patterns": [
+      "Amazon",
+      "Amzn Mktp",
+      "Amazon Payments",
+      "Amazon EU"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Uniqlo",
+    "patterns": [
+      "Uniqlo"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Printemps",
+    "patterns": [
+      "Printemps"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Fnac",
+    "patterns": [
+      "Fnac"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Zara",
+    "patterns": [
+      "Zara"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "H&M",
+    "patterns": [
+      "H&M"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Kiabi",
+    "patterns": [
+      "Kiabi"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Celio",
+    "patterns": [
+      "Celio"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Galeries Lafayette",
+    "patterns": [
+      "Galeries Lafayette"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Sephora",
+    "patterns": [
+      "Sephora"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Darty",
+    "patterns": [
+      "Darty"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Boulanger",
+    "patterns": [
+      "Boulanger"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Cdiscount",
+    "patterns": [
+      "Cdiscount"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Zalando",
+    "patterns": [
+      "Zalando"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Asos",
+    "patterns": [
+      "Asos"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Shein",
+    "patterns": [
+      "Shein"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Cultura",
+    "patterns": [
+      "Cultura"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Lego",
+    "patterns": [
+      "Lego"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "AromaZone",
+    "patterns": [
+      "AromaZone"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Nature & Decouvertes",
+    "patterns": [
+      "Nature & Decouvertes"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Gifi",
+    "patterns": [
+      "Gifi"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Hema",
+    "patterns": [
+      "Hema"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Flying Tiger",
+    "patterns": [
+      "Flying Tiger"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Librairie",
+    "patterns": [
+      "Librairie"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Rakuten",
+    "patterns": [
+      "Rakuten"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Aliexpress",
+    "patterns": [
+      "Aliexpress"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Temu",
+    "patterns": [
+      "Temu"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Etsy",
+    "patterns": [
+      "Etsy"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "eBay",
+    "patterns": [
+      "eBay"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Micromania",
+    "patterns": [
+      "Micromania"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Gibert Joseph",
+    "patterns": [
+      "Gibert Joseph"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "La Redoute",
+    "patterns": [
+      "La Redoute"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Bershka",
+    "patterns": [
+      "Bershka"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Pull&Bear",
+    "patterns": [
+      "Pull&Bear"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Promod",
+    "patterns": [
+      "Promod"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Undiz",
+    "patterns": [
+      "Undiz"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Lacoste",
+    "patterns": [
+      "Lacoste"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Nike",
+    "patterns": [
+      "Nike"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Adidas",
+    "patterns": [
+      "Adidas"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Foot Locker",
+    "patterns": [
+      "Foot Locker"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Sarenza",
+    "patterns": [
+      "Sarenza"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Apple Store",
+    "patterns": [
+      "Apple Store"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Pimkie",
+    "patterns": [
+      "Pimkie"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Primark",
+    "patterns": [
+      "Primark"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Bijou Brigitte",
+    "patterns": [
+      "Bijou Brigitte"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Claire's",
+    "patterns": [
+      "Claire's"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Swarovski",
+    "patterns": [
+      "Swarovski"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Yves Rocher",
+    "patterns": [
+      "Yves Rocher"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Nocibe",
+    "patterns": [
+      "Nocibe"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Marionnaud",
+    "patterns": [
+      "Marionnaud"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "L'Occitane",
+    "patterns": [
+      "L'Occitane"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Kusmi Tea",
+    "patterns": [
+      "Kusmi Tea"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Nespresso",
+    "patterns": [
+      "Nespresso"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "LDLC",
+    "patterns": [
+      "LDLC"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Rue du Commerce",
+    "patterns": [
+      "Rue du Commerce"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Back Market",
+    "patterns": [
+      "Back Market"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Grosbill",
+    "patterns": [
+      "Grosbill"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Vert Baudet",
+    "patterns": [
+      "Vert Baudet"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Muji",
+    "patterns": [
+      "Muji"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Rougier & Ple",
+    "patterns": [
+      "Rougier & Ple"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Bijoux",
+    "patterns": [
+      "Bijoux"
+    ],
+    "category_key": "shopping",
+    "kind": "expense"
+  },
+  {
+    "name": "Leroy Merlin",
+    "patterns": [
+      "Leroy Merlin"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Brico Depot",
+    "patterns": [
+      "Brico Depot"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Castorama",
+    "patterns": [
+      "Castorama"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Ikea",
+    "patterns": [
+      "Ikea"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Brico Decor",
+    "patterns": [
+      "Brico Decor"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Maisons du Monde",
+    "patterns": [
+      "Maisons du Monde"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Bricomarche",
+    "patterns": [
+      "Bricomarche"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Mr Bricolage",
+    "patterns": [
+      "Mr Bricolage"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Weldom",
+    "patterns": [
+      "Weldom"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Conforama",
+    "patterns": [
+      "Conforama"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Alinea",
+    "patterns": [
+      "Alinea"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "EDF",
+    "patterns": [
+      "EDF"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Veolia",
+    "patterns": [
+      "Veolia"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Direct Energie",
+    "patterns": [
+      "Direct Energie"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Ekwateur",
+    "patterns": [
+      "Ekwateur"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Mint Energie",
+    "patterns": [
+      "Mint Energie"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Foncia",
+    "patterns": [
+      "Foncia"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Nexity",
+    "patterns": [
+      "Nexity"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Saur",
+    "patterns": [
+      "Saur"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Eau de Paris",
+    "patterns": [
+      "Eau de Paris"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Point P",
+    "patterns": [
+      "Point P"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Lapeyre",
+    "patterns": [
+      "Lapeyre"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Truffaut",
+    "patterns": [
+      "Truffaut"
+    ],
+    "category_key": "logement",
+    "kind": "expense"
+  },
+  {
+    "name": "Google Ads",
+    "patterns": [
+      "Google*Ads",
+      "Google Ads"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Facebook Ads",
+    "patterns": [
+      "Facebk*",
+      "Facebook Ads",
+      "Meta Ads"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Cursor",
+    "patterns": [
+      "Cursor"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "OpenAI",
+    "patterns": [
+      "OpenAI"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Anthropic",
+    "patterns": [
+      "Anthropic"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Notion",
+    "patterns": [
+      "Notion Labs",
+      "Notion"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Infomaniak",
+    "patterns": [
+      "Infomaniak"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Google One",
+    "patterns": [
+      "Google One"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Google One Stockage",
+    "patterns": [
+      "Google*Google One"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "GitHub",
+    "patterns": [
+      "GitHub"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Vercel",
+    "patterns": [
+      "Vercel"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Figma",
+    "patterns": [
+      "Figma"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Supabase",
+    "patterns": [
+      "Supabase"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Adobe",
+    "patterns": [
+      "Adobe"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Canva",
+    "patterns": [
+      "Canva"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "OVH",
+    "patterns": [
+      "OVH"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Gandi",
+    "patterns": [
+      "Gandi"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Namecheap",
+    "patterns": [
+      "Namecheap"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Dropbox",
+    "patterns": [
+      "Dropbox"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Google Workspace",
+    "patterns": [
+      "Google Workspace"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Stripe",
+    "patterns": [
+      "Stripe"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Qonto",
+    "patterns": [
+      "Qonto"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Jetbrains",
+    "patterns": [
+      "Jetbrains"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Cloudflare",
+    "patterns": [
+      "Cloudflare"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Netlify",
+    "patterns": [
+      "Netlify"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Digital Ocean",
+    "patterns": [
+      "Digital Ocean"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Scaleway",
+    "patterns": [
+      "Scaleway"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Hetzner",
+    "patterns": [
+      "Hetzner"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Postmark",
+    "patterns": [
+      "Postmark"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Sentry",
+    "patterns": [
+      "Sentry"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Mailchimp",
+    "patterns": [
+      "Mailchimp"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Brevo",
+    "patterns": [
+      "Brevo"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Airtable",
+    "patterns": [
+      "Airtable"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Midjourney",
+    "patterns": [
+      "Midjourney"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Zapier",
+    "patterns": [
+      "Zapier"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "DRFIP",
+    "patterns": [
+      "DRFIP",
+      "DGFIP",
+      "Direction Generale des Finances Publiques"
+    ],
+    "category_key": "impots_amendes",
+    "kind": "expense"
+  },
+  {
+    "name": "Impots.gouv",
+    "patterns": [
+      "Impots.gouv"
+    ],
+    "category_key": "impots_amendes",
+    "kind": "expense"
+  },
+  {
+    "name": "Tresor Public",
+    "patterns": [
+      "Tresor Public"
+    ],
+    "category_key": "impots_amendes",
+    "kind": "expense"
+  },
+  {
+    "name": "ANTAI",
+    "patterns": [
+      "ANTAI"
+    ],
+    "category_key": "impots_amendes",
+    "kind": "expense"
+  },
+  {
+    "name": "Timbre Fiscal",
+    "patterns": [
+      "Timbre Fiscal"
+    ],
+    "category_key": "impots_amendes",
+    "kind": "expense"
+  },
+  {
+    "name": "Taxe Habitation",
+    "patterns": [
+      "Taxe Habitation"
+    ],
+    "category_key": "impots_amendes",
+    "kind": "expense"
+  },
+  {
+    "name": "Centre des Finances Publiques",
+    "patterns": [
+      "Centre des Finances Publiques"
+    ],
+    "category_key": "impots_amendes",
+    "kind": "expense"
+  },
+  {
+    "name": "Fourriere",
+    "patterns": [
+      "Fourriere"
+    ],
+    "category_key": "impots_amendes",
+    "kind": "expense"
+  },
+  {
+    "name": "UNICEF",
+    "patterns": [
+      "UNICEF"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Croix-Rouge",
+    "patterns": [
+      "Croix-Rouge"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Medecins Sans Frontieres",
+    "patterns": [
+      "Medecins Sans Frontieres"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Restos du Coeur",
+    "patterns": [
+      "Restos du Coeur"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Fondation Abbe Pierre",
+    "patterns": [
+      "Fondation Abbe Pierre"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Secours Populaire",
+    "patterns": [
+      "Secours Populaire"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Wikimedia",
+    "patterns": [
+      "Wikimedia"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "WWF",
+    "patterns": [
+      "WWF"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Greenpeace",
+    "patterns": [
+      "Greenpeace"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Amnesty International",
+    "patterns": [
+      "Amnesty International"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Fondation de France",
+    "patterns": [
+      "Fondation de France"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Secours Catholique",
+    "patterns": [
+      "Secours Catholique"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Emmaus",
+    "patterns": [
+      "Emmaus"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Telethon",
+    "patterns": [
+      "Telethon"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Ligue contre le Cancer",
+    "patterns": [
+      "Ligue contre le Cancer"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Helloasso",
+    "patterns": [
+      "Helloasso"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Ulule",
+    "patterns": [
+      "Ulule"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "KissKissBankBank",
+    "patterns": [
+      "KissKissBankBank"
+    ],
+    "category_key": "dons",
+    "kind": "expense"
+  },
+  {
+    "name": "Frais Tenue de Compte",
+    "patterns": [
+      "Frais Tenue de Compte"
+    ],
+    "category_key": "banque_frais",
+    "kind": "expense"
+  },
+  {
+    "name": "Cotisation Carte",
+    "patterns": [
+      "Commissions Percues Cotisation",
+      "Cotisation Carte",
+      "Cotisation Mensuelle"
+    ],
+    "category_key": "banque_frais",
+    "kind": "expense"
+  },
+  {
+    "name": "Frais Bancaires",
+    "patterns": [
+      "Frais Bancaires"
+    ],
+    "category_key": "banque_frais",
+    "kind": "expense"
+  },
+  {
+    "name": "Agios",
+    "patterns": [
+      "Agios"
+    ],
+    "category_key": "banque_frais",
+    "kind": "expense"
+  },
+  {
+    "name": "Commission d'Intervention",
+    "patterns": [
+      "Commission d'Intervention"
+    ],
+    "category_key": "banque_frais",
+    "kind": "expense"
+  },
+  {
+    "name": "Frais de Dossier",
+    "patterns": [
+      "Frais de Dossier"
+    ],
+    "category_key": "banque_frais",
+    "kind": "expense"
+  },
+  {
+    "name": "Frais Retrait",
+    "patterns": [
+      "Frais Retrait"
+    ],
+    "category_key": "banque_frais",
+    "kind": "expense"
+  },
+  {
+    "name": "Commission de Change",
+    "patterns": [
+      "Commission de Change"
+    ],
+    "category_key": "banque_frais",
+    "kind": "expense"
+  },
+  {
+    "name": "AXA",
+    "patterns": [
+      "AXA"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Harmonie Mutuelle",
+    "patterns": [
+      "Harmonie Mutuelle"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "MGEN",
+    "patterns": [
+      "MGEN"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Malakoff Humanis",
+    "patterns": [
+      "Malakoff Humanis"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Pharmacie",
+    "patterns": [
+      "Pharmacie"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Opticien",
+    "patterns": [
+      "Opticien"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Krys",
+    "patterns": [
+      "Krys"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Afflelou",
+    "patterns": [
+      "Afflelou"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Optic 2000",
+    "patterns": [
+      "Optic 2000"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Kinesitherapeute",
+    "patterns": [
+      "Kinesitherapeute"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Pharmacie Lafayette",
+    "patterns": [
+      "Pharmacie Lafayette"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Parapharmacie",
+    "patterns": [
+      "Parapharmacie"
+    ],
+    "category_key": "sante",
+    "kind": "expense"
+  },
+  {
+    "name": "Spotify",
+    "patterns": [
+      "Spotify",
+      "SpotifyFR"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Netflix",
+    "patterns": [
+      "Netflix"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Amazon Prime",
+    "patterns": [
+      "Amazon Prime",
+      "Prime Video"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Uber One",
+    "patterns": [
+      "Uber*One",
+      "Uber One"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Disney+",
+    "patterns": [
+      "Disney+"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Canal+",
+    "patterns": [
+      "Canal+"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Apple Music",
+    "patterns": [
+      "Apple Music"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "iCloud",
+    "patterns": [
+      "iCloud"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "YouTube Premium",
+    "patterns": [
+      "YouTube Premium"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Deezer",
+    "patterns": [
+      "Deezer"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Cookidoo",
+    "patterns": [
+      "Cookidoo"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Audible",
+    "patterns": [
+      "Audible"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "OCS",
+    "patterns": [
+      "OCS"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Crunchyroll",
+    "patterns": [
+      "Crunchyroll"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Twitch",
+    "patterns": [
+      "Twitch"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Bouygues Telecom",
+    "patterns": [
+      "Bouygues Telecom"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "SFR",
+    "patterns": [
+      "SFR"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Free Mobile",
+    "patterns": [
+      "Free Mobile"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Sosh",
+    "patterns": [
+      "Sosh"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "B&You",
+    "patterns": [
+      "B&You"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Red by SFR",
+    "patterns": [
+      "Red by SFR"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "La Poste Mobile",
+    "patterns": [
+      "La Poste Mobile"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Molotov",
+    "patterns": [
+      "Molotov"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Paramount+",
+    "patterns": [
+      "Paramount+"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Apple.com/Bill",
+    "patterns": [
+      "Apple.com/Bill"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Google Play",
+    "patterns": [
+      "Google Play"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Playstation Plus",
+    "patterns": [
+      "Playstation Plus"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Xbox Game Pass",
+    "patterns": [
+      "Xbox Game Pass"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Nintendo Online",
+    "patterns": [
+      "Nintendo Online"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Le Monde",
+    "patterns": [
+      "Le Monde"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Mediapart",
+    "patterns": [
+      "Mediapart"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Liberation",
+    "patterns": [
+      "Liberation"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Substack",
+    "patterns": [
+      "Substack"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Patreon",
+    "patterns": [
+      "Patreon"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Tidal",
+    "patterns": [
+      "Tidal"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Qobuz",
+    "patterns": [
+      "Qobuz"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Adobe Creative",
+    "patterns": [
+      "Adobe Creative"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Strava",
+    "patterns": [
+      "Strava"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Duolingo",
+    "patterns": [
+      "Duolingo"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Headspace",
+    "patterns": [
+      "Headspace"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "1Password",
+    "patterns": [
+      "1Password"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "NordVPN",
+    "patterns": [
+      "NordVPN"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "ProtonMail",
+    "patterns": [
+      "ProtonMail"
+    ],
+    "category_key": "abonnements",
+    "kind": "expense"
+  },
+  {
+    "name": "Booking",
+    "patterns": [
+      "Booking.com",
+      "Hotel at Bookin",
+      "Booking"
+    ],
+    "category_key": "voyages",
+    "kind": "expense"
+  },
+  {
+    "name": "Airbnb",
+    "patterns": [
+      "Airbnb"
+    ],
+    "category_key": "voyages",
+    "kind": "expense"
+  },
+  {
+    "name": "Accor",
+    "patterns": [
+      "Accor"
+    ],
+    "category_key": "voyages",
+    "kind": "expense"
+  },
+  {
+    "name": "Center Parcs",
+    "patterns": [
+      "Center Parcs"
+    ],
+    "category_key": "voyages",
+    "kind": "expense"
+  },
+  {
+    "name": "Air France",
+    "patterns": [
+      "Air France"
+    ],
+    "category_key": "voyages",
+    "kind": "expense"
+  },
+  {
+    "name": "Ryanair",
+    "patterns": [
+      "Ryanair"
+    ],
+    "category_key": "voyages",
+    "kind": "expense"
+  },
+  {
+    "name": "EasyJet",
+    "patterns": [
+      "EasyJet"
+    ],
+    "category_key": "voyages",
+    "kind": "expense"
+  },
+  {
+    "name": "Transavia",
+    "patterns": [
+      "Transavia"
+    ],
+    "category_key": "voyages",
+    "kind": "expense"
+  },
+  {
+    "name": "Expedia",
+    "patterns": [
+      "Expedia"
+    ],
+    "category_key": "voyages",
+    "kind": "expense"
+  },
+  {
+    "name": "Vinci Autoroutes",
+    "patterns": [
+      "Vinci Autoroutes"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Sanef",
+    "patterns": [
+      "Sanef"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "APRR",
+    "patterns": [
+      "APRR"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Cofiroute",
+    "patterns": [
+      "Cofiroute"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Peage",
+    "patterns": [
+      "Peage"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Norauto",
+    "patterns": [
+      "Norauto"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Midas",
+    "patterns": [
+      "Midas"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Oscaro",
+    "patterns": [
+      "Oscaro"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Feu Vert",
+    "patterns": [
+      "Feu Vert"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Speedy",
+    "patterns": [
+      "Speedy"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Vulco",
+    "patterns": [
+      "Vulco"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Point S",
+    "patterns": [
+      "Point S"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Carglass",
+    "patterns": [
+      "Carglass"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Euro Repar",
+    "patterns": [
+      "Euro Repar"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Autodoc",
+    "patterns": [
+      "Autodoc"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Vroomly",
+    "patterns": [
+      "Vroomly"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Controle Technique",
+    "patterns": [
+      "Controle Technique"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Dekra",
+    "patterns": [
+      "Dekra"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Station de Lavage",
+    "patterns": [
+      "Station de Lavage"
+    ],
+    "category_key": "transport",
+    "kind": "expense"
+  },
+  {
+    "name": "Hello Fresh",
+    "patterns": [
+      "Hello Fresh"
+    ],
+    "category_key": "alimentation",
+    "kind": "expense"
+  },
+  {
+    "name": "Quitoque",
+    "patterns": [
+      "Quitoque"
+    ],
+    "category_key": "alimentation",
+    "kind": "expense"
+  },
+  {
+    "name": "Frichti",
+    "patterns": [
+      "Frichti"
+    ],
+    "category_key": "alimentation",
+    "kind": "expense"
+  },
+  {
+    "name": "Gourmet",
+    "patterns": [
+      "Gourmet"
+    ],
+    "category_key": "alimentation",
+    "kind": "expense"
+  },
+  {
+    "name": "Instant Gourmand",
+    "patterns": [
+      "Instant Gourmand"
+    ],
+    "category_key": "alimentation",
+    "kind": "expense"
+  },
+  {
+    "name": "Zenchef Food",
+    "patterns": [
+      "Zenchef Food"
+    ],
+    "category_key": "alimentation",
+    "kind": "expense"
+  },
+  {
+    "name": "Panier du Sud",
+    "patterns": [
+      "Panier du Sud"
+    ],
+    "category_key": "alimentation",
+    "kind": "expense"
+  },
+  {
+    "name": "La Ruche qui dit Oui",
+    "patterns": [
+      "La Ruche qui dit Oui"
+    ],
+    "category_key": "alimentation",
+    "kind": "expense"
+  },
+  {
+    "name": "Kazidomi",
+    "patterns": [
+      "Kazidomi"
+    ],
+    "category_key": "alimentation",
+    "kind": "expense"
+  },
+  {
+    "name": "Day by Day",
+    "patterns": [
+      "Day by Day"
+    ],
+    "category_key": "alimentation",
+    "kind": "expense"
+  },
+  {
+    "name": "Udemy",
+    "patterns": [
+      "Udemy"
+    ],
+    "category_key": "education",
+    "kind": "expense"
+  },
+  {
+    "name": "Coursera",
+    "patterns": [
+      "Coursera"
+    ],
+    "category_key": "education",
+    "kind": "expense"
+  },
+  {
+    "name": "OpenClassrooms",
+    "patterns": [
+      "OpenClassrooms"
+    ],
+    "category_key": "education",
+    "kind": "expense"
+  },
+  {
+    "name": "Skillshare",
+    "patterns": [
+      "Skillshare"
+    ],
+    "category_key": "education",
+    "kind": "expense"
+  },
+  {
+    "name": "Masterclass",
+    "patterns": [
+      "Masterclass"
+    ],
+    "category_key": "education",
+    "kind": "expense"
+  },
+  {
+    "name": "Alliance Francaise",
+    "patterns": [
+      "Alliance Francaise"
+    ],
+    "category_key": "education",
+    "kind": "expense"
+  },
+  {
+    "name": "Babbel",
+    "patterns": [
+      "Babbel"
+    ],
+    "category_key": "education",
+    "kind": "expense"
+  },
+  {
+    "name": "Rosetta Stone",
+    "patterns": [
+      "Rosetta Stone"
+    ],
+    "category_key": "education",
+    "kind": "expense"
+  },
+  {
+    "name": "Steam",
+    "patterns": [
+      "Steam"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Nintendo",
+    "patterns": [
+      "Nintendo"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "PlayStation Store",
+    "patterns": [
+      "PlayStation Store"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Xbox",
+    "patterns": [
+      "Xbox"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Epic Games",
+    "patterns": [
+      "Epic Games"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Riot Games",
+    "patterns": [
+      "Riot Games"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Blizzard",
+    "patterns": [
+      "Blizzard"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Ubisoft",
+    "patterns": [
+      "Ubisoft"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Humble Bundle",
+    "patterns": [
+      "Humble Bundle"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Parc Asterix",
+    "patterns": [
+      "Parc Asterix"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Disneyland",
+    "patterns": [
+      "Disneyland"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Puy du Fou",
+    "patterns": [
+      "Puy du Fou"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Jardin d'Acclimatation",
+    "patterns": [
+      "Jardin d'Acclimatation"
+    ],
+    "category_key": "loisirs",
+    "kind": "expense"
+  },
+  {
+    "name": "Interflora",
+    "patterns": [
+      "Interflora"
+    ],
+    "category_key": "cadeaux",
+    "kind": "expense"
+  },
+  {
+    "name": "Aquarelle",
+    "patterns": [
+      "Aquarelle"
+    ],
+    "category_key": "cadeaux",
+    "kind": "expense"
+  },
+  {
+    "name": "Florajet",
+    "patterns": [
+      "Florajet"
+    ],
+    "category_key": "cadeaux",
+    "kind": "expense"
+  },
+  {
+    "name": "Smartbox",
+    "patterns": [
+      "Smartbox"
+    ],
+    "category_key": "cadeaux",
+    "kind": "expense"
+  },
+  {
+    "name": "Wonderbox",
+    "patterns": [
+      "Wonderbox"
+    ],
+    "category_key": "cadeaux",
+    "kind": "expense"
+  },
+  {
+    "name": "Mon Petit Cadeau",
+    "patterns": [
+      "Mon Petit Cadeau"
+    ],
+    "category_key": "cadeaux",
+    "kind": "expense"
+  },
+  {
+    "name": "Papier Tigre",
+    "patterns": [
+      "Papier Tigre"
+    ],
+    "category_key": "cadeaux",
+    "kind": "expense"
+  },
+  {
+    "name": "Popcarte",
+    "patterns": [
+      "Popcarte"
+    ],
+    "category_key": "cadeaux",
+    "kind": "expense"
+  },
+  {
+    "name": "Vestiaire Collective",
+    "patterns": [
+      "Vestiaire Collective"
+    ],
+    "category_key": "vetements",
+    "kind": "expense"
+  },
+  {
+    "name": "Camaieu",
+    "patterns": [
+      "Camaieu"
+    ],
+    "category_key": "vetements",
+    "kind": "expense"
+  },
+  {
+    "name": "Etam",
+    "patterns": [
+      "Etam"
+    ],
+    "category_key": "vetements",
+    "kind": "expense"
+  },
+  {
+    "name": "Damart",
+    "patterns": [
+      "Damart"
+    ],
+    "category_key": "vetements",
+    "kind": "expense"
+  },
+  {
+    "name": "Eden Park",
+    "patterns": [
+      "Eden Park"
+    ],
+    "category_key": "vetements",
+    "kind": "expense"
+  },
+  {
+    "name": "Le Slip Francais",
+    "patterns": [
+      "Le Slip Francais"
+    ],
+    "category_key": "vetements",
+    "kind": "expense"
+  },
+  {
+    "name": "Asphalte",
+    "patterns": [
+      "Asphalte"
+    ],
+    "category_key": "vetements",
+    "kind": "expense"
+  },
+  {
+    "name": "Sezane",
+    "patterns": [
+      "Sezane"
+    ],
+    "category_key": "vetements",
+    "kind": "expense"
+  },
+  {
+    "name": "Bonobo",
+    "patterns": [
+      "Bonobo"
+    ],
+    "category_key": "vetements",
+    "kind": "expense"
+  },
+  {
+    "name": "CPAM",
+    "patterns": [
+      "CPAM"
+    ],
+    "category_key": "remboursement",
+    "kind": "income"
+  },
+  {
+    "name": "Ameli",
+    "patterns": [
+      "Ameli"
+    ],
+    "category_key": "remboursement",
+    "kind": "income"
+  },
+  {
+    "name": "Remboursement Mutuelle",
+    "patterns": [
+      "Remboursement Mutuelle"
+    ],
+    "category_key": "remboursement",
+    "kind": "income"
+  },
+  {
+    "name": "France Travail",
+    "patterns": [
+      "France Travail"
+    ],
+    "category_key": "autre_revenu",
+    "kind": "income"
+  },
+  {
+    "name": "Pole Emploi",
+    "patterns": [
+      "Pole Emploi"
+    ],
+    "category_key": "autre_revenu",
+    "kind": "income"
+  },
+  {
+    "name": "Interets Livret",
+    "patterns": [
+      "Interets Livret"
+    ],
+    "category_key": "autre_revenu",
+    "kind": "income"
+  },
+  {
+    "name": "Coda",
+    "patterns": [
+      "Coda Pro",
+      "Coda.io"
+    ],
+    "category_key": "outils_pro",
+    "kind": "expense"
+  },
+  {
+    "name": "Amendes",
+    "patterns": [
+      "Yvelines Amendes",
+      "Amende Forfaitaire",
+      "Amendes.gouv"
+    ],
+    "category_key": "impots_amendes",
+    "kind": "expense"
+  },
+  {
+    "name": "Parkings",
+    "patterns": [
+      "Parkings de"
+    ],
+    "category_key": "stationnement",
+    "kind": "expense"
+  },
+  {
+    "name": "Relay",
+    "patterns": [
+      "Relay"
+    ],
+    "category_key": "commerces_proximite",
+    "kind": "expense"
+  },
+  {
+    "name": "Selecta",
+    "patterns": [
+      "Selecta"
+    ],
+    "category_key": "commerces_proximite",
+    "kind": "expense"
+  },
+  {
+    "name": "Primeur",
+    "patterns": [
+      "Primeur",
+      "Les Bons Fruits"
+    ],
+    "category_key": "commerces_proximite",
+    "kind": "expense"
+  },
+  {
+    "name": "Patisserie",
+    "patterns": [
+      "Patisserie"
+    ],
+    "category_key": "commerces_proximite",
+    "kind": "expense"
+  }
+]
