@@ -94,7 +94,7 @@ Les lectures filtrent quand même `deleted_at is null` sur les sources.
 - Modale d'une entrée : « Rembourse la dépense… » (choix parmi les dépenses
   récentes, ou retrait du lien).
 - Liste : montant net avec la mention « 30 € sur 90 € ».
-- API : `PUT/DELETE /api/transactions/[id]/reimburses` pose ou retire le lien ;
+- API : `GET`/`PUT /api/transactions/[id]/reimburses` lit, pose ou retire (`expense_id: null`) le lien ;
   `GET /api/transactions/reimbursement-candidates` liste les candidats.
 
 ## Conséquences
