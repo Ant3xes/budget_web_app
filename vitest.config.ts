@@ -14,13 +14,15 @@ export default defineConfig({
       reporter: ["text", "html", "json-summary", "lcov"],
       include: ["lib/**", "app/api/**"],
       exclude: ["**/*.test.ts", "**/__tests__/**"],
-      // Plancher juste sous la couverture actuelle (70 / 60,6 / 73,5 / 70,6 %) :
-      // empêche la régression, à remonter au fil des ajouts de tests.
+      // Plancher juste sous la couverture actuelle (80,8 / 76,3 / 83,2 / 81,4 %) :
+      // empêche la régression, à remonter au fil des ajouts de tests. Les
+      // composants et pages ne sont pas dans le périmètre (beaucoup de
+      // composants hors livraison retours 2 n'ont pas encore de tests).
       thresholds: {
-        statements: 68,
-        branches: 58,
-        functions: 71,
-        lines: 68,
+        statements: 78,
+        branches: 73,
+        functions: 80,
+        lines: 78,
       },
     },
   },
