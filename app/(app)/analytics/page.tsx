@@ -46,6 +46,8 @@ import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amo
 import { computeGoalProgressSeries } from "@/lib/savings-goals/compute-goal-progress-series";
 import { addMonths, parsePeriodParam, periodBounds, periodLabel as resolvePeriodLabel, todayISO, toMonthLabel } from "@/lib/dates/period";
 import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-transaction-date";
+import { fetchReimbursementIndex } from "@/lib/transactions/fetch-reimbursements";
+import { EMPTY_REIMBURSEMENTS, applyReimbursements } from "@/lib/transactions/net-amount";
 import { fetchSharedExpenseActivity, type ActivityRange } from "@/lib/shared-expenses/activity-rows";
 import { UNCATEGORIZED_CATEGORY_ID, ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/constants";
 
@@ -192,6 +194,9 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
     .is("deleted_at", null);
   const accounts = accountsRes.data ?? [];
   const accountIds = accounts.map((a) => a.id);
+  // Issue 123 (ADR 0004): reimbursement links, read without any date window.
+  // The accounts tab only shows balances (unchanged by reimbursements).
+  const reimbursements = tab === "accounts" ? EMPTY_REIMBURSEMENTS : await fetchReimbursementIndex(supabase, spaceId);
 
   const currentMonthValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const currentMonthStart = `${currentMonthValue}-01`;
@@ -225,10 +230,10 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       runScopedQuery<AccountMonthlyDeltaRow>([accountIds], () =>
         supabase.rpc("analytics_account_monthly_deltas", { p_space_id: spaceId, p_account_ids: accountIds }),
       ),
-      runScopedQuery<{ kind: string; amount_cents: number; date: string }>([accountIds], () =>
+      runScopedQuery<{ id: string; kind: string; amount_cents: number; date: string }>([accountIds], () =>
         supabase
           .from("transactions")
-          .select("kind, amount_cents, date")
+          .select("id, kind, amount_cents, date")
           .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .in("kind", ["expense", "income"])
@@ -257,7 +262,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
     const fullNetWorthSeries = computeBalanceSeries(balanceTxs, initialBalanceTotal, now, windowToMonth);
     const netWorthSeries = windowMonthCount === null ? fullNetWorthSeries : fullNetWorthSeries.slice(-windowMonthCount);
     // Shared expenses count as expenses in the cashflow/savings-rate series (activity, not a balance).
-    const windowSeries = computeIncomeExpenseSeries([...(windowTxRes.data ?? []), ...windowShared], windowMonthCount, now, windowToMonth);
+    const windowSeries = computeIncomeExpenseSeries(applyReimbursements([...(windowTxRes.data ?? []), ...windowShared], reimbursements), windowMonthCount, now, windowToMonth);
     const transferSeries = computeTransferVolumeSeries(transferTxRes.data ?? [], windowMonthCount, now, windowToMonth);
 
     tabContent = (
@@ -288,6 +293,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       // Window-bounded expense transactions with category info — feeds the
       // trend chart and the top-categories/merchants lists.
       runScopedQuery<{
+        id: string;
         date: string;
         description: string | null;
         amount_cents: number;
@@ -296,7 +302,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       }>([accountIds], () =>
         supabase
           .from("transactions")
-          .select("date, description, amount_cents, category_id, categories(name, color, icon, is_default, translation_key)")
+          .select("id, date, description, amount_cents, category_id, categories(name, color, icon, is_default, translation_key)")
           .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .eq("kind", "expense")
@@ -313,12 +319,12 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       // Year-to-date expense transactions — feeds both the "cumul annuel"
       // side of the toggle and (filtered down) the "mois courant" side, one
       // query instead of two since the month is always inside the year.
-      runScopedQuery<{ amount_cents: number; date: string; category_id: string | null; categories: unknown }>(
+      runScopedQuery<{ id: string; amount_cents: number; date: string; category_id: string | null; categories: unknown }>(
         [accountIds],
         () =>
           supabase
             .from("transactions")
-            .select("amount_cents, date, category_id, categories(name, color, icon, is_default, translation_key)")
+            .select("id, amount_cents, date, category_id, categories(name, color, icon, is_default, translation_key)")
             .eq("space_id", spaceId)
             .in("account_id", accountIds)
             .eq("kind", "expense")
@@ -331,7 +337,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       sharedActivity({ from: yearStart, to: todayStr }),
     ]);
 
-    const categoryTx = [...(categoryTxRes.data ?? []), ...categoryShared];
+    const categoryTx = applyReimbursements([...(categoryTxRes.data ?? []), ...categoryShared], reimbursements);
     const trendSeries = computeCategoryTrendSeries(
       categoryTx.map((tx) => {
         const cat = toCategoryMeta(tx.categories);
@@ -353,7 +359,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
     // Budget vs réalisé (mois en cours) — same shape as the dashboard's
     // budget widget, consumption computed from the year-to-date query
     // (already fetched) rather than a 4th round-trip.
-    const yearExpenseTx = [...(yearExpenseTxRes.data ?? []), ...yearShared];
+    const yearExpenseTx = applyReimbursements([...(yearExpenseTxRes.data ?? []), ...yearShared], reimbursements);
     const monthExpenseTx = yearExpenseTx.filter((tx) => tx.date >= currentMonthStart);
     const consumedByCategory = new Map<string, number>();
     for (const tx of monthExpenseTx) {
@@ -525,10 +531,10 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
     );
   } else if (tab === "transactions") {
     const [monthTxRes, monthShared] = await Promise.all([
-      runScopedQuery<{ date: string; amount_cents: number }>([accountIds], () =>
+      runScopedQuery<{ id: string; date: string; amount_cents: number }>([accountIds], () =>
         supabase
           .from("transactions")
-          .select("date, amount_cents")
+          .select("id, date, amount_cents")
           .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .eq("kind", "expense")
@@ -539,7 +545,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       // Shared expenses are expenses too (histogram, heatmap, weekday totals).
       sharedActivity({ from: windowFrom, to: windowTo }),
     ]);
-    const monthTx = [...(monthTxRes.data ?? []), ...monthShared];
+    const monthTx = applyReimbursements([...(monthTxRes.data ?? []), ...monthShared], reimbursements);
     const histogram = computeAmountHistogram(monthTx);
     const weekdayTotals = computeWeekdayExpenseTotals(monthTx);
 
@@ -588,10 +594,10 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       // Both "expense" and "income" fetched in one query — computeYearOverYear
       // is called twice below (once per metric) on the same rows, one round
       // trip instead of two.
-      runScopedQuery<{ date: string; kind: string; amount_cents: number }>([accountIds], () =>
+      runScopedQuery<{ id: string; date: string; kind: string; amount_cents: number }>([accountIds], () =>
         supabase
           .from("transactions")
-          .select("date, kind, amount_cents")
+          .select("id, date, kind, amount_cents")
           .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .in("kind", ["expense", "income"])
@@ -616,7 +622,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       ),
     ]);
 
-    const yoyRows = [...(yoyTxRes.data ?? []), ...yoyShared];
+    const yoyRows = applyReimbursements([...(yoyTxRes.data ?? []), ...yoyShared], reimbursements);
     const yoyPoints = computeYearOverYear(yoyRows, yoyMonthCount, now, windowToMonth, "expense");
     const yoyIncomePoints = computeYearOverYear(yoyRows, yoyMonthCount, now, windowToMonth, "income");
 

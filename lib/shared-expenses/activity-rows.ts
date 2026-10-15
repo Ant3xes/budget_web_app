@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { fetchAllPages } from "@/lib/shared-expenses/fetch-all-pages";
+import { netExpenseCents } from "@/lib/transactions/net-amount";
 
 /**
  * A shared expense shaped like the rows the dashboard/analytics "activity"
@@ -28,6 +29,8 @@ type SharedExpenseRow = {
   date: string;
   description: string | null;
   amount_cents: number;
+  /** Reimbursed total of the source (ADR 0004, issue 123); absent on older rows. */
+  reimbursed_cents?: number | null;
   category_id: string | null;
   categories: unknown;
 };
@@ -37,7 +40,9 @@ export const toActivityRow = (row: SharedExpenseRow): ActivityRow => ({
   date: row.date,
   description: row.description,
   kind: "expense",
-  amount_cents: row.amount_cents,
+  // Activity figures count the NET cost (ADR 0004); the debt between members
+  // (balance.ts) keeps the gross amount.
+  amount_cents: netExpenseCents(row.amount_cents, row.reimbursed_cents ?? 0),
   category_id: row.category_id,
   categories: row.categories,
 });
@@ -69,7 +74,7 @@ export const fetchSharedExpenseActivity = async (
     let query = supabase
       .from("shared_expenses")
       .select(
-        "source_transaction_id, date, description, amount_cents, category_id, categories(name, color, icon, is_default, translation_key)",
+        "source_transaction_id, date, description, amount_cents, reimbursed_cents, category_id, categories(name, color, icon, is_default, translation_key)",
       )
       .eq("space_id", spaceId)
       .gte("date", range.from);
@@ -82,5 +87,6 @@ export const fetchSharedExpenseActivity = async (
     return query.order("id").range(from, to);
   });
 
-  return rows.map(toActivityRow);
+  // A fully reimbursed expense costs nothing: it leaves the activity figures.
+  return rows.map(toActivityRow).filter((row) => row.amount_cents > 0);
 };

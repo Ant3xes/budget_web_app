@@ -36,6 +36,9 @@ function queryRows(rows: Row[]) {
     select: () => query,
     eq: (key: string, value: unknown) => filter((row) => row[key] === value),
     is: (key: string, value: unknown) => filter((row) => row[key] === value),
+    // Reimbursement links (issue 123): none in these fixtures.
+    not: () => filter(() => true),
+    range: () => query,
     in: (key: string, values: unknown[]) => filter((row) => values.includes(row[key])),
     gte: (key: string, value: string) => filter((row) => String(row[key]) >= value),
     lt: (key: string, value: string) => filter((row) => String(row[key]) < value),

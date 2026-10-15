@@ -126,3 +126,20 @@ describe("fetchSharedExpenseActivity", () => {
     ]);
   });
 });
+
+describe("reimbursed shared expenses (issue 123, ADR 0004)", () => {
+  it("activity amount is the net; the gross stays on the source row", () => {
+    expect(toActivityRow(sharedRow({ amount_cents: 9000, reimbursed_cents: 6000 })).amount_cents).toBe(3000);
+  });
+
+  it("caps at 0 and an old row without the column is unchanged", () => {
+    expect(toActivityRow(sharedRow({ amount_cents: 9000, reimbursed_cents: 12000 })).amount_cents).toBe(0);
+    expect(toActivityRow(sharedRow({ amount_cents: 9000 })).amount_cents).toBe(9000);
+  });
+
+  it("drops a fully reimbursed shared expense from the activity rows", async () => {
+    const supabase = buildSupabase([[sharedRow({ amount_cents: 9000, reimbursed_cents: 9000 }), sharedRow({ source_transaction_id: "tx-2" })]]);
+    const rows = await fetchSharedExpenseActivity(supabase as never, "space", { from: "2026-09-01", to: "2026-09-30" });
+    expect(rows.map((r) => r.id)).toEqual(["tx-2"]);
+  });
+});
