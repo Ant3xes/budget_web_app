@@ -136,7 +136,7 @@ export default async function AnalyticsPage({
   // — see periodBounds's "tout" branch) — skipped on "accounts", the one tab
   // that reads `windowTo` alone and never `windowFrom`, to not pay for a
   // query whose result would go unused there.
-  const period = parsePeriodParam(periodParam ?? "6m", now);
+  const period = parsePeriodParam(periodParam ?? "1m", now);
   const earliestDate =
     period.type === "preset" && period.value === "tout" && tab !== "accounts"
       ? await resolveEarliestTransactionDate(supabase, spaceId, accountIds, { includeSharedExpenses: includeShared })
@@ -610,7 +610,7 @@ export default async function AnalyticsPage({
           <PeriodSelector
             current={period}
             basePath="/analytics"
-            presets={["6m", "1a", "tout"]}
+            presets={["1m", "6m", "1a", "tout"]}
             tabParam={tab === "overview" ? undefined : tab}
           />
         </div>
@@ -618,7 +618,7 @@ export default async function AnalyticsPage({
           <PeriodSelector
             current={period}
             basePath="/analytics"
-            presets={["6m", "1a", "tout"]}
+            presets={["1m", "6m", "1a", "tout"]}
             tabParam={tab === "overview" ? undefined : tab}
           />
         </FilterSheet>
