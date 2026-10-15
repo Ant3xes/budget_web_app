@@ -1,5 +1,5 @@
 /**
- * Category "kind" labels + the 17 default categories seeded by
+ * Category "kind" labels + the 30 default categories seeded by
  * seed_default_categories() (supabase/migrations/*_seed_categories.sql,
  * *_add_category_defaults_i18n.sql). The `defaults` keys must match each
  * seeded row's `translation_key` exactly — see lib/i18n/category-name.ts.
@@ -27,6 +27,19 @@ export const categories = {
     freelance: "Freelance",
     remboursement: "Remboursement",
     autre_revenu: "Autre revenu",
+    supermarche: "Supermarché",
+    commerces_proximite: "Commerces de proximité",
+    transports_en_commun: "Transports en commun",
+    taxi_vtc: "Taxi et VTC",
+    carburant: "Carburant",
+    stationnement: "Stationnement",
+    velo_trottinette: "Vélo et trottinette",
+    sport: "Sport",
+    sorties_concerts: "Sorties et concerts",
+    shopping: "Shopping",
+    outils_pro: "Outils pro",
+    impots_amendes: "Impôts et amendes",
+    dons: "Dons",
     virement_interne: "Virement interne",
   },
 } as const;
