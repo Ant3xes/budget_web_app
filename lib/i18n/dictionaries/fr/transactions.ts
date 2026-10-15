@@ -60,6 +60,10 @@ export const transactions = {
     category: "Catégorie",
     noCategoryOption: "— Sans catégorie —",
     notes: "Notes",
+    type: "Type",
+    confirmLeaveTransfer: "Cette transaction est un virement : la ligne miroir sur l'autre compte sera supprimée. Confirmer ?",
+    confirmLeaveTransferAction: "Confirmer et supprimer la ligne miroir",
+    categoryRequiredAfterTransfer: "Catégorie requise pour quitter le type virement",
     saveError: "Impossible de sauvegarder",
   },
   applyRules: {

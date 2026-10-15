@@ -85,3 +85,66 @@ describe("TransactionModal (issue 113)", () => {
     });
   });
 });
+
+const accountB = "55555555-5555-4555-8555-555555555555";
+
+function renderTypeEdit(kind: "expense" | "transfer", defaults: Record<string, string>) {
+  const fetchMock = vi.fn((url: string, _init?: RequestInit) => {
+    if (url === "/api/accounts") return Promise.resolve(Response.json({ accounts: [{ id: accountId, name: "Account A" }, { id: accountB, name: "Account B" }] }));
+    if (url === "/api/categories") return Promise.resolve(Response.json({ categories: [{ id: categoryId, name: "Synthetic category", kind: "expense", icon: null }] }));
+    return Promise.resolve(Response.json({ ok: true }));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  render(createElement(LocaleProvider, null, createElement(TransactionModal, {
+    kind,
+    transactionId: "44444444-4444-4444-8444-444444444444",
+    defaultValues: { amount: "10", date: "2026-10-01", description: "Synthetic transaction", ...defaults },
+    onClose: vi.fn(),
+    onSuccess: vi.fn(),
+  })));
+  const patchBody = () => {
+    const call = fetchMock.mock.calls.find(([url]) => url.startsWith("/api/transactions/"));
+    return call ? JSON.parse((call[1] as RequestInit).body as string) : null;
+  };
+  return { fetchMock, patchBody };
+}
+
+describe("TransactionModal type change (issue 115)", () => {
+  it("converts an expense to a transfer with source and destination accounts and no category", async () => {
+    const { patchBody } = renderTypeEdit("expense", { account_id: accountId, category_id: categoryId });
+    await screen.findByRole("option", { name: "Account B" });
+    fireEvent.click(screen.getByRole("button", { name: "Virements" }));
+    expect(screen.queryByLabelText("Catégorie")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Compte destination"), { target: { value: accountB } });
+    fireEvent.click(screen.getByRole("button", { name: "Mettre à jour" }));
+    await waitFor(() => expect(patchBody()).not.toBeNull());
+    expect(patchBody()).toMatchObject({ kind: "transfer", from_account_id: accountId, to_account_id: accountB, category_id: null, amount_cents: 1000 });
+    expect(patchBody()).not.toHaveProperty("account_id");
+  });
+
+  it("refuses identical source and destination accounts", async () => {
+    const { fetchMock } = renderTypeEdit("expense", { account_id: accountId });
+    await screen.findByRole("option", { name: "Account B" });
+    fireEvent.click(screen.getByRole("button", { name: "Virements" }));
+    fireEvent.change(screen.getByLabelText("Compte destination"), { target: { value: accountId } });
+    fireEvent.click(screen.getByRole("button", { name: "Mettre à jour" }));
+    await screen.findByText("Les comptes source et destination doivent être différents");
+    expect(fetchMock.mock.calls.some(([url]) => url.startsWith("/api/transactions/"))).toBe(false);
+  });
+
+  it("leaving a transfer requires a category, then a confirmation before sending", async () => {
+    const { fetchMock, patchBody } = renderTypeEdit("transfer", { from_account_id: accountId, to_account_id: accountB });
+    await screen.findAllByRole("option", { name: "Account B" });
+    fireEvent.click(screen.getByRole("button", { name: "Dépenses" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mettre à jour" }));
+    await screen.findByText("Catégorie requise pour quitter le type virement");
+    fireEvent.change(screen.getByLabelText("Compte"), { target: { value: accountId } });
+    fireEvent.change(screen.getByLabelText("Catégorie"), { target: { value: categoryId } });
+    fireEvent.click(screen.getByRole("button", { name: "Mettre à jour" }));
+    await screen.findByRole("alert");
+    expect(fetchMock.mock.calls.some(([url]) => url.startsWith("/api/transactions/"))).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmer et supprimer la ligne miroir" }));
+    await waitFor(() => expect(patchBody()).not.toBeNull());
+    expect(patchBody()).toMatchObject({ kind: "expense", account_id: accountId, category_id: categoryId, amount_cents: -1000 });
+  });
+});

@@ -60,6 +60,10 @@ export const transactions = {
     category: "Category",
     noCategoryOption: "— No category —",
     notes: "Notes",
+    type: "Type",
+    confirmLeaveTransfer: "This transaction is a transfer: the mirror line on the other account will be deleted. Confirm?",
+    confirmLeaveTransferAction: "Confirm and delete the mirror line",
+    categoryRequiredAfterTransfer: "A category is required when leaving the transfer type",
     saveError: "Unable to save",
   },
   applyRules: {

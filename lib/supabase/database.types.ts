@@ -872,6 +872,23 @@ export type Database = {
           status: string
         }[]
       }
+      convert_transaction: {
+        Args: {
+          p_id: string
+          p_space_id: string
+          p_kind: string
+          p_account_id: string
+          p_amount_cents: number
+          p_date: string
+          p_description: string
+          p_category_id: string | null
+          p_notes: string | null
+          p_mirror_kind?: string | null
+          p_mirror_account_id?: string | null
+          p_mirror_amount_cents?: number | null
+        }
+        Returns: undefined
+      }
       import_transactions: {
         Args: { p_rows: Json; p_shares?: Json }
         Returns: number
