@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  applyCategoryToSelection,
+  filterRowsByCategory,
+  NO_CATEGORY_FILTER,
+} from "@/lib/import/category-filter";
 import { useEffect, useRef, useState } from "react";
 import { Check, CheckCircle2 } from "lucide-react";
 
@@ -76,6 +81,8 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
   const [transferAccountMap, setTransferAccountMap] = useState<Record<string, string>>({}); // hash -> counterpart account_id
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({}); // hash -> category_id
   const [checked, setChecked] = useState<Record<string, boolean>>({}); // hash -> selected
+  const [categoryFilter, setCategoryFilter] = useState(""); // list filter only, never edits rows
+  const [bulkCategoryId, setBulkCategoryId] = useState(""); // category used by "Apply to selection"
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importedCount, setImportedCount] = useState(0);
@@ -231,11 +238,19 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
   // Rows marked as a transfer move out of their expense/income step into the
   // dedicated Virements step below, instead of being toggled inline.
   const transferRows = [...expensePreview, ...incomePreview].filter((r) => !!isTransfer[r.rowId]);
-  const displayedPreview = isPreviewKindStep
+  const basePreview = isPreviewKindStep
     ? currentPreview.filter((r) => !isTransfer[r.rowId])
     : step === "preview_transfer"
       ? transferRows
       : [];
+  // A filter picked on the other step (other category kind) is ignored here.
+  const activeFilter =
+    categoryFilter === NO_CATEGORY_FILTER || currentCategories.some((c) => c.id === categoryFilter)
+      ? categoryFilter
+      : "";
+  const displayedPreview = isPreviewKindStep
+    ? filterRowsByCategory(basePreview, categoryMap, activeFilter)
+    : basePreview;
   // The shared column only appears on the expense step, when at least one row
   // got a suggestion from a matching rule.
   const showShareColumn =
@@ -371,7 +386,27 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                 </div>
               </div>
 
-              {/* Bulk category assignment */}
+              {/* Category filter: only narrows the list, never edits rows (issue 118) */}
+              {isPreviewKindStep && (
+                <div className="flex flex-wrap items-center gap-3 rounded-md border border-border px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">{t("transactions.importModal.filterByCategory")} :</span>
+                  <select
+                    value={activeFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="rounded border border-zinc-300 px-2 py-0.5 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+                  >
+                    <option value="">{t("transactions.importModal.filterAll")}</option>
+                    <option value={NO_CATEGORY_FILTER}>{t("transactions.importModal.filterNoCategory")}</option>
+                    {currentCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.icon ? `${c.icon} ` : ""}{resolveCategoryName(c, t)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Explicit bulk assignment: checked AND visible rows only */}
               {checkedInView.length > 0 && (
                 <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted px-3 py-2 text-xs">
                   <span className="font-medium text-zinc-700 dark:text-zinc-200">
@@ -383,17 +418,8 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                   <span className="text-zinc-300 dark:text-muted-foreground">|</span>
                   <span className="text-muted-foreground">{t("transactions.importModal.categoryLabel")} :</span>
                   <select
-                    defaultValue=""
-                    onChange={(e) => {
-                      if (!e.target.value) return;
-                      const val = e.target.value;
-                      setCategoryMap((prev) => {
-                        const next = { ...prev };
-                        checkedInView.forEach((r) => { next[r.rowId] = val; });
-                        return next;
-                      });
-                      e.target.value = "";
-                    }}
+                    value={bulkCategoryId}
+                    onChange={(e) => setBulkCategoryId(e.target.value)}
                     className="rounded border border-zinc-300 px-2 py-0.5 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
                   >
                     <option value="">{t("transactions.importModal.chooseOption")}</option>
@@ -403,6 +429,18 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                       </option>
                     ))}
                   </select>
+                  <button
+                    type="button"
+                    disabled={!bulkCategoryId}
+                    onClick={() =>
+                      setCategoryMap((prev) =>
+                        applyCategoryToSelection(prev, displayedPreview, checked, bulkCategoryId),
+                      )
+                    }
+                    className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  >
+                    {t("transactions.importModal.applyToSelection")}
+                  </button>
                 </div>
               )}
 
