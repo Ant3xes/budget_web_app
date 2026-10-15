@@ -65,6 +65,8 @@ export const transactions = {
     confirmLeaveTransferAction: "Confirm and delete the mirror line",
     categoryRequiredAfterTransfer: "A category is required when leaving the transfer type",
     saveError: "Unable to save",
+    ruleCreated: "Rule created for this label",
+    ruleUpdated: "Rule updated for this label",
   },
   applyRules: {
     title: "Categorize transactions",

@@ -51,6 +51,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [ruleMessage, setRuleMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Type selected in the form; `kind` is the type the row has today (issue 115).
   const [type, setType] = useState<TransactionType>(kind);
@@ -193,6 +194,14 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
       return;
     }
 
+    // Issue 116: a category change created/updated an import rule; show it
+    // briefly before closing.
+    const result = (await response.json().catch(() => ({}))) as { rule?: "created" | "updated" | null };
+    if (result.rule) {
+      setRuleMessage(t(result.rule === "created" ? "transactions.form.ruleCreated" : "transactions.form.ruleUpdated"));
+      setTimeout(onSuccess, 1200);
+      return;
+    }
     onSuccess();
   };
 
@@ -364,10 +373,16 @@ export function TransactionModal({ kind, transactionId, defaultValues, onSuccess
           </p>
         ) : null}
 
+        {ruleMessage ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            {ruleMessage}
+          </p>
+        ) : null}
+
         {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
         <div className="flex gap-2 pt-2">
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting || ruleMessage !== null}>
             {isSubmitting
               ? t("common.state.saving")
               : confirmingMirrorDelete
