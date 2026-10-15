@@ -5,6 +5,7 @@ import {
   filterRowsByCategory,
   NO_CATEGORY_FILTER,
 } from "@/lib/import/category-filter";
+import { labelFields, labelForDisplay } from "@/lib/import/label-fields";
 import {
   buildKindFields,
   markAllExternal,
@@ -35,6 +36,9 @@ type PreviewRowRaw = {
   amount_cents: number;
   kind: "expense" | "income";
   suggested_category_id: string | null;
+  /** Clean label (issue 127); `description` stays the raw bank label. */
+  clean_description?: string | null;
+  suggestion_source?: "rule" | "history" | "merchant" | "default" | null;
   is_transfer_candidate: boolean;
   is_duplicate: boolean;
   suggested_share?: ShareSuggestion | null;
@@ -43,6 +47,15 @@ type PreviewRowRaw = {
 };
 
 type PreviewRow = PreviewRowRaw & { rowId: string };
+
+const SOURCE_LABEL_KEYS = {
+  rule: "transactions.importModal.suggestionSourceRule",
+  history: "transactions.importModal.suggestionSourceHistory",
+  merchant: "transactions.importModal.suggestionSourceMerchant",
+  default: "transactions.importModal.suggestionSourceDefault",
+} as const;
+
+const displayLabel = (r: Pick<PreviewRowRaw, "description" | "clean_description">) => labelForDisplay(r);
 
 type Category = {
   id: string;
@@ -236,7 +249,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
       source_type: r.source_type ?? null,
       source_category: r.source_category ?? null,
       date: r.date,
-      description: r.description,
+      ...labelFields(r),
       amount_cents: r.amount_cents,
       ...buildKindFields(
         r,
@@ -540,7 +553,15 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
                         <td className="px-3 py-2 max-w-[40vw] truncate md:max-w-[200px] cursor-help" title={row.description}>
-                          {row.description}
+                          {displayLabel(row)}
+                          {categoryMap[row.rowId] && row.suggestion_source && categoryMap[row.rowId] === row.suggested_category_id && (
+                            <span
+                              className="ml-1 rounded bg-zinc-100 px-1 py-0.5 text-[10px] text-muted-foreground dark:bg-zinc-800"
+                              title={t("transactions.importModal.suggestionSourceTitle")}
+                            >
+                              {t(SOURCE_LABEL_KEYS[row.suggestion_source])}
+                            </span>
+                          )}
                           {row.is_duplicate && (
                             <span className="ml-1 rounded bg-zinc-200 px-1 py-0.5 text-muted-foreground dark:bg-zinc-700 dark:text-muted-foreground">{t("transactions.importModal.duplicateBadge")}</span>
                           )}
@@ -711,7 +732,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                           />
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
-                        <td className="px-3 py-2 max-w-[40vw] truncate md:max-w-[200px] cursor-help" title={row.description}>{row.description}</td>
+                        <td className="px-3 py-2 max-w-[40vw] truncate md:max-w-[200px] cursor-help" title={row.description}>{displayLabel(row)}</td>
                         <td className={`px-3 py-2 text-right font-medium whitespace-nowrap ${row.amount_cents < 0 ? "text-red-600 dark:text-red-400" : "text-green-700 dark:text-green-400"}`}>
                           {formatAmount(row.amount_cents)}
                         </td>

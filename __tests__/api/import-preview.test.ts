@@ -335,6 +335,47 @@ describe("POST /api/import/preview — preview content", () => {
     expect(body.preview.every((r) => r.suggested_category_id === null)).toBe(true);
   });
 
+  it("suggests the space category of a known merchant and uses its name as clean label (issue 130)", async () => {
+    const { supabase, queryBuilder } = buildAuthMock();
+    queryBuilder.is.mockResolvedValue({
+      data: [
+        { id: "cat-food", name: "Alimentation", kind: "expense", translation_key: "alimentation" },
+        { id: "cat-super", name: "Supermarché", kind: "expense", translation_key: "supermarche" },
+        { id: "cat-sub", name: "Abonnements", kind: "expense", translation_key: "abonnements" },
+      ],
+      error: null,
+    });
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(makeRequest(makeFormData(makeN26File())));
+    const body = (await res.json()) as { preview: Record<string, unknown>[] };
+    const netflix = body.preview.find((r) => r.description === "Netflix");
+    expect(netflix).toMatchObject({ clean_description: "Netflix", suggested_category_id: "cat-sub", suggestion_source: "merchant" });
+    expect(netflix?.raw_description).toBe("Netflix");
+  });
+
+  it("gives no merchant suggestion when the space lacks the category (issue 130)", async () => {
+    const res = await POST(makeRequest(makeFormData(makeN26File())));
+    const body = (await res.json()) as { preview: Record<string, unknown>[] };
+    const netflix = body.preview.find((r) => r.description === "Netflix");
+    expect(netflix).toMatchObject({ suggested_category_id: null, suggestion_source: null });
+  });
+
+  it("a personal rule beats the merchant database and reports its source (issue 130)", async () => {
+    vi.mocked(buildRuleMatcher).mockResolvedValue((desc: string) => (desc === "Netflix" ? "cat-rule" : null));
+    const res = await POST(makeRequest(makeFormData(makeN26File())));
+    const body = (await res.json()) as { preview: Record<string, unknown>[] };
+    const netflix = body.preview.find((r) => r.description === "Netflix");
+    expect(netflix).toMatchObject({ suggested_category_id: "cat-rule", suggestion_source: "rule" });
+  });
+
+  it("transfer candidates get no category and no source even for a known merchant (issue 130)", async () => {
+    vi.mocked(detectTransfer).mockReturnValue(true);
+    const res = await POST(makeRequest(makeFormData(makeN26File())));
+    const body = (await res.json()) as { preview: Record<string, unknown>[] };
+    expect(body.preview.every((r) => r.suggested_category_id === null && r.suggestion_source === null)).toBe(true);
+  });
+
   it("sets suggested_category_id when rule matcher returns a match", async () => {
     vi.mocked(buildRuleMatcher).mockResolvedValue(
       (desc: string) => desc === "Netflix" ? "cat-streaming" : null,
