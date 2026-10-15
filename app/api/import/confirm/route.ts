@@ -47,7 +47,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: path ? `${path}: ${msg}` : msg }, { status: 400 });
   }
 
-  const { account_id, transactions } = payload.data;
+  const { account_id } = payload.data;
+  // issue 117: only an explicit counterpart makes a transfer; hints never do.
+  const transactions = payload.data.transactions.map((tx) => ({
+    ...tx,
+    kind: tx.transfer_account_id ? "transfer" : tx.amount_cents < 0 ? "expense" : "income",
+  }));
 
   // A share is only valid on an expense of a personal space, towards a shared
   // space the caller belongs to.
