@@ -65,6 +65,8 @@ export const transactions = {
     confirmLeaveTransferAction: "Confirmer et supprimer la ligne miroir",
     categoryRequiredAfterTransfer: "Catégorie requise pour quitter le type virement",
     saveError: "Impossible de sauvegarder",
+    ruleCreated: "Règle créée pour ce libellé",
+    ruleUpdated: "Règle mise à jour pour ce libellé",
   },
   applyRules: {
     title: "Catégoriser les transactions",

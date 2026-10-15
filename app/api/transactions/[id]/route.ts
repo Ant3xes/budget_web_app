@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { ConversionError, planConversion, type DbKind } from "@/lib/transactions/convert-transaction";
+import { ruleFromCategoryChange, upsertImportRule } from "@/lib/import/rules";
 import { withSpace } from "@/lib/spaces/with-space";
 
 const transactionUpdateSchema = z.object({
@@ -71,7 +72,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true });
+  const rule = await syncImportRule(auth, existing, existing.kind, fields.category_id, fields.description);
+  return NextResponse.json({ ok: true, rule });
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -208,5 +210,35 @@ async function convertTransaction(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
-  return NextResponse.json({ ok: true });
+  const rule = await syncImportRule(auth, existing, plan.kind, plan.categoryId, fields.description);
+  return NextResponse.json({ ok: true, rule });
+}
+
+// Category change -> import rule (issue 116). Never fails the edit: errors are
+// logged and the response stays ok.
+async function syncImportRule(
+  auth: Auth,
+  existing: Existing,
+  kind: string,
+  nextCategoryId: string | null | undefined,
+  nextDescription: string | undefined,
+): Promise<"created" | "updated" | null> {
+  const candidate = ruleFromCategoryChange({
+    kind,
+    previousCategoryId: existing.category_id,
+    nextCategoryId,
+    description: nextDescription ?? existing.description,
+  });
+  if (!candidate) return null;
+  try {
+    const result = await upsertImportRule(auth.supabase, auth.spaceId, auth.user.id, candidate);
+    if (result.status === "error") {
+      console.error("Import rule upsert failed (issue 116):", result.message);
+      return null;
+    }
+    return result.status;
+  } catch (error) {
+    console.error("Import rule upsert failed (issue 116):", error);
+    return null;
+  }
 }
