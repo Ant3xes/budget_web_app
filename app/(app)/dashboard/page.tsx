@@ -16,6 +16,7 @@ import { SavingsGoalsSummary } from "@/components/dashboard/savings-goals-summar
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { RemainingToLive } from "@/components/dashboard/remaining-to-live";
 import { SavingsThisMonth } from "@/components/dashboard/savings-this-month";
+import { computeSavingsThisMonthCents } from "@/lib/dashboard/savings-this-month";
 import { filterTransactionsAfterAnchor } from "@/lib/accounts/balance-after-anchor";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { computeExpenseByCategory } from "@/lib/accounts/compute-expense-by-category";
@@ -458,7 +459,7 @@ export default async function DashboardPage({
   // deposits/withdrawals correctly) ────────────────────────────────────────
   // query #2 is already scoped to `nonCourantAccountIds`, so every row here
   // already qualifies — no in-memory filter needed.
-  const savingsThisMonthCents = (monthTxRes.data ?? []).reduce((sum, tx) => sum + tx.amount_cents, 0);
+  const savingsThisMonthCents = computeSavingsThisMonthCents(monthTxRes.data ?? []);
 
   // ── Period KPIs ───────────────────────────────────────────────────────────
   const periodTx = [...(periodTxRes.data ?? []), ...sharedPeriodRows];
