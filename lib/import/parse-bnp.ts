@@ -43,6 +43,11 @@ export function parseBnpXls(buffer: ArrayBuffer): ParsedTransaction[] {
     (h) => h.toLowerCase() === "montant" || h.toLowerCase().includes("montant"),
   );
 
+  const subCategoryIdx = headers.findIndex((h) => {
+    const n = h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return n.startsWith("sous categorie");
+  });
+
   if (dateIdx === -1 || amountIdx === -1) return [];
 
   const transactions: ParsedTransaction[] = [];
@@ -69,11 +74,14 @@ export function parseBnpXls(buffer: ArrayBuffer): ParsedTransaction[] {
       raw[h] = String(cols[idx] ?? "");
     });
 
+    const sourceCategory = subCategoryIdx >= 0 ? String(rows[i]?.[subCategoryIdx] ?? "").trim() : "";
+
     transactions.push({
       date: dateParsed,
       description: descRaw || "BNP transaction",
       amount_cents,
       raw,
+      ...(sourceCategory ? { source_category: sourceCategory } : {}),
     });
   }
 

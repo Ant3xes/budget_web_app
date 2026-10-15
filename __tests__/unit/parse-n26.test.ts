@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseN26Csv } from "@/lib/import/parse-n26";
+import { isTransferSourceType, parseN26Csv } from "@/lib/import/parse-n26";
 
 const SAMPLE_CSV = `"Booking Date","Value Date","Partner Name","Partner Iban","Type","Payment Reference","Account Name","Amount (EUR)","Original Amount","Original Currency","Exchange Rate"
 "2026-01-15","2026-01-15","Netflix","","Presentment","","Compte courant","-15.99","",""
@@ -70,5 +70,29 @@ describe("parseN26Csv", () => {
     const result = parseN26Csv(csv);
     expect(result).toHaveLength(1);
     expect(result[0]?.description).toBe("Legacy Shop");
+  });
+});
+
+describe("parseN26Csv source_type (issue 125)", () => {
+  const header = `"Booking Date","Value Date","Partner Name","Partner Iban",Type,"Payment Reference","Account Name","Amount (EUR)","Original Amount","Original Currency","Exchange Rate"`;
+  const types = ["Presentment", "Presentment Refund", "Debit Transfer", "Credit Transfer", "MoneyBeam"];
+
+  it("keeps the Type of all 5 kinds, with unquoted Type header", () => {
+    const rows = types.map((t, i) => `"2026-02-0${i + 1}","2026-02-0${i + 1}","Shop ${i}","",${t},"","Main","-1.00","","",""`);
+    const result = parseN26Csv([header, ...rows].join("\n"));
+    expect(result.map((r) => r.source_type)).toEqual(types);
+    expect(result[0]?.description).toBe("Shop 0");
+  });
+
+  it("works without Type column and leaves source_type undefined", () => {
+    const csv = `"Booking Date","Partner Name","Amount (EUR)"\n"2026-02-01","Shop","-3.50"`;
+    const result = parseN26Csv(csv);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.source_type).toBeUndefined();
+  });
+
+  it("flags transfer-like types only", () => {
+    expect(types.map(isTransferSourceType)).toEqual([false, false, true, true, true]);
+    expect(isTransferSourceType(undefined)).toBe(false);
   });
 });

@@ -9,8 +9,13 @@ import { withSpace } from "@/lib/spaces/with-space";
 
 const importRowSchema = z.object({
   hash: z.string(),
+  // Bank-provided type/sub-category, kept in raw_import_data (issue 125).
+  source_type: z.string().max(100).nullable().optional(),
+  source_category: z.string().max(100).nullable().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  // Clean label (issue 127); the raw bank label goes to raw_import_data.raw_label.
   description: z.string().trim().min(1).max(255),
+  raw_label: z.string().trim().min(1).max(1000).nullable().optional(),
   amount_cents: z.number().int(),
   kind: z.enum(["expense", "income", "transfer"]),
   category_id: z.guid().nullable().optional(),
@@ -47,7 +52,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: path ? `${path}: ${msg}` : msg }, { status: 400 });
   }
 
-  const { account_id, transactions } = payload.data;
+  const { account_id } = payload.data;
+  // issue 117: only an explicit counterpart makes a transfer; hints never do.
+  const transactions = payload.data.transactions.map((tx) => ({
+    ...tx,
+    kind: tx.transfer_account_id ? "transfer" : tx.amount_cents < 0 ? "expense" : "income",
+  }));
 
   // A share is only valid on an expense of a personal space, towards a shared
   // space the caller belongs to.
@@ -160,7 +170,12 @@ export async function POST(request: Request) {
       category_id: isTransfer ? null : (tx.category_id ?? null),
       transfer_id: transferId,
       is_imported: true,
-      raw_import_data: { hash: tx.hash },
+      raw_import_data: {
+        hash: tx.hash,
+        ...(tx.raw_label ? { raw_label: tx.raw_label } : {}),
+        ...(tx.source_type ? { source_type: tx.source_type } : {}),
+        ...(tx.source_category ? { source_category: tx.source_category } : {}),
+      },
     });
 
     // If a counterpart account was selected, create the mirror transaction

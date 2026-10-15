@@ -625,6 +625,7 @@ export type Database = {
           description: string | null
           id: string
           paid_by: string
+          reimbursed_cents: number
           shares: Json
           source_transaction_id: string
           space_id: string
@@ -653,6 +654,7 @@ export type Database = {
           description?: string | null
           id?: string
           paid_by?: string
+          reimbursed_cents?: number
           shares?: Json
           source_transaction_id?: string
           space_id?: string
@@ -778,6 +780,7 @@ export type Database = {
           kind: string
           notes: string | null
           raw_import_data: Json | null
+          reimburses_transaction_id: string | null
           space_id: string
           transfer_id: string | null
           updated_at: string
@@ -797,6 +800,7 @@ export type Database = {
           kind: string
           notes?: string | null
           raw_import_data?: Json | null
+          reimburses_transaction_id?: string | null
           space_id: string
           transfer_id?: string | null
           updated_at?: string
@@ -816,6 +820,7 @@ export type Database = {
           kind?: string
           notes?: string | null
           raw_import_data?: Json | null
+          reimburses_transaction_id?: string | null
           space_id?: string
           transfer_id?: string | null
           updated_at?: string
@@ -834,6 +839,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_reimburses_transaction_id_fkey"
+            columns: ["reimburses_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
           {
@@ -871,6 +883,23 @@ export type Database = {
           space_name: string
           status: string
         }[]
+      }
+      convert_transaction: {
+        Args: {
+          p_id: string
+          p_space_id: string
+          p_kind: string
+          p_account_id: string
+          p_amount_cents: number
+          p_date: string
+          p_description: string
+          p_category_id: string | null
+          p_notes: string | null
+          p_mirror_kind?: string | null
+          p_mirror_account_id?: string | null
+          p_mirror_amount_cents?: number | null
+        }
+        Returns: undefined
       }
       import_transactions: {
         Args: { p_rows: Json; p_shares?: Json }

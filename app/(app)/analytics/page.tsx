@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import type { Metadata } from "next";
 
 import { requireSpaceContext } from "@/lib/spaces/context";
@@ -13,6 +13,7 @@ import { ExpenseTrendChart } from "@/components/analytics/expense-trend-chart";
 import { SavingsRateChart } from "@/components/analytics/savings-rate-chart";
 import { CategoryTrendChart } from "@/components/analytics/category-trend-chart";
 import { CategoryBreakdownToggle } from "@/components/analytics/category-breakdown-toggle";
+import { CategoryHistogramChart } from "@/components/analytics/category-histogram-chart";
 import { BudgetVsActualChart } from "@/components/analytics/budget-vs-actual-chart";
 import { TopCategoriesMerchants, type TopCategoryRow, type TopMerchantRow } from "@/components/analytics/top-categories-merchants";
 import { AccountBalanceBreakdownChart } from "@/components/analytics/account-balance-breakdown-chart";
@@ -23,7 +24,6 @@ import { YearOverYearChart } from "@/components/analytics/year-over-year-chart";
 import { GoalProgressChart } from "@/components/analytics/goal-progress-chart";
 import { WeekdayExpenseChart } from "@/components/analytics/weekday-expense-chart";
 import { DivergingBarChart } from "@/components/analytics/diverging-bar-chart";
-import { filterTransactionsAfterAnchor } from "@/lib/accounts/balance-after-anchor";
 import { computeBalanceSeries } from "@/lib/accounts/compute-balance-series";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { computeTransferVolumeSeries } from "@/lib/accounts/compute-transfer-volume-series";
@@ -34,10 +34,20 @@ import { computeYearOverYear } from "@/lib/accounts/compute-year-over-year";
 import { computeWeekdayExpenseTotals } from "@/lib/accounts/compute-weekday-expense-totals";
 import { groupAccountBalancesByBank, type AccountBalance } from "@/lib/accounts/group-account-balances";
 import { runScopedQuery } from "@/lib/accounts/run-scoped-query";
+import {
+  accountBalanceTotals,
+  goalMonthlyToTransactions,
+  monthlyDeltasToTransactions,
+  type AccountBalanceRow,
+  type AccountMonthlyDeltaRow,
+  type GoalCategoryMonthlyRow,
+} from "@/lib/accounts/compute-aggregated-rows";
 import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amount";
 import { computeGoalProgressSeries } from "@/lib/savings-goals/compute-goal-progress-series";
 import { addMonths, parsePeriodParam, periodBounds, periodLabel as resolvePeriodLabel, todayISO, toMonthLabel } from "@/lib/dates/period";
 import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-transaction-date";
+import { fetchReimbursementIndex } from "@/lib/transactions/fetch-reimbursements";
+import { EMPTY_REIMBURSEMENTS, applyReimbursements } from "@/lib/transactions/net-amount";
 import { fetchSharedExpenseActivity, type ActivityRange } from "@/lib/shared-expenses/activity-rows";
 import { UNCATEGORIZED_CATEGORY_ID, ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/constants";
 
@@ -99,8 +109,74 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<{ period?: string; tab?: string }>;
 }) {
-  const { supabase, spaceId, space } = await requireSpaceContext();
+  const { space } = await requireSpaceContext();
   const now = new Date();
+  const includeShared = space.kind === "shared";
+
+  const { period: periodParam, tab: tabParam } = await searchParams;
+  const tab: AnalyticsTab = (ANALYTICS_TABS as string[]).includes(tabParam ?? "") ? (tabParam as AnalyticsTab) : "overview";
+  // Pure parsing, no query: the header (title, period selector, tabs) is sent
+  // right away and the tab's charts stream in below (issue 121).
+  const period = parsePeriodParam(periodParam ?? "1m", now);
+
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">
+          <T k="nav.items.analytics" />
+        </h1>
+        <div className="hidden md:block">
+          <PeriodSelector
+            current={period}
+            basePath="/analytics"
+            presets={["1m", "6m", "1a", "tout"]}
+            tabParam={tab === "overview" ? undefined : tab}
+          />
+        </div>
+        <FilterSheet className="md:hidden" triggerLabelKey="common.filters.trigger" titleKey="common.filters.title">
+          <PeriodSelector
+            current={period}
+            basePath="/analytics"
+            presets={["1m", "6m", "1a", "tout"]}
+            tabParam={tab === "overview" ? undefined : tab}
+          />
+        </FilterSheet>
+      </div>
+
+      {includeShared ? (
+        <p className="text-sm text-muted-foreground">
+          <T k="analytics.sharedNote" />
+        </p>
+      ) : null}
+
+      <AnalyticsTabs current={tab} periodParam={periodParam} />
+
+      <Suspense key={`${tab}|${periodParam ?? ""}`} fallback={<TabSkeleton />}>
+        <AnalyticsTabContent tab={tab} period={period} now={now} />
+      </Suspense>
+    </section>
+  );
+}
+
+function TabSkeleton() {
+  return (
+    <div role="status" aria-live="polite" className="space-y-4">
+      <span className="sr-only">
+        <T k="common.state.loading" />
+      </span>
+      <div aria-hidden="true" className="space-y-4 motion-safe:animate-pulse">
+        <div className="h-72 rounded-xl bg-muted" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="h-64 rounded-xl bg-muted" />
+          <div className="h-64 rounded-xl bg-muted" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; period: ReturnType<typeof parsePeriodParam>; now: Date }) {
+  const { supabase, spaceId, space } = await requireSpaceContext();
 
   // Analytics has no account filter, so a shared space always counts its
   // shared expenses (they sit on no account, hence fetched outside
@@ -110,9 +186,6 @@ export default async function AnalyticsPage({
   const sharedActivity = (range: ActivityRange) =>
     includeShared ? fetchSharedExpenseActivity(supabase, spaceId, range) : Promise.resolve([]);
 
-  const { period: periodParam, tab: tabParam } = await searchParams;
-  const tab: AnalyticsTab = (ANALYTICS_TABS as string[]).includes(tabParam ?? "") ? (tabParam as AnalyticsTab) : "overview";
-
   // Active accounts — every tab needs at least the id list.
   const accountsRes = await supabase
     .from("accounts")
@@ -121,6 +194,9 @@ export default async function AnalyticsPage({
     .is("deleted_at", null);
   const accounts = accountsRes.data ?? [];
   const accountIds = accounts.map((a) => a.id);
+  // Issue 123 (ADR 0004): reimbursement links, read without any date window.
+  // The accounts tab only shows balances (unchanged by reimbursements).
+  const reimbursements = tab === "accounts" ? EMPTY_REIMBURSEMENTS : await fetchReimbursementIndex(supabase, spaceId);
 
   const currentMonthValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const currentMonthStart = `${currentMonthValue}-01`;
@@ -136,7 +212,6 @@ export default async function AnalyticsPage({
   // — see periodBounds's "tout" branch) — skipped on "accounts", the one tab
   // that reads `windowTo` alone and never `windowFrom`, to not pay for a
   // query whose result would go unused there.
-  const period = parsePeriodParam(periodParam ?? "6m", now);
   const earliestDate =
     period.type === "preset" && period.value === "tout" && tab !== "accounts"
       ? await resolveEarliestTransactionDate(supabase, spaceId, accountIds, { includeSharedExpenses: includeShared })
@@ -150,13 +225,15 @@ export default async function AnalyticsPage({
   if (tab === "overview") {
     const [allTxRes, windowTxRes, transferTxRes, windowShared] = await Promise.all([
       // Balance/snapshot (net worth): shared expenses are on no account, so excluded.
-      runScopedQuery<{ account_id: string; amount_cents: number; date: string }>([accountIds], () =>
-        supabase.from("transactions").select("account_id, amount_cents, date").eq("space_id", spaceId).in("account_id", accountIds).is("deleted_at", null),
+      // Issue 121: one row per (account, month) summed in SQL (anchor rule of
+      // issue 104 applied there) instead of every transaction of the space.
+      runScopedQuery<AccountMonthlyDeltaRow>([accountIds], () =>
+        supabase.rpc("analytics_account_monthly_deltas", { p_space_id: spaceId, p_account_ids: accountIds }),
       ),
-      runScopedQuery<{ kind: string; amount_cents: number; date: string }>([accountIds], () =>
+      runScopedQuery<{ id: string; kind: string; amount_cents: number; date: string }>([accountIds], () =>
         supabase
           .from("transactions")
-          .select("kind, amount_cents, date")
+          .select("id, kind, amount_cents, date")
           .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .in("kind", ["expense", "income"])
@@ -180,13 +257,12 @@ export default async function AnalyticsPage({
     ]);
 
     const initialBalanceTotal = accounts.reduce((sum, a) => sum + a.initial_balance_cents, 0);
-    // Issue 104: filter each transaction against the anchor date of ITS account, then sum.
-    const anchorByAccountId = new Map(accounts.map((a) => [a.id, a.balance_anchor_date]));
-    const balanceTxs = filterTransactionsAfterAnchor(allTxRes.data ?? [], anchorByAccountId);
+    // Issue 104: the SQL already kept only operations after each account's anchor date.
+    const balanceTxs = monthlyDeltasToTransactions(allTxRes.data ?? []);
     const fullNetWorthSeries = computeBalanceSeries(balanceTxs, initialBalanceTotal, now, windowToMonth);
     const netWorthSeries = windowMonthCount === null ? fullNetWorthSeries : fullNetWorthSeries.slice(-windowMonthCount);
     // Shared expenses count as expenses in the cashflow/savings-rate series (activity, not a balance).
-    const windowSeries = computeIncomeExpenseSeries([...(windowTxRes.data ?? []), ...windowShared], windowMonthCount, now, windowToMonth);
+    const windowSeries = computeIncomeExpenseSeries(applyReimbursements([...(windowTxRes.data ?? []), ...windowShared], reimbursements), windowMonthCount, now, windowToMonth);
     const transferSeries = computeTransferVolumeSeries(transferTxRes.data ?? [], windowMonthCount, now, windowToMonth);
 
     tabContent = (
@@ -217,6 +293,7 @@ export default async function AnalyticsPage({
       // Window-bounded expense transactions with category info — feeds the
       // trend chart and the top-categories/merchants lists.
       runScopedQuery<{
+        id: string;
         date: string;
         description: string | null;
         amount_cents: number;
@@ -225,7 +302,7 @@ export default async function AnalyticsPage({
       }>([accountIds], () =>
         supabase
           .from("transactions")
-          .select("date, description, amount_cents, category_id, categories(name, color, icon, is_default, translation_key)")
+          .select("id, date, description, amount_cents, category_id, categories(name, color, icon, is_default, translation_key)")
           .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .eq("kind", "expense")
@@ -242,12 +319,12 @@ export default async function AnalyticsPage({
       // Year-to-date expense transactions — feeds both the "cumul annuel"
       // side of the toggle and (filtered down) the "mois courant" side, one
       // query instead of two since the month is always inside the year.
-      runScopedQuery<{ amount_cents: number; date: string; category_id: string | null; categories: unknown }>(
+      runScopedQuery<{ id: string; amount_cents: number; date: string; category_id: string | null; categories: unknown }>(
         [accountIds],
         () =>
           supabase
             .from("transactions")
-            .select("amount_cents, date, category_id, categories(name, color, icon, is_default, translation_key)")
+            .select("id, amount_cents, date, category_id, categories(name, color, icon, is_default, translation_key)")
             .eq("space_id", spaceId)
             .in("account_id", accountIds)
             .eq("kind", "expense")
@@ -260,7 +337,7 @@ export default async function AnalyticsPage({
       sharedActivity({ from: yearStart, to: todayStr }),
     ]);
 
-    const categoryTx = [...(categoryTxRes.data ?? []), ...categoryShared];
+    const categoryTx = applyReimbursements([...(categoryTxRes.data ?? []), ...categoryShared], reimbursements);
     const trendSeries = computeCategoryTrendSeries(
       categoryTx.map((tx) => {
         const cat = toCategoryMeta(tx.categories);
@@ -282,7 +359,7 @@ export default async function AnalyticsPage({
     // Budget vs réalisé (mois en cours) — same shape as the dashboard's
     // budget widget, consumption computed from the year-to-date query
     // (already fetched) rather than a 4th round-trip.
-    const yearExpenseTx = [...(yearExpenseTxRes.data ?? []), ...yearShared];
+    const yearExpenseTx = applyReimbursements([...(yearExpenseTxRes.data ?? []), ...yearShared], reimbursements);
     const monthExpenseTx = yearExpenseTx.filter((tx) => tx.date >= currentMonthStart);
     const consumedByCategory = new Map<string, number>();
     for (const tx of monthExpenseTx) {
@@ -313,7 +390,7 @@ export default async function AnalyticsPage({
         return { amount_cents: tx.amount_cents, categoryName: cat?.name ?? null, categoryColor: cat?.color ?? null, categoryIcon: cat?.icon ?? null, categoryId: tx.category_id };
       });
     const categoryMetaById = new Map(
-      yearExpenseTx.filter((tx) => tx.category_id).map((tx) => [tx.category_id as string, toCategoryMeta(tx.categories)]),
+      [...yearExpenseTx, ...categoryTx].filter((tx) => tx.category_id).map((tx) => [tx.category_id as string, toCategoryMeta(tx.categories)]),
     );
     const withDonutMeta = (points: ReturnType<typeof computeExpenseByCategory>) =>
       points.map((p) => {
@@ -348,6 +425,8 @@ export default async function AnalyticsPage({
         });
       }
     }
+    // Issue 122: every expense category of the window (same data as the top list, uncapped).
+    const histogramData = withDonutMeta(computeExpenseByCategory(toDonutInput(categoryTx)));
     const topCategories = [...categoryTotals.values()].sort((a, b) => b.value - a.value).slice(0, 5);
     const topMerchants = [...merchantTotals.values()]
       .filter((m) => m.count > 1) // "récurrents" — a one-off purchase isn't a recurring merchant
@@ -370,6 +449,10 @@ export default async function AnalyticsPage({
           </Section>
         </div>
 
+        <Section titleKey="analytics.categoryHistogram.heading" vars={{ period: windowLabel }}>
+          <CategoryHistogramChart data={histogramData} />
+        </Section>
+
         <Section titleKey="analytics.topCategories.heading" vars={{ period: windowLabel }}>
           <TopCategoriesMerchants topCategories={topCategories} topMerchants={topMerchants} />
         </Section>
@@ -377,21 +460,16 @@ export default async function AnalyticsPage({
     );
   } else if (tab === "accounts") {
     const courantAccounts = accounts.filter((a) => a.type === "courant");
-    const courantAccountIdSet = new Set(courantAccounts.map((a) => a.id));
     const [accountTxRes, fixedChargesRes] = await Promise.all([
-      // Bounded to `todayStr`, not `windowTo` — `periodBounds` always
-      // clamps `windowTo <= todayStr`, so a single todayStr-bounded fetch
-      // covers both balances this tab needs: the by-bank/by-type breakdown
-      // below filters these rows down to `windowTo` itself ("balance at the
-      // end of the selected period"), while `courantBalanceCents` uses the
-      // full todayStr-bounded set as-is ("balance right now" — paired
-      // against charges "due this month going forward" in
-      // FixedChargesShareStat, so it must stay "right now" even when the
-      // selected period ends in the past, rather than a second, mostly
-      // redundant query bounded to todayStr on its own).
+      // Issue 121: per-account sums computed in SQL (anchor rule of issue
+      // 104 applied there) — one row per account instead of every transaction.
+      // `today_cents` = "balance right now" (paired against charges due this
+      // month in FixedChargesShareStat, so it stays "right now" even when the
+      // selected period ends in the past); `window_cents` = balance at the end
+      // of the selected period for the by-bank/by-type breakdowns.
       // Balance/snapshot (account balances): shared expenses are on no account, so excluded.
-      runScopedQuery<{ account_id: string; date: string; amount_cents: number }>([accountIds], () =>
-        supabase.from("transactions").select("account_id, date, amount_cents").eq("space_id", spaceId).in("account_id", accountIds).is("deleted_at", null).lte("date", todayStr),
+      runScopedQuery<AccountBalanceRow>([accountIds], () =>
+        supabase.rpc("analytics_account_balances", { p_space_id: spaceId, p_account_ids: accountIds, p_today: todayStr, p_window_to: windowTo }),
       ),
       // Unchanged: upcoming fixed charges stay bounded to the current
       // calendar month regardless of the selected period — "reste-à-vivre"
@@ -405,20 +483,13 @@ export default async function AnalyticsPage({
         .lte("next_due_date", currentMonthEnd)
         .is("deleted_at", null),
     ]);
-    // Issue 104: only operations after each account's balance anchor date move its balance.
-    const anchorByAccountId = new Map(accounts.map((a) => [a.id, a.balance_anchor_date]));
-    const accountTx = filterTransactionsAfterAnchor(accountTxRes.data ?? [], anchorByAccountId);
-    const accountTxTotals = accountTx.reduce<Record<string, number>>((acc, tx) => {
-      if (tx.date > windowTo) return acc; // breakdown charts stay windowTo-bounded, not today-bounded
-      acc[tx.account_id] = (acc[tx.account_id] ?? 0) + tx.amount_cents;
-      return acc;
-    }, {});
+    const { todayByAccountId, windowByAccountId } = accountBalanceTotals(accountTxRes.data ?? []);
     const accountBalances: AccountBalance[] = accounts.map((a) => ({
       id: a.id,
       name: a.name,
       type: a.type,
       bank: a.bank,
-      balanceCents: a.initial_balance_cents + (accountTxTotals[a.id] ?? 0),
+      balanceCents: a.initial_balance_cents + (windowByAccountId.get(a.id) ?? 0),
     }));
     const bankGroups = groupAccountBalancesByBank(accountBalances);
 
@@ -438,7 +509,7 @@ export default async function AnalyticsPage({
     const courantInitialCents = courantAccounts.reduce((sum, a) => sum + a.initial_balance_cents, 0);
     const courantBalanceCents =
       courantInitialCents +
-      accountTx.filter((tx) => courantAccountIdSet.has(tx.account_id)).reduce((sum, tx) => sum + tx.amount_cents, 0);
+      courantAccounts.reduce((sum, a) => sum + (todayByAccountId.get(a.id) ?? 0), 0);
     const upcomingFixedChargesCents = (fixedChargesRes.data ?? []).reduce((sum, fc) => sum + fc.amount_cents, 0);
 
     tabContent = (
@@ -460,10 +531,10 @@ export default async function AnalyticsPage({
     );
   } else if (tab === "transactions") {
     const [monthTxRes, monthShared] = await Promise.all([
-      runScopedQuery<{ date: string; amount_cents: number }>([accountIds], () =>
+      runScopedQuery<{ id: string; date: string; amount_cents: number }>([accountIds], () =>
         supabase
           .from("transactions")
-          .select("date, amount_cents")
+          .select("id, date, amount_cents")
           .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .eq("kind", "expense")
@@ -474,7 +545,7 @@ export default async function AnalyticsPage({
       // Shared expenses are expenses too (histogram, heatmap, weekday totals).
       sharedActivity({ from: windowFrom, to: windowTo }),
     ]);
-    const monthTx = [...(monthTxRes.data ?? []), ...monthShared];
+    const monthTx = applyReimbursements([...(monthTxRes.data ?? []), ...monthShared], reimbursements);
     const histogram = computeAmountHistogram(monthTx);
     const weekdayTotals = computeWeekdayExpenseTotals(monthTx);
 
@@ -519,14 +590,14 @@ export default async function AnalyticsPage({
     const yoyMonthCount = windowMonthCount ?? 12;
     const yoyFrom = addMonths(windowFrom.slice(0, 7), -12) + "-01";
 
-    const [yoyTxRes, goalsRes, yoyShared] = await Promise.all([
+    const [yoyTxRes, goalsRes, yoyShared, goalTxRes] = await Promise.all([
       // Both "expense" and "income" fetched in one query — computeYearOverYear
       // is called twice below (once per metric) on the same rows, one round
       // trip instead of two.
-      runScopedQuery<{ date: string; kind: string; amount_cents: number }>([accountIds], () =>
+      runScopedQuery<{ id: string; date: string; kind: string; amount_cents: number }>([accountIds], () =>
         supabase
           .from("transactions")
-          .select("date, kind, amount_cents")
+          .select("id, date, kind, amount_cents")
           .eq("space_id", spaceId)
           .in("account_id", accountIds)
           .in("kind", ["expense", "income"])
@@ -542,35 +613,30 @@ export default async function AnalyticsPage({
         .order("created_at", { ascending: true }),
       // Shared expenses count in the year-over-year expenses (same 12-month-back window).
       sharedActivity({ from: yoyFrom, to: windowTo }),
+      // Goal progress is a balance-like snapshot (shared expenses excluded) that
+      // needs the full history of the goals' linked categories: summed per
+      // (category, month) in SQL (issue 121). It only depends on the account
+      // ids, so it runs in the same batch instead of after the goals query.
+      runScopedQuery<GoalCategoryMonthlyRow>([accountIds], () =>
+        supabase.rpc("analytics_goal_category_monthly", { p_space_id: spaceId, p_account_ids: accountIds }),
+      ),
     ]);
 
-    const yoyRows = [...(yoyTxRes.data ?? []), ...yoyShared];
+    const yoyRows = applyReimbursements([...(yoyTxRes.data ?? []), ...yoyShared], reimbursements);
     const yoyPoints = computeYearOverYear(yoyRows, yoyMonthCount, now, windowToMonth, "expense");
     const yoyIncomePoints = computeYearOverYear(yoyRows, yoyMonthCount, now, windowToMonth, "income");
 
-    // Goal progress is a balance-like snapshot: shared expenses excluded.
     const goals = goalsRes.data ?? [];
-    const linkedCategoryIds = goals.map((g) => g.linked_category_id).filter((id): id is string => Boolean(id));
-    const goalTxRes = await runScopedQuery<{ date: string; category_id: string | null; amount_cents: number }>(
-      [accountIds, linkedCategoryIds],
-      () =>
-        supabase
-          .from("transactions")
-          .select("date, category_id, amount_cents")
-          .eq("space_id", spaceId)
-          .in("account_id", accountIds)
-          .in("category_id", linkedCategoryIds)
-          .is("deleted_at", null),
-    );
+    const goalTxs = goalMonthlyToTransactions(goalTxRes.data ?? []);
     const { points: goalPoints, series: goalSeries } = computeGoalProgressSeries(
-      goalTxRes.data ?? [],
+      goalTxs,
       goals,
       windowMonthCount,
       now,
       windowToMonth,
     );
     const goalCategoryTotals = new Map<string, number>();
-    for (const tx of goalTxRes.data ?? []) {
+    for (const tx of goalTxs) {
       if (!tx.category_id) continue;
       goalCategoryTotals.set(tx.category_id, (goalCategoryTotals.get(tx.category_id) ?? 0) + Math.abs(tx.amount_cents));
     }
@@ -600,39 +666,5 @@ export default async function AnalyticsPage({
     );
   }
 
-  return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">
-          <T k="nav.items.analytics" />
-        </h1>
-        <div className="hidden md:block">
-          <PeriodSelector
-            current={period}
-            basePath="/analytics"
-            presets={["6m", "1a", "tout"]}
-            tabParam={tab === "overview" ? undefined : tab}
-          />
-        </div>
-        <FilterSheet className="md:hidden" triggerLabelKey="common.filters.trigger" titleKey="common.filters.title">
-          <PeriodSelector
-            current={period}
-            basePath="/analytics"
-            presets={["6m", "1a", "tout"]}
-            tabParam={tab === "overview" ? undefined : tab}
-          />
-        </FilterSheet>
-      </div>
-
-      {includeShared ? (
-        <p className="text-sm text-muted-foreground">
-          <T k="analytics.sharedNote" />
-        </p>
-      ) : null}
-
-      <AnalyticsTabs current={tab} periodParam={periodParam} />
-
-      {tabContent}
-    </section>
-  );
+  return <>{tabContent}</>;
 }

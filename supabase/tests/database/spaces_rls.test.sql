@@ -28,7 +28,7 @@ select is(
 
 select is(
   (select count(*)::int from public.categories where space_id = current_setting('t.space_a')::uuid),
-  17, 'sign-up seeds the default categories in the personal space');
+  30, 'sign-up seeds the default categories in the personal space');
 
 select is(
   (select role from public.space_members
@@ -83,7 +83,7 @@ select is(
 
 select is(
   (select count(*)::int from public.categories where space_id = current_setting('t.shared')::uuid),
-  17, 'a shared space gets its own default categories');
+  30, 'a shared space gets its own default categories');
 
 select lives_ok(
   $$insert into public.accounts (id, space_id, user_id, name, type)

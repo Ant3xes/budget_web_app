@@ -1,8 +1,8 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { Pencil, Search, Split, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Search, Split, Trash2, X } from "lucide-react";
 
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
 import { AccountModal } from "@/components/accounts/account-modal";
@@ -34,12 +34,17 @@ type Transaction = {
   description: string;
   notes: string | null;
   is_imported: boolean;
+  raw_import_data?: { raw_label?: string } | null;
   transfer_id: string | null;
+  // Issue 123: reimbursement links. `amount_cents` is the real amount; `net_cents` the net of an expense.
+  reimburses_transaction_id?: string | null;
+  reimbursed_cents?: number;
+  net_cents?: number | null;
   account_id: string;
   category_id: string | null;
   accounts: { name: string } | null;
   categories: { name: string; color: string | null; icon: string | null } | null;
-  to_account: { name: string } | null;
+  to_account: { id: string; name: string } | null;
   // PostgREST returns an object (1:1) or an array depending on the relation
   // cardinality; normalised by getShare().
   shared_expenses?: SharedRef | SharedRef[] | null;
@@ -199,8 +204,9 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
     }
   };
 
-  const editKind: "expense" | "income" | null =
-    editingTransaction && !editingTransaction.transfer_id ? (editingTransaction.kind as "expense" | "income") : null;
+  const editKind: "expense" | "income" | "transfer" = editingTransaction?.transfer_id
+    ? "transfer"
+    : ((editingTransaction?.kind as "expense" | "income" | undefined) ?? "expense");
 
   // Category options for the filter dropdown follow the type filter (a
   // transfer has no category, so the dropdown itself is hidden for that type
@@ -210,8 +216,42 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
 
   const amountClass = (tx: Transaction) =>
     tx.transfer_id ? "text-blue-600 dark:text-blue-400" : tx.kind === "expense" ? "text-expense" : "text-income";
+  // Issue 123 (ADR 0004): an expense with linked reimbursements shows its net.
+  const isReimbursed = (tx: Transaction) => tx.kind === "expense" && (tx.reimbursed_cents ?? 0) > 0;
+  const shownCents = (tx: Transaction) => (isReimbursed(tx) ? (tx.net_cents ?? 0) : Math.abs(tx.amount_cents));
   const amountText = (tx: Transaction) =>
-    `${tx.transfer_id ? "" : tx.kind === "expense" ? "−" : "+"}${formatEuros(Math.abs(tx.amount_cents), tx.currency)}`;
+    `${tx.transfer_id ? "" : tx.kind === "expense" ? "−" : "+"}${formatEuros(shownCents(tx), tx.currency)}`;
+  const reimbursementNote = (tx: Transaction) =>
+    isReimbursed(tx)
+      ? t("transactions.reimbursements.netOf", {
+          net: formatEuros(shownCents(tx), tx.currency),
+          gross: formatEuros(Math.abs(tx.amount_cents), tx.currency),
+        })
+      : tx.reimburses_transaction_id
+        ? t("transactions.reimbursements.linkedBadge")
+        : null;
+
+  // Whole row opens the edit modal on click (issue 114). The row itself is not
+  // an interactive role: it contains the share and delete buttons and nested
+  // interactive controls are an a11y error. Keyboard and screen-reader users
+  // get a real button on the description instead (see openButton).
+  const rowProps = (tx: Transaction) => ({
+    onClick: () => setEditingTransaction(tx),
+  });
+  const openButton = (tx: Transaction, children: ReactNode) => (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditingTransaction(tx);
+      }}
+      className="min-w-0 max-w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {children}
+    </button>
+  );
+  const rowClass =
+    "cursor-pointer transition-colors hover:bg-muted/50";
 
   const shareBadge = (tx: Transaction) => {
     const share = canShare ? getShare(tx) : null;
@@ -229,7 +269,8 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
     const shared = canShareRow && getShare(tx) !== null;
     const shareLabel = t(shared ? "sharedExpenses.row.manage" : "sharedExpenses.row.share");
     return (
-    <div className="flex shrink-0 gap-1">
+    // Clicks inside the action cluster never reach the row (issue 114).
+    <div className="flex shrink-0 gap-1" onClick={(e) => e.stopPropagation()}>
       {canShareRow && (
         <Button
           variant="ghost"
@@ -241,15 +282,6 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
           <Split />
         </Button>
       )}
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => setEditingTransaction(tx)}
-        aria-label={t("common.actions.edit")}
-        title={t("common.actions.edit")}
-      >
-        <Pencil />
-      </Button>
       <Button
         variant="destructive"
         size="icon-sm"
@@ -453,10 +485,10 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
             {transactions.map((tx) => {
               const isTransfer = !!tx.transfer_id;
               return (
-                <li key={tx.id} className="rounded-2xl bg-card p-3 ring-1 ring-foreground/10">
+                <li key={tx.id} {...rowProps(tx)} className={`rounded-2xl bg-card p-3 ring-1 ring-foreground/10 ${rowClass}`}>
                   <div className="flex items-start justify-between gap-3">
                     <p className="min-w-0 flex-1 break-words text-sm font-medium">
-                      {tx.description}
+                      {openButton(tx, tx.description)}
                       {tx.is_imported && (
                         <span className="ml-1 rounded bg-muted px-1 py-0.5 text-xs font-normal text-muted-foreground">
                           {t("transactions.list.imported")}
@@ -466,6 +498,9 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
                     </p>
                     <p className={`shrink-0 text-sm font-semibold whitespace-nowrap ${amountClass(tx)}`}>
                       {amountText(tx)}
+                      {reimbursementNote(tx) && (
+                        <span className="block text-xs font-normal text-muted-foreground">{reimbursementNote(tx)}</span>
+                      )}
                     </p>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-2">
@@ -508,10 +543,10 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
               {transactions.map((tx) => {
                 const isTransfer = !!tx.transfer_id;
                 return (
-                  <tr key={tx.id} className="border-b border-border hover:bg-muted/50">
+                  <tr key={tx.id} {...rowProps(tx)} className={`border-b border-border ${rowClass}`}>
                     <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{formatDate(tx.date)}</td>
                     <td className="px-4 py-3 max-w-xs truncate">
-                      {tx.description}
+                      {openButton(tx, tx.description)}
                       {tx.is_imported && (
                         <span className="ml-1 rounded bg-muted px-1 py-0.5 text-xs text-muted-foreground">
                           {t("transactions.list.imported")}
@@ -533,6 +568,9 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
                     <td className="px-4 py-3 text-muted-foreground">{tx.accounts?.name ?? "—"}</td>
                     <td className={`px-4 py-3 text-left font-medium whitespace-nowrap ${amountClass(tx)}`}>
                       {amountText(tx)}
+                      {reimbursementNote(tx) && (
+                        <span className="block text-xs font-normal text-muted-foreground">{reimbursementNote(tx)}</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {renderActions(tx)}
@@ -571,34 +609,30 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
         />
       )}
 
-      {editingTransaction && !editingTransaction.transfer_id && editKind && (
+      {editingTransaction && (
         <TransactionModal
           kind={editKind}
           transactionId={editingTransaction.id}
-          defaultValues={{
-            account_id: editingTransaction.account_id,
-            amount: String(Math.abs(editingTransaction.amount_cents) / 100),
-            date: editingTransaction.date.slice(0, 10),
-            description: editingTransaction.description,
-            category_id: editingTransaction.category_id ?? "",
-            notes: editingTransaction.notes ?? "",
-          }}
-          onSuccess={() => {
-            setEditingTransaction(null);
-            void load(page);
-          }}
-          onClose={() => setEditingTransaction(null)}
-        />
-      )}
-
-      {editingTransaction && editingTransaction.transfer_id && (
-        <TransferModal
-          transferId={editingTransaction.transfer_id}
-          defaultValues={{
-            amount: String(Math.abs(editingTransaction.amount_cents) / 100),
-            date: editingTransaction.date.slice(0, 10),
-            description: editingTransaction.description,
-          }}
+          defaultValues={
+            editingTransaction.transfer_id
+              ? {
+                  from_account_id: editingTransaction.account_id,
+                  to_account_id: editingTransaction.to_account?.id ?? "",
+                  amount: String(Math.abs(editingTransaction.amount_cents) / 100),
+                  date: editingTransaction.date.slice(0, 10),
+                  description: editingTransaction.description,
+                  notes: editingTransaction.notes ?? "",
+                }
+              : {
+                  account_id: editingTransaction.account_id,
+                  amount: String(Math.abs(editingTransaction.amount_cents) / 100),
+                  date: editingTransaction.date.slice(0, 10),
+                  description: editingTransaction.description,
+                  category_id: editingTransaction.category_id ?? "",
+                  notes: editingTransaction.notes ?? "",
+                }
+          }
+          rawLabel={editingTransaction.raw_import_data?.raw_label ?? null}
           onSuccess={() => {
             setEditingTransaction(null);
             void load(page);

@@ -295,6 +295,24 @@ describe("POST /api/import/preview — preview content", () => {
     expect(regular?.is_transfer_candidate).toBe(false);
   });
 
+  it("returns source_type and flags transfer-like types as candidates (issue 125)", async () => {
+    vi.mocked(detectTransfer).mockReturnValue(false);
+    const types = ["Presentment", "Presentment Refund", "Debit Transfer", "Credit Transfer", "MoneyBeam"];
+    const csv = [
+      `"Booking Date","Value Date","Partner Name","Partner Iban",Type,"Payment Reference","Account Name","Amount (EUR)","Original Amount","Original Currency","Exchange Rate"`,
+      ...types.map((t, i) => `"2026-03-0${i + 1}","2026-03-0${i + 1}","Shop ${i}","","${t}","","Main","${t === "Presentment Refund" ? "" : "-"}9.00","","",""`),
+    ].join("\n");
+
+    const res = await POST(makeRequest(makeFormData(new File([csv], "export.csv"))));
+    const body = (await res.json()) as {
+      preview: { source_type: string | null; is_transfer_candidate: boolean; kind: string }[];
+    };
+
+    expect(body.preview.map((r) => r.source_type)).toEqual(types);
+    expect(body.preview.map((r) => r.is_transfer_candidate)).toEqual([false, false, true, true, true]);
+    expect(body.preview[1]?.kind).toBe("income");
+  });
+
   it("does NOT set suggested_category_id for transfer candidates", async () => {
     vi.mocked(detectTransfer).mockReturnValue(true);           // all are transfers
     vi.mocked(buildRuleMatcher).mockResolvedValue(() => "cat-id-from-rule");
@@ -315,6 +333,47 @@ describe("POST /api/import/preview — preview content", () => {
     const body = (await res.json()) as { preview: Record<string, unknown>[] };
 
     expect(body.preview.every((r) => r.suggested_category_id === null)).toBe(true);
+  });
+
+  it("suggests the space category of a known merchant and uses its name as clean label (issue 130)", async () => {
+    const { supabase, queryBuilder } = buildAuthMock();
+    queryBuilder.is.mockResolvedValue({
+      data: [
+        { id: "cat-food", name: "Alimentation", kind: "expense", translation_key: "alimentation" },
+        { id: "cat-super", name: "Supermarché", kind: "expense", translation_key: "supermarche" },
+        { id: "cat-sub", name: "Abonnements", kind: "expense", translation_key: "abonnements" },
+      ],
+      error: null,
+    });
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(makeRequest(makeFormData(makeN26File())));
+    const body = (await res.json()) as { preview: Record<string, unknown>[] };
+    const netflix = body.preview.find((r) => r.description === "Netflix");
+    expect(netflix).toMatchObject({ clean_description: "Netflix", suggested_category_id: "cat-sub", suggestion_source: "merchant" });
+    expect(netflix?.raw_description).toBe("Netflix");
+  });
+
+  it("gives no merchant suggestion when the space lacks the category (issue 130)", async () => {
+    const res = await POST(makeRequest(makeFormData(makeN26File())));
+    const body = (await res.json()) as { preview: Record<string, unknown>[] };
+    const netflix = body.preview.find((r) => r.description === "Netflix");
+    expect(netflix).toMatchObject({ suggested_category_id: null, suggestion_source: null });
+  });
+
+  it("a personal rule beats the merchant database and reports its source (issue 130)", async () => {
+    vi.mocked(buildRuleMatcher).mockResolvedValue((desc: string) => (desc === "Netflix" ? "cat-rule" : null));
+    const res = await POST(makeRequest(makeFormData(makeN26File())));
+    const body = (await res.json()) as { preview: Record<string, unknown>[] };
+    const netflix = body.preview.find((r) => r.description === "Netflix");
+    expect(netflix).toMatchObject({ suggested_category_id: "cat-rule", suggestion_source: "rule" });
+  });
+
+  it("transfer candidates get no category and no source even for a known merchant (issue 130)", async () => {
+    vi.mocked(detectTransfer).mockReturnValue(true);
+    const res = await POST(makeRequest(makeFormData(makeN26File())));
+    const body = (await res.json()) as { preview: Record<string, unknown>[] };
+    expect(body.preview.every((r) => r.suggested_category_id === null && r.suggestion_source === null)).toBe(true);
   });
 
   it("sets suggested_category_id when rule matcher returns a match", async () => {

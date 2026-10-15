@@ -5,6 +5,8 @@ import { AccountsImportButton } from "@/components/accounts/accounts-import-butt
 import { balanceAfterAnchor } from "@/lib/accounts/balance-after-anchor";
 import { groupAccountsByBank } from "@/lib/accounts/group-accounts-by-bank";
 import { requireSpaceContext } from "@/lib/spaces/context";
+import { fetchReimbursementIndex } from "@/lib/transactions/fetch-reimbursements";
+import { applyReimbursements } from "@/lib/transactions/net-amount";
 
 export const metadata: Metadata = {
   title: "Comptes",
@@ -19,7 +21,7 @@ type AccountWithTransactions = {
   bank: string | null;
   initial_balance_cents: number;
   balance_anchor_date: string;
-  transactions: { amount_cents: number; deleted_at: string | null; kind: string; date: string }[] | null;
+  transactions: { id: string; amount_cents: number; deleted_at: string | null; kind: string; date: string }[] | null;
 };
 
 export default async function AccountsPage({ searchParams }: { searchParams: Promise<{ bank?: string }> }) {
@@ -27,12 +29,14 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
   const { supabase, spaceId, space } = await requireSpaceContext();
   const { data } = await supabase
     .from("accounts")
-    .select("id, name, type, currency, bank, initial_balance_cents, balance_anchor_date, transactions(amount_cents, deleted_at, kind, date)")
+    .select("id, name, type, currency, bank, initial_balance_cents, balance_anchor_date, transactions(id, amount_cents, deleted_at, kind, date)")
     .eq("space_id", spaceId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   const accounts = (data ?? []) as AccountWithTransactions[];
+  // Issue 123 (ADR 0004): the monthly expense is net; the balance below is not.
+  const reimbursements = await fetchReimbursementIndex(supabase, spaceId);
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
@@ -42,9 +46,12 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
     const activeTxs = (account.transactions ?? []).filter((t) => t.deleted_at === null);
     // Issue 104: only operations after the balance anchor date move the balance.
     const balanceCents = balanceAfterAnchor(account.initial_balance_cents, account.balance_anchor_date, activeTxs);
-    const monthExpenseCents = activeTxs
+    const monthExpenseCents = applyReimbursements(
+      activeTxs.map((t) => ({ ...t, amount_cents: Number(t.amount_cents) })),
+      reimbursements,
+    )
       .filter((t) => t.kind === "expense" && t.date >= monthStart && t.date <= monthEnd)
-      .reduce((sum, t) => sum + Math.abs(Number(t.amount_cents)), 0);
+      .reduce((sum, t) => sum + Math.abs(t.amount_cents), 0);
 
     return {
       id: account.id,

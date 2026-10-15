@@ -211,6 +211,24 @@ describe("POST /api/import/confirm — success paths", () => {
     expect((inserted[0] as Record<string, unknown>).user_id).toBe("user-test-id");
   });
 
+  it("stores source_type and source_category in raw_import_data (issue 125)", async () => {
+    const { supabase, rpc } = buildSupabaseMock();
+    vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
+
+    const res = await POST(makeRequest({
+      account_id: ACCOUNT_ID,
+      transactions: [
+        { hash: "h-typed", date: "2026-01-15", description: "Shop", amount_cents: -100, kind: "expense", source_type: "MoneyBeam", source_category: "Courses" },
+        { hash: "h-plain", date: "2026-01-16", description: "Shop2", amount_cents: -100, kind: "expense" },
+      ],
+    }));
+
+    expect(res.status).toBe(200);
+    const rows = rpcArgs(rpc).p_rows as Record<string, unknown>[];
+    expect(rows[0]?.raw_import_data).toEqual({ hash: "h-typed", source_type: "MoneyBeam", source_category: "Courses" });
+    expect(rows[1]?.raw_import_data).toEqual({ hash: "h-plain" });
+  });
+
   it("sends 1 row for a valid income", async () => {
     const { supabase, rpc } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
@@ -234,7 +252,10 @@ describe("POST /api/import/confirm — success paths", () => {
     expect((inserted[0] as Record<string, unknown>).amount_cents).toBe(250000);
   });
 
-  it("sends 1 row for transfer WITHOUT counterpart account (no mirror)", async () => {
+  it.each([
+    [250000, "income"],
+    [-50000, "expense"],
+  ])("imports a transfer suggestion without counterpart as %s cents / %s with its category", async (amount, kind) => {
     const { supabase, rpc } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
@@ -243,9 +264,10 @@ describe("POST /api/import/confirm — success paths", () => {
       transactions: [{
         hash: "hash-transfer",
         date: "2026-01-20",
-        description: "Virement SEPA",
-        amount_cents: -50000,
+        description: "VIREMENT DE EMPLOYEUR FICTIF",
+        amount_cents: amount,
         kind: "transfer",
+        category_id: CATEGORY_ID,
         transfer_account_id: null,
       }],
     }));
@@ -253,11 +275,15 @@ describe("POST /api/import/confirm — success paths", () => {
     expect(res.status).toBe(200);
     const inserted = rpcArgs(rpc).p_rows;
     expect(inserted).toHaveLength(1);                              // no mirror
-    expect((inserted[0] as Record<string, unknown>).kind).toBe("transfer_debit");
+    expect((inserted[0] as Record<string, unknown>).kind).toBe(kind);
+    expect((inserted[0] as Record<string, unknown>).category_id).toBe(CATEGORY_ID);
     expect((inserted[0] as Record<string, unknown>).transfer_id).toBeNull();
   });
 
-  it("sends 2 rows for transfer WITH counterpart account (main + mirror)", async () => {
+  it.each([
+    [-30000, "transfer", "transfer_debit", "transfer_credit"],
+    [250000, "income", "transfer_credit", "transfer_debit"],
+  ])("pairs %s cents (%s) when a counterpart is chosen", async (amount, kind, mainKind, mirrorKind) => {
     const { supabase, rpc } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
@@ -267,8 +293,9 @@ describe("POST /api/import/confirm — success paths", () => {
         hash: "hash-transfer-pair",
         date: "2026-01-20",
         description: "Virement compte épargne",
-        amount_cents: -30000,
-        kind: "transfer",
+        amount_cents: amount,
+        kind,
+        category_id: CATEGORY_ID,
         transfer_account_id: COUNTERPART_ACCOUNT_ID,
       }],
     }));
@@ -285,15 +312,17 @@ describe("POST /api/import/confirm — success paths", () => {
     expect((inserted[1] as Record<string, unknown>).space_id).toBe("space-test-id");
     const mirror = inserted[1] as Record<string, unknown>;
 
-    expect(main.kind).toBe("transfer_debit");
+    expect(main.kind).toBe(mainKind);
+    expect(main.category_id).toBeNull();
     expect(main.account_id).toBe(ACCOUNT_ID);
-    expect(main.amount_cents).toBe(-30000);
+    expect(main.amount_cents).toBe(amount);
     expect(main.is_imported).toBe(true);
     expect(main.transfer_id).toBeTruthy();
 
-    expect(mirror.kind).toBe("transfer_credit");
+    expect(mirror.kind).toBe(mirrorKind);
+    expect(mirror.category_id).toBeNull();
     expect(mirror.account_id).toBe(COUNTERPART_ACCOUNT_ID);
-    expect(mirror.amount_cents).toBe(30000);                       // opposite sign
+    expect(mirror.amount_cents).toBe(-amount);                       // opposite sign
     expect(mirror.is_imported).toBe(false);
     expect(mirror.transfer_id).toBe(main.transfer_id);            // shared transfer_id
   });
@@ -311,7 +340,7 @@ describe("POST /api/import/confirm — success paths", () => {
         amount_cents: -1000,
         kind: "transfer",
         category_id: CATEGORY_ID,    // should be ignored for transfers
-        transfer_account_id: null,
+        transfer_account_id: COUNTERPART_ACCOUNT_ID,
       }],
     }));
 
@@ -528,9 +557,12 @@ describe("POST /api/import/confirm — atomic rpc", () => {
     const { supabase, rpc } = buildSupabaseMock();
     vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
 
-    for (const kind of ["transfer", "income"]) {
+    for (const tx of [
+      { ...expense, kind: "transfer", transfer_account_id: COUNTERPART_ACCOUNT_ID },
+      { ...expense, kind: "income", amount_cents: 1599 },
+    ]) {
       const res = await POST(
-        makeRequest({ account_id: ACCOUNT_ID, transactions: [{ ...expense, kind, share: { space_id: SHARED_ID } }] }),
+        makeRequest({ account_id: ACCOUNT_ID, transactions: [{ ...tx, share: { space_id: SHARED_ID } }] }),
       );
       expect(res.status).toBe(400);
     }
