@@ -29,6 +29,8 @@ type PreviewRowRaw = {
   is_transfer_candidate: boolean;
   is_duplicate: boolean;
   suggested_share?: ShareSuggestion | null;
+  source_type?: string | null;
+  source_category?: string | null;
 };
 
 type PreviewRow = PreviewRowRaw & { rowId: string };
@@ -200,6 +202,8 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
       const counterpart = isTransfer[r.rowId] ? (transferAccountMap[r.rowId] || null) : null;
       return {
       hash: r.hash,
+      source_type: r.source_type ?? null,
+      source_category: r.source_category ?? null,
       date: r.date,
       description: r.description,
       amount_cents: r.amount_cents,
