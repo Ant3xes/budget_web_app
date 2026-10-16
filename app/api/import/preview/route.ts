@@ -6,8 +6,11 @@ import { z } from "zod";
 import { buildDefaultMatcher, buildHistoryMatcher, buildRuleMatcher, buildRuleShareMatcher, detectTransfer } from "@/lib/import/apply-rules";
 import { buildFileHashes, findExistingHashes, findTransferMirrorMatches } from "@/lib/import/deduplicate";
 import { detectFormat } from "@/lib/import/detect-format";
+import { matchMerchant } from "@/lib/import/merchants";
+import { normalizeLabel, type LabelSource } from "@/lib/import/normalize-label";
+import { resolveSuggestion, type SpaceCategory } from "@/lib/import/resolve-suggestion";
 import { parseBnpXls } from "@/lib/import/parse-bnp";
-import { parseN26Csv } from "@/lib/import/parse-n26";
+import { isTransferSourceType, parseN26Csv } from "@/lib/import/parse-n26";
 import { withSpace } from "@/lib/spaces/with-space";
 
 export async function POST(request: Request) {
@@ -39,6 +42,7 @@ export async function POST(request: Request) {
 
   // Parse the file based on extension + content
   let parsed;
+  let source: LabelSource;
 
   if (fileName.endsWith(".csv")) {
     const text = new TextDecoder("utf-8").decode(buffer);
@@ -48,6 +52,7 @@ export async function POST(request: Request) {
 
     if (format === "n26") {
       parsed = parseN26Csv(text);
+      source = "n26";
     } else {
       return NextResponse.json({ error: "Format CSV non reconnu. Formats supportés : N26." }, { status: 400 });
     }
@@ -67,6 +72,7 @@ export async function POST(request: Request) {
 
       if (format === "bnp") {
         parsed = parseBnpXls(buffer);
+        source = "bnp";
       } else {
         return NextResponse.json({ error: "Format XLS non reconnu. Formats supportés : BNP." }, { status: 400 });
       }
@@ -109,13 +115,13 @@ export async function POST(request: Request) {
     buildHistoryMatcher(supabase, spaceId),
     supabase
       .from("categories")
-      .select("id, name, kind")
+      .select("id, name, kind, translation_key")
       .eq("space_id", spaceId)
       .is("deleted_at", null),
     isPersonal ? buildRuleShareMatcher(supabase, spaceId) : Promise.resolve(null),
   ]);
 
-  const categories = (categoriesData.data ?? []) as { id: string; name: string; kind: "expense" | "income" }[];
+  const categories = (categoriesData.data ?? []) as (SpaceCategory & { translation_key: string | null })[];
   const defaultMatcher = buildDefaultMatcher(categories);
 
   // Sharing suggestions (personal space only): resolve the shared spaces the
@@ -144,14 +150,20 @@ export async function POST(request: Request) {
     const isMirror = mirrorIndexes.has(index);
     const isDuplicate = existingHashes.has(tx.hash) || isMirror;
 
-    const is_transfer_candidate = detectTransfer(tx.description);
+    const is_transfer_candidate = detectTransfer(tx.description) || isTransferSourceType(tx.source_type);
     const kind: "expense" | "income" = tx.amount_cents < 0 ? "expense" : "income";
-    const suggestedCategoryId = isDuplicate || is_transfer_candidate
-      ? null
-      : (ruleMatcher(tx.description, kind) ??
-        historyMatcher(tx.description, kind) ??
-        defaultMatcher(tx.description, kind) ??
-        null);
+    // issue 130: rules > history > merchants database > default keywords.
+    // Transfers and duplicates get no suggestion ("À catégoriser").
+    const suggestion =
+      isDuplicate || is_transfer_candidate
+        ? null
+        : resolveSuggestion(
+            tx.description,
+            kind,
+            { rule: ruleMatcher, history: historyMatcher, default: defaultMatcher },
+            categories,
+          );
+    const suggestedCategoryId = suggestion?.category_id ?? null;
 
     let suggestedShare: {
       space_id: string;
@@ -172,13 +184,25 @@ export async function POST(request: Request) {
       }
     }
 
+    // `description` stays the raw bank label and the hash above is built on it.
+    // A known merchant name beats the generic cleaning (issue 130).
+    const normalized = normalizeLabel(tx.description, { source });
+    const merchant = suggestion?.merchant ?? (is_transfer_candidate ? null : matchMerchant(tx.description));
+    const clean = merchant?.name ?? normalized.clean;
+    const raw = normalized.raw;
+
     return {
       hash: tx.hash,
       date: tx.date,
       description: tx.description,
+      clean_description: clean,
+      raw_description: raw,
       amount_cents: tx.amount_cents,
       kind,
       suggested_category_id: suggestedCategoryId,
+      suggestion_source: suggestedCategoryId ? (suggestion?.source ?? null) : null,
+      source_type: tx.source_type ?? null,
+      source_category: tx.source_category ?? null,
       is_transfer_candidate,
       is_duplicate: isDuplicate,
       duplicate_reason: isMirror ? ("transfer_mirror" as const) : isDuplicate ? ("already_imported" as const) : null,

@@ -44,6 +44,11 @@ export const analytics = {
     yearToDate: "Year to date",
     empty: "No expenses",
   },
+  categoryHistogram: {
+    heading: "Expenses by category histogram ({period})",
+    allHidden: "All categories are hidden",
+    toggles: "Show or hide categories",
+  },
   budgetVsActual: {
     heading: "Budget vs actual (this month)",
     delta: "Delta",

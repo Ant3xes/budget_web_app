@@ -44,6 +44,11 @@ export const analytics = {
     yearToDate: "Cumul annuel",
     empty: "Aucune dépense",
   },
+  categoryHistogram: {
+    heading: "Histogramme des dépenses par catégorie ({period})",
+    allHidden: "Toutes les catégories sont masquées",
+    toggles: "Afficher ou masquer les catégories",
+  },
   budgetVsActual: {
     heading: "Budget vs réalisé (mois en cours)",
     delta: "Écart",

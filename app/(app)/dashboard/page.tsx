@@ -16,6 +16,7 @@ import { SavingsGoalsSummary } from "@/components/dashboard/savings-goals-summar
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { RemainingToLive } from "@/components/dashboard/remaining-to-live";
 import { SavingsThisMonth } from "@/components/dashboard/savings-this-month";
+import { computeSavingsThisMonthCents } from "@/lib/dashboard/savings-this-month";
 import { filterTransactionsAfterAnchor } from "@/lib/accounts/balance-after-anchor";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { computeExpenseByCategory } from "@/lib/accounts/compute-expense-by-category";
@@ -31,6 +32,8 @@ import {
   todayISO,
 } from "@/lib/dates/period";
 import { resolveEarliestTransactionDate } from "@/lib/dates/resolve-earliest-transaction-date";
+import { fetchReimbursementIndex } from "@/lib/transactions/fetch-reimbursements";
+import { applyReimbursements, netAmounts } from "@/lib/transactions/net-amount";
 import { fetchSharedExpenseActivity, type ActivityRange, type ActivityRow } from "@/lib/shared-expenses/activity-rows";
 
 /** A transaction row shaped for the click-to-open overlays (donut + budget chart). */
@@ -208,6 +211,8 @@ export default async function DashboardPage({
     paidFixedChargesRes,
     sharedPeriodRows,
     sharedTrendRows,
+    // Issue 123 (ADR 0004): reimbursement links of the space, never windowed.
+    reimbursements,
   ] = await Promise.all([
     // 1. Selected-period transactions for donut + KPIs. `id`/`date`/
     // `description` (beyond kind/amount/category) feed the donut's
@@ -283,10 +288,10 @@ export default async function DashboardPage({
     // Bounded above by periodTo too — open-ended used to be harmless when
     // every period type ran through today, but a past "range" period must
     // not pull in transactions after its own end.
-    runScopedQuery<{ kind: string; amount_cents: number; date: string }>([selectedCourantIds], () =>
+    runScopedQuery<{ id: string; kind: string; amount_cents: number; date: string }>([selectedCourantIds], () =>
       supabase
         .from("transactions")
-        .select("kind, amount_cents, date")
+        .select("id, kind, amount_cents, date")
         .eq("space_id", spaceId)
         .in("account_id", selectedCourantIds)
         .in("kind", ["expense", "income"])
@@ -344,6 +349,7 @@ export default async function DashboardPage({
     // shared expenses but no account.
     sharedActivity({ from: periodFrom, to: periodTo }),
     sharedActivity({ from: trendFrom, to: periodTo }),
+    fetchReimbursementIndex(supabase, spaceId),
   ]);
 
   // ── Per-account / per-category running totals ────────────────────────────
@@ -458,10 +464,11 @@ export default async function DashboardPage({
   // deposits/withdrawals correctly) ────────────────────────────────────────
   // query #2 is already scoped to `nonCourantAccountIds`, so every row here
   // already qualifies — no in-memory filter needed.
-  const savingsThisMonthCents = (monthTxRes.data ?? []).reduce((sum, tx) => sum + tx.amount_cents, 0);
+  const savingsThisMonthCents = computeSavingsThisMonthCents(monthTxRes.data ?? []);
 
   // ── Period KPIs ───────────────────────────────────────────────────────────
-  const periodTx = [...(periodTxRes.data ?? []), ...sharedPeriodRows];
+  // Issue 123: expenses count for their net, linked reimbursements are not income.
+  const periodTx = applyReimbursements([...(periodTxRes.data ?? []), ...sharedPeriodRows], reimbursements);
   const periodExpense = periodTx
     .filter((t) => t.kind === "expense")
     .reduce((s, t) => s + Math.abs(t.amount_cents), 0);
@@ -516,14 +523,17 @@ export default async function DashboardPage({
 
   // ── Income/expense trend chart (same period) ─────────────────────────────
   const barData = computeIncomeExpenseSeries(
-    [...(trendTxRes.data ?? []), ...sharedTrendRows],
+    applyReimbursements([...(trendTxRes.data ?? []), ...sharedTrendRows], reimbursements),
     trendMonthCount,
     now,
     periodToMonth,
   );
 
   // ── Budget utilization + its click-to-open overlay's source data ────────
-  const budgetConsumptionTx = [...(budgetConsumptionRes.data ?? []), ...sharedBudgetRows];
+  const budgetConsumptionTx = applyReimbursements(
+    [...(budgetConsumptionRes.data ?? []), ...sharedBudgetRows],
+    reimbursements,
+  );
   const budgetConsumption = sumAbsByCategoryId(budgetConsumptionTx);
   const budgetTransactionsByCategory = groupByCategoryId(budgetConsumptionTx);
 
@@ -565,7 +575,7 @@ export default async function DashboardPage({
 
   // "Dernières transactions" — courant-scoped, period-scoped (query #3
   // above already applies both filters at the DB level).
-  const recentTransactions = (recentTxRes.data ?? []).map((tx) => ({
+  const recentTransactions = netAmounts(recentTxRes.data ?? [], reimbursements).map((tx) => ({
     id: tx.id,
     amount_cents: tx.amount_cents,
     date: tx.date,

@@ -52,6 +52,10 @@ export async function POST(request: Request) {
   });
 
   if (error) {
+    // issue 112: only an active category can collide (partial unique index).
+    if (error.code === "23505") {
+      return NextResponse.json({ error: "Une catégorie portant ce nom existe déjà" }, { status: 409 });
+    }
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 

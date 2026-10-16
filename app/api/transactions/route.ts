@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { fetchTransferCounterparts } from "@/lib/transactions/transfer-counterparts";
+import { netExpenseCents, sumReimbursements } from "@/lib/transactions/net-amount";
 import { uuidSchema } from "@/lib/validation/uuid";
 
 const transactionSchema = z.object({
@@ -68,7 +69,7 @@ export async function GET(request: Request) {
   let builder = auth.supabase
     .from("transactions")
     .select(
-      "id, kind, amount_cents, currency, date, description, notes, is_imported, transfer_id, account_id, category_id, accounts(name), categories(name, color, icon), shared_expenses(id, space_id, category_id, paid_by, shares)",
+      "id, kind, amount_cents, currency, date, description, notes, is_imported, raw_import_data, transfer_id, account_id, category_id, reimburses_transaction_id, accounts(name), categories(name, color, icon), shared_expenses(id, space_id, category_id, paid_by, shares)",
       { count: "exact" },
     )
     .eq("space_id", auth.spaceId)
@@ -100,8 +101,27 @@ export async function GET(request: Request) {
 
   const toAccountByTransferId = await fetchTransferCounterparts(auth.supabase, auth.spaceId, transferIds);
 
+  // Issue 123 (ADR 0004): `amount_cents` stays the real (gross) amount, which
+  // the edit form needs; the list shows `net_cents` and the reimbursed total.
+  const expenseIds = transactions.filter((t) => t.kind === "expense").map((t) => t.id);
+  const reimbursedByExpense = new Map<string, number>();
+  if (expenseIds.length > 0) {
+    const { data: links } = await auth.supabase
+      .from("transactions")
+      .select("amount_cents, reimburses_transaction_id")
+      .eq("space_id", auth.spaceId)
+      .in("reimburses_transaction_id", expenseIds)
+      .is("deleted_at", null);
+    for (const link of links ?? []) {
+      const key = link.reimburses_transaction_id as string;
+      reimbursedByExpense.set(key, (reimbursedByExpense.get(key) ?? 0) + sumReimbursements([link.amount_cents]));
+    }
+  }
+
   const withToAccount = transactions.map((t) => ({
     ...t,
+    reimbursed_cents: reimbursedByExpense.get(t.id) ?? 0,
+    net_cents: t.kind === "expense" ? netExpenseCents(t.amount_cents, reimbursedByExpense.get(t.id) ?? 0) : null,
     to_account: t.kind === "transfer_debit" && t.transfer_id ? (toAccountByTransferId[t.transfer_id] ?? null) : null,
   }));
 
@@ -114,7 +134,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = transactionSchema.safeParse(await request.json());
+  const payload = transactionSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }

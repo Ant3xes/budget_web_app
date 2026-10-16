@@ -6,6 +6,8 @@ import { balanceAfterAnchor } from "@/lib/accounts/balance-after-anchor";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
 import { periodToParam, parsePeriodParam } from "@/lib/dates/period";
 import { requireSpaceContext } from "@/lib/spaces/context";
+import { fetchReimbursementIndex } from "@/lib/transactions/fetch-reimbursements";
+import { applyReimbursements, netAmounts } from "@/lib/transactions/net-amount";
 
 type TxRow = {
   id: string;
@@ -16,6 +18,8 @@ type TxRow = {
   description: string;
   notes: string | null;
   categories: { name: string; color: string | null; icon: string | null } | null;
+  /** Original amount of an expense that has linked reimbursements (issue 123). */
+  gross_cents?: number;
 };
 
 export const metadata: Metadata = {
@@ -79,19 +83,31 @@ export default async function AccountDetailPage({
     };
   });
 
+  // Issue 123 (ADR 0004): expenses/incomes are net of linked reimbursements; balances are not.
+  const reimbursements = await fetchReimbursementIndex(supabase, spaceId);
+
   // Issue 104: only operations after the balance anchor date move the balance.
   const balanceCents = balanceAfterAnchor(account.initial_balance_cents, account.balance_anchor_date, transactions);
 
   const incomeExpenseData = computeIncomeExpenseSeries(
-    transactions.map((t) => ({
-      date: t.date,
-      kind: t.kind,
-      amount_cents: Number(t.amount_cents),
-    })),
+    applyReimbursements(
+      transactions.map((t) => ({
+        id: t.id,
+        date: t.date,
+        kind: t.kind,
+        amount_cents: Number(t.amount_cents),
+      })),
+      reimbursements,
+    ),
     null,
   );
 
-  const allTransactions = [...transactions].sort(
+  // Lists keep every operation; an expense shows its net (with its original amount).
+  const listTransactions = netAmounts(transactions, reimbursements).map((t) => {
+    const original = transactions.find((o) => o.id === t.id)!;
+    return reimbursements.byExpense.has(t.id) ? { ...t, gross_cents: original.amount_cents } : t;
+  });
+  const allTransactions = [...listTransactions].sort(
     (a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id),
   );
 
@@ -115,7 +131,7 @@ export default async function AccountDetailPage({
         amount_cents: t.amount_cents,
       }))}
       incomeExpenseData={incomeExpenseData}
-      expenseHistory={transactions
+      expenseHistory={applyReimbursements(transactions, reimbursements)
         .filter((t) => t.kind === "expense")
         .map((t) => ({
           date: t.date,

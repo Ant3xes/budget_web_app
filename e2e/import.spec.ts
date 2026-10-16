@@ -34,8 +34,10 @@ test.describe("Import CSV", () => {
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
-    // Wait for accounts to load (combobox auto-selects first account)
-    await expect(dialog.getByRole("combobox")).not.toHaveValue("");
+    // No account is preselected from the Transactions page (issue 117): pick one.
+    await expect(dialog.getByLabel(/compte de destination/i).locator("option")).not.toHaveCount(1);
+    await dialog.getByLabel(/compte de destination/i).selectOption({ index: 1 });
+    await expect(dialog.getByLabel(/compte de destination/i)).not.toHaveValue("");
 
     // Upload a N26-formatted CSV fixture
     const csvContent = [
@@ -64,8 +66,10 @@ test.describe("Import CSV", () => {
 
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
-    // Wait for accounts to load (combobox auto-selects first account)
-    await expect(dialog.getByRole("combobox")).not.toHaveValue("");
+    // No account is preselected from the Transactions page (issue 117): pick one.
+    await expect(dialog.getByLabel(/compte de destination/i).locator("option")).not.toHaveCount(1);
+    await dialog.getByLabel(/compte de destination/i).selectOption({ index: 1 });
+    await expect(dialog.getByLabel(/compte de destination/i)).not.toHaveValue("");
 
     const uniqueId = Date.now();
     const csvContent = [

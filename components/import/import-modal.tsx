@@ -1,10 +1,25 @@
 "use client";
 
+import {
+  applyCategoryToSelection,
+  filterRowsByCategory,
+  NO_CATEGORY_FILTER,
+} from "@/lib/import/category-filter";
+import { labelFields, labelForDisplay } from "@/lib/import/label-fields";
+import {
+  buildKindFields,
+  markAllExternal,
+  markAllInternal,
+  pendingTransferRows,
+  type TransferChoice,
+} from "@/lib/import/transfer-choice";
 import { useEffect, useRef, useState } from "react";
 import { Check, CheckCircle2 } from "lucide-react";
 
 import { useLocale } from "@/components/locale-provider";
+import { NewCategoryForm } from "@/components/import/new-category-form";
 import { Modal } from "@/components/ui/modal";
+import { NEW_CATEGORY_OPTION } from "@/lib/import/create-category";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 
 type ShareSuggestion = {
@@ -21,12 +36,26 @@ type PreviewRowRaw = {
   amount_cents: number;
   kind: "expense" | "income";
   suggested_category_id: string | null;
+  /** Clean label (issue 127); `description` stays the raw bank label. */
+  clean_description?: string | null;
+  suggestion_source?: "rule" | "history" | "merchant" | "default" | null;
   is_transfer_candidate: boolean;
   is_duplicate: boolean;
   suggested_share?: ShareSuggestion | null;
+  source_type?: string | null;
+  source_category?: string | null;
 };
 
 type PreviewRow = PreviewRowRaw & { rowId: string };
+
+const SOURCE_LABEL_KEYS = {
+  rule: "transactions.importModal.suggestionSourceRule",
+  history: "transactions.importModal.suggestionSourceHistory",
+  merchant: "transactions.importModal.suggestionSourceMerchant",
+  default: "transactions.importModal.suggestionSourceDefault",
+} as const;
+
+const displayLabel = (r: Pick<PreviewRowRaw, "description" | "clean_description">) => labelForDisplay(r);
 
 type Category = {
   id: string;
@@ -52,6 +81,9 @@ interface ImportModalProps {
 // manually, move here instead of appearing inline in the other two steps).
 type Step = "upload" | "preview_expense" | "preview_income" | "preview_transfer" | "done";
 
+const transferChoiceValue = (choice: TransferChoice | undefined) =>
+  !choice ? "" : choice.type === "external" ? "external" : `internal:${choice.accountId}`;
+
 const formatAmount = (cents: number) => {
   const sign = cents < 0 ? "−" : "+";
   return `${sign}${(Math.abs(cents) / 100).toFixed(2)} €`;
@@ -73,9 +105,15 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
   const [expensePreview, setExpensePreview] = useState<PreviewRow[]>([]);
   const [incomePreview, setIncomePreview] = useState<PreviewRow[]>([]);
   const [isTransfer, setIsTransfer] = useState<Record<string, boolean>>({}); // hash -> treat as transfer
-  const [transferAccountMap, setTransferAccountMap] = useState<Record<string, string>>({}); // hash -> counterpart account_id
+  // issue 129: explicit internal/external choice per transfer row, never guessed.
+  const [transferChoice, setTransferChoice] = useState<Record<string, TransferChoice | undefined>>({});
+  const [bulkInternalAccountId, setBulkInternalAccountId] = useState("");
   const [categoryMap, setCategoryMap] = useState<Record<string, string>>({}); // hash -> category_id
   const [checked, setChecked] = useState<Record<string, boolean>>({}); // hash -> selected
+  const [categoryFilter, setCategoryFilter] = useState(""); // list filter only, never edits rows
+  const [bulkCategoryId, setBulkCategoryId] = useState(""); // category used by "Apply to selection"
+  // issue 119: where the inline "new category" form was opened from.
+  const [newCategoryTarget, setNewCategoryTarget] = useState<{ rowId: string | "bulk"; step: Step } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importedCount, setImportedCount] = useState(0);
@@ -89,12 +127,10 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
       if (accRes.ok) {
         const d = (await accRes.json()) as { accounts: Account[] };
         setAccounts(d.accounts ?? []);
-        if (d.accounts.length > 0) {
-          const preferred =
-            defaultAccountId && d.accounts.some((a) => a.id === defaultAccountId)
-              ? defaultAccountId
-              : d.accounts[0]!.id;
-          setSelectedAccountId(preferred);
+        // issue 117: no preselection from the Transactions page; only the
+        // account page's own account is preselected.
+        if (defaultAccountId && d.accounts.some((a) => a.id === defaultAccountId)) {
+          setSelectedAccountId(defaultAccountId);
         }
       }
       if (catRes.ok) {
@@ -104,6 +140,16 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
     };
     void load();
   }, [defaultAccountId]);
+
+  const handleCategoryCreated = (category: Category, list: Category[]) => {
+    setCategories(list);
+    if (newCategoryTarget?.rowId === "bulk") setBulkCategoryId(category.id);
+    else if (newCategoryTarget) {
+      const { rowId } = newCategoryTarget;
+      setCategoryMap((prev) => ({ ...prev, [rowId]: category.id }));
+    }
+    setNewCategoryTarget(null);
+  };
 
   const handleUpload = async () => {
     const file = fileRef.current?.files?.[0];
@@ -154,7 +200,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
     for (const row of [...expenses, ...incomes]) {
       initCats[row.rowId] = row.suggested_category_id ?? "";
       initChecked[row.rowId] = !row.is_duplicate;
-      initTransfer[row.rowId] = row.is_transfer_candidate;
+      initTransfer[row.rowId] = row.is_transfer_candidate && !row.is_duplicate;
       if (row.kind === "expense") {
         initShare[row.rowId] = spaceKind === "personal" ? (row.suggested_share ?? null) : null;
       }
@@ -163,7 +209,8 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
     setCategoryMap(initCats);
     setChecked(initChecked);
     setIsTransfer(initTransfer);
-    setTransferAccountMap({});
+    setTransferChoice({});
+    setBulkInternalAccountId("");
     setStep("preview_expense");
   };
 
@@ -172,6 +219,12 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
     const selected = allRows.filter((r) => checked[r.rowId]);
     if (selected.length === 0) {
       setError(t("transactions.importModal.noTransactionSelected"));
+      return;
+    }
+
+    const pending = pendingTransferRows(allRows, isTransfer, checked, transferChoice, selectedAccountId);
+    if (pending.length > 0) {
+      setError(t("transactions.importModal.transferChoiceBlocked", { count: pending.length }));
       return;
     }
 
@@ -189,14 +242,22 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
       };
     };
 
+    // issue 129: the kind comes from the explicit choice (internal => transfer
+    // with counterpart, external => expense/income with its category).
     const transactions = selected.map((r) => ({
       hash: r.hash,
+      source_type: r.source_type ?? null,
+      source_category: r.source_category ?? null,
       date: r.date,
-      description: r.description,
+      ...labelFields(r),
       amount_cents: r.amount_cents,
-      kind: isTransfer[r.rowId] ? "transfer" as const : r.kind,
-      category_id: isTransfer[r.rowId] ? null : (categoryMap[r.rowId] || null),
-      transfer_account_id: isTransfer[r.rowId] ? (transferAccountMap[r.rowId] || null) : undefined,
+      ...buildKindFields(
+        r,
+        !!isTransfer[r.rowId],
+        transferChoice[r.rowId],
+        categoryMap[r.rowId] || null,
+        selectedAccountId,
+      ),
       share: shareFor(r),
     }));
 
@@ -228,11 +289,19 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
   // Rows marked as a transfer move out of their expense/income step into the
   // dedicated Virements step below, instead of being toggled inline.
   const transferRows = [...expensePreview, ...incomePreview].filter((r) => !!isTransfer[r.rowId]);
-  const displayedPreview = isPreviewKindStep
+  const basePreview = isPreviewKindStep
     ? currentPreview.filter((r) => !isTransfer[r.rowId])
     : step === "preview_transfer"
       ? transferRows
       : [];
+  // A filter picked on the other step (other category kind) is ignored here.
+  const activeFilter =
+    categoryFilter === NO_CATEGORY_FILTER || currentCategories.some((c) => c.id === categoryFilter)
+      ? categoryFilter
+      : "";
+  const displayedPreview = isPreviewKindStep
+    ? filterRowsByCategory(basePreview, categoryMap, activeFilter)
+    : basePreview;
   // The shared column only appears on the expense step, when at least one row
   // got a suggestion from a matching rule.
   const showShareColumn =
@@ -241,6 +310,13 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
     expensePreview.some((r) => !!r.suggested_share);
   const checkedInView = displayedPreview.filter((r) => !!checked[r.rowId]);
   const otherAccounts = accounts.filter((a) => a.id !== selectedAccountId);
+  const pendingTransfers = pendingTransferRows(
+    [...expensePreview, ...incomePreview],
+    isTransfer,
+    checked,
+    transferChoice,
+    selectedAccountId,
+  );
   // Every row is either an expense/income or (once marked) a transfer, so
   // this total matches exactly what handleConfirm submits — no need to sum
   // three separately-filtered per-type counts that are never shown on their own.
@@ -368,7 +444,27 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                 </div>
               </div>
 
-              {/* Bulk category assignment */}
+              {/* Category filter: only narrows the list, never edits rows (issue 118) */}
+              {isPreviewKindStep && (
+                <div className="flex flex-wrap items-center gap-3 rounded-md border border-border px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">{t("transactions.importModal.filterByCategory")} :</span>
+                  <select
+                    value={activeFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="rounded border border-zinc-300 px-2 py-0.5 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
+                  >
+                    <option value="">{t("transactions.importModal.filterAll")}</option>
+                    <option value={NO_CATEGORY_FILTER}>{t("transactions.importModal.filterNoCategory")}</option>
+                    {currentCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.icon ? `${c.icon} ` : ""}{resolveCategoryName(c, t)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Explicit bulk assignment: checked AND visible rows only */}
               {checkedInView.length > 0 && (
                 <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted px-3 py-2 text-xs">
                   <span className="font-medium text-zinc-700 dark:text-zinc-200">
@@ -380,17 +476,12 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                   <span className="text-zinc-300 dark:text-muted-foreground">|</span>
                   <span className="text-muted-foreground">{t("transactions.importModal.categoryLabel")} :</span>
                   <select
-                    defaultValue=""
-                    onChange={(e) => {
-                      if (!e.target.value) return;
-                      const val = e.target.value;
-                      setCategoryMap((prev) => {
-                        const next = { ...prev };
-                        checkedInView.forEach((r) => { next[r.rowId] = val; });
-                        return next;
-                      });
-                      e.target.value = "";
-                    }}
+                    value={bulkCategoryId}
+                    onChange={(e) =>
+                      e.target.value === NEW_CATEGORY_OPTION
+                        ? setNewCategoryTarget({ rowId: "bulk", step })
+                        : setBulkCategoryId(e.target.value)
+                    }
                     className="rounded border border-zinc-300 px-2 py-0.5 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
                   >
                     <option value="">{t("transactions.importModal.chooseOption")}</option>
@@ -399,8 +490,29 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                         {c.icon ? `${c.icon} ` : ""}{resolveCategoryName(c, t)}
                       </option>
                     ))}
+                    <option value={NEW_CATEGORY_OPTION}>{t("transactions.importModal.newCategoryOption")}</option>
                   </select>
+                  <button
+                    type="button"
+                    disabled={!bulkCategoryId}
+                    onClick={() =>
+                      setCategoryMap((prev) =>
+                        applyCategoryToSelection(prev, displayedPreview, checked, bulkCategoryId),
+                      )
+                    }
+                    className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  >
+                    {t("transactions.importModal.applyToSelection")}
+                  </button>
                 </div>
+              )}
+
+              {newCategoryTarget?.step === step && (
+                <NewCategoryForm
+                  kind={step === "preview_expense" ? "expense" : "income"}
+                  onCreated={handleCategoryCreated}
+                  onCancel={() => setNewCategoryTarget(null)}
+                />
               )}
 
               <div className="overflow-x-auto rounded-lg border border-border">
@@ -441,7 +553,15 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
                         <td className="px-3 py-2 max-w-[40vw] truncate md:max-w-[200px] cursor-help" title={row.description}>
-                          {row.description}
+                          {displayLabel(row)}
+                          {categoryMap[row.rowId] && row.suggestion_source && categoryMap[row.rowId] === row.suggested_category_id && (
+                            <span
+                              className="ml-1 rounded bg-zinc-100 px-1 py-0.5 text-[10px] text-muted-foreground dark:bg-zinc-800"
+                              title={t("transactions.importModal.suggestionSourceTitle")}
+                            >
+                              {t(SOURCE_LABEL_KEYS[row.suggestion_source])}
+                            </span>
+                          )}
                           {row.is_duplicate && (
                             <span className="ml-1 rounded bg-zinc-200 px-1 py-0.5 text-muted-foreground dark:bg-zinc-700 dark:text-muted-foreground">{t("transactions.importModal.duplicateBadge")}</span>
                           )}
@@ -468,7 +588,9 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                             <select
                               value={categoryMap[row.rowId] ?? ""}
                               onChange={(e) =>
-                                setCategoryMap((prev) => ({ ...prev, [row.rowId]: e.target.value }))
+                                e.target.value === NEW_CATEGORY_OPTION
+                                  ? setNewCategoryTarget({ rowId: row.rowId, step })
+                                  : setCategoryMap((prev) => ({ ...prev, [row.rowId]: e.target.value }))
                               }
                               className={`w-full rounded border px-2 py-1 text-xs ${
                                 !categoryMap[row.rowId]
@@ -483,6 +605,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                                   {resolveCategoryName(c, t)}
                                 </option>
                               ))}
+                              <option value={NEW_CATEGORY_OPTION}>{t("transactions.importModal.newCategoryOption")}</option>
                             </select>
                           )}
                         </td>
@@ -517,6 +640,11 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
               </div>
             </>
           )}
+          {pendingTransfers.length > 0 && (
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              {t("transactions.importModal.transferChoicePending", { count: pendingTransfers.length })}
+            </p>
+          )}
           {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
         </div>
       )}
@@ -537,36 +665,46 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                 </p>
               </div>
 
-              {checkedInView.length > 0 && otherAccounts.length > 0 && (
-                <div className="flex flex-wrap items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs dark:border-blue-800 dark:bg-blue-900/20">
-                  <span className="font-medium text-zinc-700 dark:text-zinc-200">
-                    {t("transactions.importModal.rowsSelected", {
-                      count: checkedInView.length,
-                      plural: checkedInView.length > 1 ? "s" : "",
-                    })}
-                  </span>
-                  <span className="text-muted-foreground">{t("transactions.importModal.counterpartyLabel")} :</span>
-                  <select
-                    defaultValue=""
-                    onChange={(e) => {
-                      if (!e.target.value) return;
-                      const val = e.target.value;
-                      setTransferAccountMap((prev) => {
-                        const next = { ...prev };
-                        checkedInView.forEach((r) => { next[r.rowId] = val; });
-                        return next;
-                      });
-                      e.target.value = "";
-                    }}
-                    className="rounded border border-blue-300 bg-blue-50 px-2 py-0.5 dark:border-blue-700 dark:bg-blue-900/30 dark:text-zinc-100"
-                  >
-                    <option value="">{t("transactions.importModal.chooseOption")}</option>
-                    {otherAccounts.map((a) => (
-                      <option key={a.id} value={a.id}>{a.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {pendingTransfers.length > 0 ? (
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                  {t("transactions.importModal.transferChoicePending", { count: pendingTransfers.length })}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs dark:border-blue-800 dark:bg-blue-900/20">
+                <button
+                  type="button"
+                  onClick={() => setTransferChoice((prev) => markAllExternal(prev, displayedPreview))}
+                  className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  {t("transactions.importModal.markAllExternal")}
+                </button>
+                <span className="text-zinc-300 dark:text-muted-foreground">|</span>
+                <select
+                  value={bulkInternalAccountId}
+                  onChange={(e) => setBulkInternalAccountId(e.target.value)}
+                  className="rounded border border-blue-300 bg-blue-50 px-2 py-0.5 dark:border-blue-700 dark:bg-blue-900/30 dark:text-zinc-100"
+                >
+                  <option value="">{t("transactions.importModal.chooseOption")}</option>
+                  {otherAccounts.map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!bulkInternalAccountId}
+                  onClick={() =>
+                    setTransferChoice((prev) =>
+                      markAllInternal(prev, displayedPreview, bulkInternalAccountId, selectedAccountId),
+                    )
+                  }
+                  className="rounded border border-zinc-300 px-2 py-1 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  {t("transactions.importModal.markAllInternal", {
+                    account: accounts.find((a) => a.id === bulkInternalAccountId)?.name ?? "…",
+                  })}
+                </button>
+              </div>
 
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="min-w-full text-xs">
@@ -578,7 +716,8 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                       <th className="px-3 py-2">{t("transactions.importModal.colDate")}</th>
                       <th className="px-3 py-2">{t("transactions.importModal.colDescription")}</th>
                       <th className="px-3 py-2 text-right">{t("transactions.importModal.colAmount")}</th>
-                      <th className="px-3 py-2 min-w-32">{t("transactions.importModal.counterpartyLabel")}</th>
+                      <th className="px-3 py-2 min-w-32">{t("transactions.importModal.transferTypeLabel")}</th>
+                      <th className="px-3 py-2 min-w-32">{t("transactions.importModal.categoryLabel")}</th>
                       <th className="px-3 py-2" />
                     </tr>
                   </thead>
@@ -593,25 +732,62 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
                           />
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">{formatDate(row.date)}</td>
-                        <td className="px-3 py-2 max-w-[40vw] truncate md:max-w-[200px] cursor-help" title={row.description}>{row.description}</td>
+                        <td className="px-3 py-2 max-w-[40vw] truncate md:max-w-[200px] cursor-help" title={row.description}>{displayLabel(row)}</td>
                         <td className={`px-3 py-2 text-right font-medium whitespace-nowrap ${row.amount_cents < 0 ? "text-red-600 dark:text-red-400" : "text-green-700 dark:text-green-400"}`}>
                           {formatAmount(row.amount_cents)}
                         </td>
                         <td className="px-3 py-2">
                           <select
-                            value={transferAccountMap[row.rowId] ?? ""}
-                            onChange={(e) => setTransferAccountMap((prev) => ({ ...prev, [row.rowId]: e.target.value }))}
-                            className="w-full rounded border px-2 py-1 text-xs border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/20 dark:text-zinc-100"
+                            value={transferChoiceValue(transferChoice[row.rowId])}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setTransferChoice((prev) => ({
+                                ...prev,
+                                [row.rowId]: !v
+                                  ? undefined
+                                  : v === "external"
+                                    ? { type: "external" }
+                                    : { type: "internal", accountId: v.slice("internal:".length) },
+                              }));
+                            }}
+                            className={`w-full rounded border px-2 py-1 text-xs ${
+                              transferChoice[row.rowId]
+                                ? "border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/20 dark:text-zinc-100"
+                                : "border-orange-300 bg-orange-50 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-100"
+                            }`}
                           >
-                            <option value="">{t("transactions.importModal.unknownAccountOption")}</option>
+                            <option value="">{t("transactions.importModal.transferToChoose")}</option>
+                            <option value="external">{t("transactions.importModal.transferExternal")}</option>
                             {otherAccounts.map((a) => (
-                              <option key={a.id} value={a.id}>{a.name}</option>
+                              <option key={a.id} value={`internal:${a.id}`}>
+                                {t("transactions.importModal.transferInternalTo", { account: a.name })}
+                              </option>
                             ))}
                           </select>
                         </td>
                         <td className="px-3 py-2">
+                          {transferChoice[row.rowId]?.type === "external" && (
+                            <select
+                              value={categoryMap[row.rowId] ?? ""}
+                              onChange={(e) => setCategoryMap((prev) => ({ ...prev, [row.rowId]: e.target.value }))}
+                              className="w-full rounded border border-zinc-300 px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                            >
+                              <option value="">{t("transactions.importModal.toCategorize")}</option>
+                              {(row.kind === "expense" ? expenseCategories : incomeCategories).map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.icon ? `${c.icon} ` : ""}
+                                  {resolveCategoryName(c, t)}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
                           <button
-                            onClick={() => setIsTransfer((prev) => ({ ...prev, [row.rowId]: false }))}
+                            onClick={() => {
+                              setIsTransfer((prev) => ({ ...prev, [row.rowId]: false }));
+                              setTransferChoice((prev) => ({ ...prev, [row.rowId]: undefined }));
+                            }}
                             className="whitespace-nowrap rounded px-2 py-0.5 text-xs font-medium bg-zinc-100 text-muted-foreground hover:bg-zinc-200 dark:bg-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-600"
                           >
                             {t("transactions.importModal.unmarkTransfer")}
@@ -696,7 +872,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
             </button>
             <button
               onClick={() => void handleConfirm()}
-              disabled={isLoading || totalSelectedCount === 0}
+              disabled={isLoading || totalSelectedCount === 0 || pendingTransfers.length > 0}
               className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
             >
               {isLoading

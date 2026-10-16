@@ -78,3 +78,62 @@ export async function insertImportRules(
   if (error) return { inserted: 0 };
   return { inserted: toInsert.length };
 }
+
+/**
+ * Decides whether a transaction edit should feed an import rule (issue 116):
+ * only expenses/incomes (never transfers), only when the category actually
+ * changes to a non-null value, and only with a non-empty label to use as
+ * keyword. Returns the rule candidate, or null when nothing should be saved.
+ */
+export function ruleFromCategoryChange(input: {
+  kind: string;
+  previousCategoryId: string | null;
+  nextCategoryId: string | null | undefined;
+  description: string | null | undefined;
+}): { keyword: string; category_id: string; kind: "expense" | "income" } | null {
+  if (input.kind !== "expense" && input.kind !== "income") return null;
+  if (!input.nextCategoryId || input.nextCategoryId === input.previousCategoryId) return null;
+  const keyword = input.description?.trim();
+  if (!keyword) return null;
+  return { keyword, category_id: input.nextCategoryId, kind: input.kind };
+}
+
+/**
+ * Creates the csv_import_rule for a keyword, or re-points the existing one
+ * (same kind, keyword compared case-insensitively) to the new category — no
+ * duplicate (issue 116). Past transactions are never touched. Read-then-write
+ * without locking, like nextRulePriority: call it sequentially.
+ */
+export async function upsertImportRule(
+  supabase: SupabaseClient,
+  spaceId: string,
+  userId: string,
+  rule: { keyword: string; category_id: string; kind: "expense" | "income" },
+): Promise<{ status: "created" | "updated" } | { status: "error"; message: string }> {
+  const keyword = rule.keyword.trim();
+  const { data: existing, error: readError } = await supabase
+    .from("csv_import_rules")
+    .select("id, keyword")
+    .eq("space_id", spaceId)
+    .eq("kind", rule.kind);
+  if (readError) return { status: "error", message: readError.message };
+
+  const match = ((existing ?? []) as { id: string; keyword: string }[]).find(
+    (r) => r.keyword.trim().toLowerCase() === keyword.toLowerCase(),
+  );
+
+  if (match) {
+    const { error } = await supabase
+      .from("csv_import_rules")
+      .update({ category_id: rule.category_id })
+      .eq("id", match.id)
+      .eq("space_id", spaceId);
+    return error ? { status: "error", message: error.message } : { status: "updated" };
+  }
+
+  const priority = await nextRulePriority(supabase, spaceId);
+  const { error } = await supabase
+    .from("csv_import_rules")
+    .insert({ keyword, category_id: rule.category_id, kind: rule.kind, space_id: spaceId, user_id: userId, priority });
+  return error ? { status: "error", message: error.message } : { status: "created" };
+}
