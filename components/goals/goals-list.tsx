@@ -10,6 +10,7 @@ import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { progressFillTransform } from "@/lib/dashboard/progress-fill";
 import { formatEuros } from "@/lib/format";
 
 type Goal = {
@@ -118,9 +119,9 @@ export function GoalsList() {
                 {/* Progress bar */}
                 <div className="mb-2 h-2.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full transition-all"
+                    className="h-full w-full rounded-full transition-transform duration-300 ease-out motion-reduce:transition-none"
                     style={{
-                      width: `${pct}%`,
+                      transform: progressFillTransform(pct),
                       backgroundColor: goal.color ?? "#3b82f6",
                     }}
                   />
