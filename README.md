@@ -86,3 +86,7 @@ Le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) (push
 4. Push sur `main` pour déclencher le pipeline.
 
 Roadmap publique : [`/plan`](https://github.com/Ant3xes/budget_web_app) (route `/plan` dans l’app, sans auth).
+
+## Licence
+
+Tous droits réservés (voir [`LICENSE`](./LICENSE)). Le code est public à titre de portfolio : il n'est pas sous licence de réutilisation.

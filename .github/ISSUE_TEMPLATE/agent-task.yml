@@ -1,0 +1,32 @@
+name: Tâche pour agent
+description: Tâche découpée, prête à être prise en charge par un agent
+labels: ["ready-for-agent"]
+body:
+  - type: textarea
+    id: contexte
+    attributes:
+      label: Contexte
+      description: Pourquoi cette tâche, issue parente, décisions déjà prises.
+    validations:
+      required: true
+  - type: textarea
+    id: criteres
+    attributes:
+      label: Critères d'acceptation
+      description: Liste vérifiable (une case à cocher par critère).
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+  - type: textarea
+    id: fichiers
+    attributes:
+      label: Fichiers concernés
+      description: Fichiers possédés par la tâche et ceux à ne pas toucher.
+  - type: checkboxes
+    id: tests
+    attributes:
+      label: Tests attendus
+      options:
+        - label: Unitaires (Vitest)
+        - label: pgTAP (supabase/tests)
+        - label: E2E (Playwright)

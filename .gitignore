@@ -45,3 +45,7 @@ next-env.d.ts
 
 # signed-in smoke test
 /smoke-login-failure.png
+
+# playwright / lighthouse artifacts
+/playwright-report/
+/test-results/
