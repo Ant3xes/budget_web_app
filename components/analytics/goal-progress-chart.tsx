@@ -58,7 +58,7 @@ export function GoalProgressChart({ points, series, manualGoals, height = 260 }:
         <ChartEmptyState />
       ) : (
         <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
-          <LineChart data={points} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+          <LineChart accessibilityLayer data={points} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
             <YAxis tickFormatter={formatEurosAxisTick} tick={{ fontSize: 11 }} width={isMobile ? Math.round(48 * 0.7) : 48} axisLine={false} tickLine={false} />

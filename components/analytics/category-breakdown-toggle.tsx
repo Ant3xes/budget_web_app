@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { DonutChart } from "@/components/dashboard/donut-chart";
+import { DonutChart } from "@/components/analytics/deferred-charts";
 import { useLocale } from "@/components/locale-provider";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 

@@ -74,7 +74,7 @@ export function CashflowChart({ data, transferData, height = 280 }: CashflowChar
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
-      <ComposedChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+      <ComposedChart accessibilityLayer data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
         <YAxis

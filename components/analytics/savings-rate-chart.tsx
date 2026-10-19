@@ -52,7 +52,7 @@ export function SavingsRateChart({ data, height = 220 }: SavingsRateChartProps) 
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
-      <LineChart data={points} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+      <LineChart accessibilityLayer data={points} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
         <YAxis

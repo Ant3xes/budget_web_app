@@ -6,6 +6,8 @@ import type { TooltipValueType } from "recharts"
 
 import { useNonce } from "@/lib/csp/nonce-context"
 import { cn } from "@/lib/utils"
+import { useLocale } from "@/components/locale-provider"
+import { describeChartData } from "@/components/dashboard/chart-summary"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
@@ -57,6 +59,13 @@ function ChartContainer({
     height: number
   }
 }) {
+  const { t, locale } = useLocale()
+  const data = React.isValidElement<{ data?: unknown[] }>(children) ? children.props.data ?? [] : []
+  const series = Object.values(config).map((item) => typeof item.label === "string" ? item.label : "").filter(Boolean).join(" / ")
+  const summary = t("analytics.accessibility.summary", {
+    series: series || t("analytics.accessibility.values"),
+    values: describeChartData(data, Object.keys(config), locale),
+  })
   const uniqueId = React.useId()
   const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
 
@@ -84,6 +93,8 @@ function ChartContainer({
   return (
     <ChartContext.Provider value={{ config }}>
       <div
+        role="img"
+        aria-label={summary}
         data-slot="chart"
         data-chart={chartId}
         className={cn(

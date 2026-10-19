@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { DivergingBarChart } from "@/components/analytics/diverging-bar-chart";
+import { DivergingBarChart } from "@/components/analytics/deferred-charts";
 import { useLocale } from "@/components/locale-provider";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 import { formatEuros } from "@/lib/format";

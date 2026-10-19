@@ -6,7 +6,7 @@ import { CategoryHistogramChart } from "@/components/analytics/category-histogra
 
 vi.mock("@/components/locale-provider", () => ({ useLocale: () => ({ t: (k: string) => k }) }));
 // recharts needs real layout (jsdom has none): stand-in listing the bars it would draw.
-vi.mock("@/components/analytics/diverging-bar-chart", () => ({
+vi.mock("@/components/analytics/deferred-charts", () => ({
   DivergingBarChart: ({ data }: { data: { id: string; label: string }[] }) => (
     <ul data-testid="bars">
       {data.map((d) => (

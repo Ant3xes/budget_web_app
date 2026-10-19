@@ -60,7 +60,7 @@ export function ExpenseTrendChart({ data, height = 240 }: ExpenseTrendChartProps
         </p>
       )}
       <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
-        <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+        <LineChart accessibilityLayer data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
           <YAxis

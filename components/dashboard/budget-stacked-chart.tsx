@@ -127,7 +127,7 @@ export function BudgetStackedChart({ rows, transactionsByCategory }: BudgetStack
         <ViewAllLink href="/goals" />
       </div>
       <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height: 280 }}>
-        <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: bottomMargin }}>
+        <BarChart accessibilityLayer data={data} margin={{ top: 4, right: 8, left: 0, bottom: bottomMargin }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="label"

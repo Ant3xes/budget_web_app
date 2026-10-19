@@ -46,7 +46,7 @@ export function YearOverYearChart({ data, height = 280 }: YearOverYearChartProps
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
-      <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+      <BarChart accessibilityLayer data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
         <YAxis tickFormatter={formatEurosAxisTick} tick={{ fontSize: 11 }} width={isMobile ? Math.round(48 * 0.7) : 48} axisLine={false} tickLine={false} />
