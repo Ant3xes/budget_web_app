@@ -1,0 +1,56 @@
+name: Migrations dry-run
+
+on:
+  pull_request:
+    paths: ['supabase/migrations/**']
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - name: Check secrets
+        id: secrets
+        run: |
+          missing=""
+          for v in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_DB_PASSWORD; do
+            if [ -z "${!v}" ]; then missing="$missing $v"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Dry-run distant ignoré (fork/Dependabot ou secrets absents) :$missing. La CI conserve les tests de migrations locaux."
+            echo "Dry-run distant ignoré : secrets absents (fork/Dependabot possible). Voir les tests locaux du workflow CI." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.secrets.outputs.ready == 'true'
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - if: steps.secrets.outputs.ready == 'true'
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3
+        with:
+          version: 2.116.0
+      - name: Simulate database migrations (read-only)
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          log="$RUNNER_TEMP/migrations-dry-run.txt"
+          status=0
+          supabase db push --dry-run 2>&1 | tee "$log" || status=$?
+          {
+            echo '### Migrations de la PR (simulation, aucune application)'
+            echo '```text'
+            cat "$log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"

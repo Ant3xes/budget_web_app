@@ -67,7 +67,7 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - uses: supabase/setup-cli@v3
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3
         with:
           version: 2.116.0
 
@@ -135,7 +135,7 @@ jobs:
       # anonymous requests to /login, which a plain HTTP crawler can't get
       # past, so they're covered by e2e/a11y.spec.ts's own navigation instead.
       - name: Link checker (public pages)
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
         with:
           args: >-
             --base-url http://localhost:3000
