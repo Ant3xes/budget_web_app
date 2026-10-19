@@ -94,7 +94,8 @@ describe("import preview coverage", () => {
     const response = await run(file("broken", "broken.xls"));
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: "Impossible de lire le fichier XLS" });
-    expect(log).toHaveBeenCalledWith("[import/preview] XLS parse error:", expect.any(Error));
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(String(log.mock.calls[0]![0])).toContain("[import/preview] XLS parse error: internal parser detail");
     log.mockRestore();
   });
   it("rejects a recognized BNP header without usable transactions", async () => {

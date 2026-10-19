@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { withSpace } from "@/lib/spaces/with-space";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const budgetUpdateSchema = z.object({
   amount_cents: z.number().int().positive().optional(),
@@ -12,9 +13,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const payload = budgetUpdateSchema.safeParse(await request.json());
+  const payload = budgetUpdateSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }
@@ -36,6 +39,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   const { error } = await auth.supabase

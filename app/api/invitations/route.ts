@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Personal spaces cannot be shared." }, { status: 400 });
   }
 
-  const payload = inviteSchema.safeParse(await request.json());
+  const payload = inviteSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json({ error: "Invalid email" }, { status: 400 });
   }

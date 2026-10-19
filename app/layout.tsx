@@ -7,6 +7,8 @@ import { Geist } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/lib/utils";
+import { NonceProvider } from "@/lib/csp/nonce-context";
+import { headers } from "next/headers";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -44,34 +46,41 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // CSP nonce set by proxy.ts for this request (issue 163). Reading request
+  // headers makes the pages dynamic, which a per-request nonce requires.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="fr" className={cn("h-full antialiased", "font-sans", geist.variable)} suppressHydrationWarning>
       <head>
         {/* Anti-FOUC: apply dark class before first paint */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark')}catch(e){}})()`,
           }}
         />
         {/* Anti-FOUC for <html lang>: keeps it in sync with the persisted locale before first paint, same idiom as the theme script above. */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var l=localStorage.getItem('locale');if(l==='en')document.documentElement.lang='en'}catch(e){}})()`,
           }}
         />
       </head>
       <body className="min-h-full bg-background text-foreground">
+        <NonceProvider value={nonce}>
         <ThemeProvider>
           <LocaleProvider>
             {children}
             <CookieBanner />
           </LocaleProvider>
         </ThemeProvider>
+        </NonceProvider>
         {/* Web Vitals réels (LCP, INP, TTFB…) collectés en production sur Vercel. */}
         <SpeedInsights />
         {/* Pages vues, cookieless — pas de bannière de consentement requise (voir #92). */}

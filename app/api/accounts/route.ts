@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = accountSchema.safeParse(await request.json());
+  const payload = accountSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }
@@ -76,7 +76,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = accountSchema.extend({ id: z.string().uuid() }).safeParse(await request.json());
+  const payload = accountSchema.extend({ id: z.string().uuid() }).safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }
@@ -107,7 +107,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = deleteSchema.safeParse(await request.json());
+  const payload = deleteSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json({ error: "Invalid account id" }, { status: 400 });
   }

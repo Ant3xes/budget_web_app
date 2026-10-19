@@ -104,7 +104,7 @@ export async function POST(request: Request) {
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const payload = budgetSchema.safeParse(await request.json());
+  const payload = budgetSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }

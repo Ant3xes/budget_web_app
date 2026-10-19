@@ -28,6 +28,7 @@ import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { AccountsList } from "@/components/accounts/accounts-list";
 import { AccountSelector } from "@/components/dashboard/account-selector";
 import { T } from "@/components/i18n/t";
+import { dashboardRpc } from "./helpers/dashboard-rpc-fake";
 
 const { requireSpaceContext, notFound } = vi.hoisted(() => ({
   requireSpaceContext: vi.fn(),
@@ -76,7 +77,11 @@ function database(tables: Record<string, Row[] | null>, rpcRows: Record<string, 
     };
     return query;
   });
-  return { from, rpc: vi.fn((name: string) => Promise.resolve({ data: rpcRows[name] ?? null, error: null })) };
+  return {
+    from,
+    rpc: vi.fn((name: string, args: Record<string, unknown> = {}) =>
+      Promise.resolve({ data: name.startsWith("dashboard_") ? dashboardRpc(name, args, tables) : (rpcRows[name] ?? null), error: null })),
+  };
 }
 const category = { name: "Courses test", color: "#123456", icon: "basket", is_default: true, translation_key: "categories.food" };
 function account(id = "current", overrides: Row = {}): Row {
@@ -241,14 +246,22 @@ describe("analytics and dashboard with accounts but failing data queries", () =>
     expect(props(tree, GoalProgressChart).manualGoals).toEqual([expect.objectContaining({ currentCents: 500 })]);
   });
 
-  it("treats failed budget-consumption and goal queries as empty", async () => {
+  it("keeps budget and goal totals from the SQL aggregates when the raw overlay rows come back empty", async () => {
     context({ accounts: [account()], transactions: [tx("spent", -900)], budgets: [
       { id: "budget", space_id: "space-test", month: "2026-10-01", category_id: "food", amount_cents: 5000, categories: category },
     ], savings_goals: [{ id: "linked", space_id: "space-test", name: "Lié", target_amount_cents: 1000, current_amount_cents: 0, linked_category_id: "food" }] },
-    "personal", {}, false, ["id, date, description, category_id, amount_cents", "category_id, amount_cents"]);
+    "personal", {}, false, ["id, date, description, category_id, amount_cents"]);
     const tree = await dashboard();
-    expect(props(tree, BudgetStackedChart).rows).toEqual([expect.objectContaining({ consumed: 0 })]);
-    expect(props(tree, SavingsGoalsSummary).goals).toEqual([expect.objectContaining({ currentCents: 0 })]);
+    // issue 162: totals no longer depend on the (capped) raw lines.
+    expect(props(tree, BudgetStackedChart).rows).toEqual([expect.objectContaining({ consumed: 900 })]);
+    expect(props(tree, BudgetStackedChart).transactionsByCategory).toEqual({});
+    expect(props(tree, SavingsGoalsSummary).goals).toEqual([expect.objectContaining({ currentCents: 900 })]);
+  });
+
+  it("throws on a Supabase error instead of rendering zeros (error.tsx takes over)", async () => {
+    const db = context({ accounts: [account()], transactions: [tx("spent", -900)] });
+    db.rpc.mockImplementation((() => Promise.resolve({ data: null, error: { message: "permission denied", code: "42501" } })) as never);
+    await expect(dashboard()).rejects.toThrow("permission denied");
   });
 
   it("shows an empty dashboard with accounts but no data", async () => {

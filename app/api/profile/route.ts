@@ -18,6 +18,9 @@ const passwordSchema = z
     path: ["confirm"],
   });
 
+// Any JSON object; the branch schemas below validate the fields (issue 163).
+const bodySchema = z.record(z.string(), z.unknown());
+
 const withUser = async () => {
   const supabase = await createServerSupabaseClient();
   const {
@@ -37,7 +40,11 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as Record<string, unknown>;
+  const parsedBody = bodySchema.safeParse(await request.json().catch(() => null));
+  if (!parsedBody.success) {
+    return NextResponse.json({ error: "Invalid data" }, { status: 400 });
+  }
+  const body = parsedBody.data;
 
   if ("full_name" in body) {
     const payload = nameSchema.safeParse(body);

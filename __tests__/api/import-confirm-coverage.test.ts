@@ -32,7 +32,7 @@ describe("import confirm failure boundaries", () => {
     const { rpc } = setup({ accounts: { data: null, error: { message: "Accounts denied" } } });
     const response = await POST(request({ account_id: account, transactions: [expense] }));
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "Accounts denied" });
+    expect(await response.json()).toEqual({ error: "Request failed" });
     expect(rpc).not.toHaveBeenCalled();
   });
   it("treats null account data as an unknown target account", async () => {

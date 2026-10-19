@@ -62,7 +62,7 @@ describe.each(["POST", "PATCH"])("%s category name reuse", (method) => {
   async function invoke() {
     return method === "POST"
       ? POST(request(method))
-      : PATCH(request(method), { params: Promise.resolve({ id: "category-test-id" }) });
+      : PATCH(request(method), { params: Promise.resolve({ id: "00000000-0000-4000-8000-0000000000c1" }) });
   }
 
   it("accepts the database write when only a deleted category has that name", async () => {
@@ -86,10 +86,10 @@ describe.each(["POST", "PATCH"])("%s category name reuse", (method) => {
         icon: null,
       });
     } else {
-      expect(existing.eq).toHaveBeenCalledWith("id", "category-test-id");
+      expect(existing.eq).toHaveBeenCalledWith("id", "00000000-0000-4000-8000-0000000000c1");
       expect(existing.eq).toHaveBeenCalledWith("space_id", "space-test-id");
       expect(write.update).toHaveBeenCalledWith({ name: "Test category", kind: "expense" });
-      expect(write.eq).toHaveBeenCalledWith("id", "category-test-id");
+      expect(write.eq).toHaveBeenCalledWith("id", "00000000-0000-4000-8000-0000000000c1");
       expect(write.eq).toHaveBeenCalledWith("space_id", "space-test-id");
       expect(write.is).toHaveBeenCalledWith("deleted_at", null);
     }

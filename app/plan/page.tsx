@@ -65,12 +65,12 @@ export default function PlanPage() {
           État d&apos;avancement du projet et décisions d&apos;architecture. Contenu statique, mis à
           jour au déploiement.{" "}
           <a
-            href="https://github.com/Ant3xes/budget_web_app/blob/main/PRD.md"
+            href="https://github.com/Ant3xes/budget_web_app/tree/main/docs"
             className="underline underline-offset-2 hover:text-foreground"
             target="_blank"
             rel="noreferrer"
           >
-            Voir PRD.md
+            Voir la documentation (PRD, ADR)
           </a>
         </p>
       </header>

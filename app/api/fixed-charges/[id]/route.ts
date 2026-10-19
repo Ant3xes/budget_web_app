@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { uuidSchema } from "@/lib/validation/uuid";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const fixedChargeUpdateSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
@@ -23,9 +24,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const payload = fixedChargeUpdateSchema.safeParse(await request.json());
+  const payload = fixedChargeUpdateSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }
@@ -47,6 +50,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   const { error } = await auth.supabase

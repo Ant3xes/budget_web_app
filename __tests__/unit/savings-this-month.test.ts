@@ -7,6 +7,7 @@ import { SavingsThisMonth } from "@/components/dashboard/savings-this-month";
 const { requireSpaceContext } = vi.hoisted(() => ({ requireSpaceContext: vi.fn() }));
 vi.mock("@/lib/spaces/context", () => ({ requireSpaceContext }));
 
+import { dashboardRpc } from "./helpers/dashboard-rpc-fake";
 import DashboardPage from "@/app/(app)/dashboard/page";
 
 describe("computeSavingsThisMonthCents", () => {
@@ -83,6 +84,8 @@ describe("dashboard savings query and calculation", () => {
         from: (table: string) => queryRows(
           table === "accounts" ? accounts : table === "transactions" ? transactions : [],
         ),
+        rpc: (name: string, args: Record<string, unknown>) =>
+          Promise.resolve({ data: dashboardRpc(name, args, { accounts, transactions }), error: null }),
       },
     });
     const page = await DashboardPage({

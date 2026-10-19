@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withSpace } from "@/lib/spaces/with-space";
 import { fetchTransferCounterparts } from "@/lib/transactions/transfer-counterparts";
 import { netExpenseCents, sumReimbursements } from "@/lib/transactions/net-amount";
+import { escapeLike } from "@/lib/api/escape-like";
 import { uuidSchema } from "@/lib/validation/uuid";
 
 const transactionSchema = z.object({
@@ -84,7 +85,7 @@ export async function GET(request: Request) {
   if (uncategorized) builder = builder.is("category_id", null);
   if (date_from) builder = builder.gte("date", date_from);
   if (date_to) builder = builder.lte("date", date_to);
-  if (q) builder = builder.ilike("description", `%${q}%`);
+  if (q) builder = builder.ilike("description", `%${escapeLike(q)}%`);
 
   const { data, error, count } = await builder;
 

@@ -43,7 +43,12 @@ export async function POST(request: Request) {
   }
   const { supabase, user, spaceId } = auth;
 
-  const body = await request.json() as unknown;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
   const payload = confirmSchema.safeParse(body);
   if (!payload.success) {
     const issue = payload.error.issues[0];
@@ -89,7 +94,7 @@ export async function POST(request: Request) {
     .in("id", accountIds);
 
   if (accountsError) {
-    return NextResponse.json({ error: accountsError.message }, { status: 400 });
+    return pgErrorResponse(accountsError);
   }
   const knownAccountIds = new Set((spaceAccounts ?? []).map((account: { id: string }) => account.id));
   if (!accountIds.every((id) => knownAccountIds.has(id))) {
@@ -115,11 +120,18 @@ export async function POST(request: Request) {
 
   // Members and default split of each distinct target space, loaded once.
   const targets = new Map<string, { memberIds: string[]; defaultPercent: number }>();
-  for (const targetId of new Set(sharedRows.map((tx) => tx.share!.space_id))) {
-    const [membersResult, spaceResult] = await Promise.all([
-      supabase.from("space_members").select("user_id").eq("space_id", targetId),
-      supabase.from("spaces").select("default_share_percent").eq("id", targetId).maybeSingle(),
-    ]);
+  // Target spaces are looked up concurrently, not one after the other (issue 163).
+  const targetIds = [...new Set(sharedRows.map((tx) => tx.share!.space_id))];
+  const lookups = await Promise.all(
+    targetIds.map(async (targetId) => {
+      const [membersResult, spaceResult] = await Promise.all([
+        supabase.from("space_members").select("user_id").eq("space_id", targetId),
+        supabase.from("spaces").select("default_share_percent").eq("id", targetId).maybeSingle(),
+      ]);
+      return { targetId, membersResult, spaceResult };
+    }),
+  );
+  for (const { targetId, membersResult, spaceResult } of lookups) {
     if (membersResult.error) return pgErrorResponse(membersResult.error);
     if (spaceResult.error) return pgErrorResponse(spaceResult.error);
     targets.set(targetId, {
