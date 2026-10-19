@@ -61,6 +61,58 @@ test.describe("Transactions", () => {
     await login(page);
   });
 
+  test("server rows hydrate without API requests", async ({ page }) => {
+    const requests: string[] = [];
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname.startsWith("/api/")) requests.push(request.url());
+    });
+    await page.goto("/transactions");
+    await expect(page.locator("tbody tr").first()).toBeVisible();
+    // Wait for a real hydrated interaction rather than assuming page load means hydration.
+    await page.getByRole("button", { name: "+ Ajouter" }).click();
+    await expect(page.getByRole("menuitem", { name: "+ Dépense" })).toBeVisible();
+    expect(requests).toEqual([]);
+  });
+
+  test("filters, pagination, editing and deletion survive server preload", async ({ page }) => {
+    await createAccounts(page, ["Compte filtres issue 168"]);
+    const accountsResponse = await page.request.get("/api/accounts");
+    const accounts: { accounts: { id: string; name: string }[] } = await accountsResponse.json();
+    const account = accounts.accounts.find((entry) => entry.name === "Compte filtres issue 168");
+    if (!account) throw new Error("Missing test account");
+    const categoriesResponse = await page.request.get("/api/categories");
+    const categories: { categories: { id: string; kind: string }[] } = await categoriesResponse.json();
+    const category = categories.categories.find((entry) => entry.kind === "expense");
+    if (!category) throw new Error("Missing seed expense category");
+    const description = `Parcours issue 168 ${Date.now()}`;
+    const created = await page.request.post("/api/transactions", { data: { account_id: account.id, kind: "expense", amount_cents: -1250, date: "2026-10-19", description, category_id: category.id } });
+    expect(created.ok()).toBeTruthy();
+    await page.goto("/transactions");
+    const next = page.getByRole("button", { name: /suiv/i });
+    await next.click();
+    await expect(page.getByText(/2 \/ \d/)).toBeVisible();
+    await page.getByRole("button", { name: "Dépenses", exact: true }).click();
+    await page.getByLabel("Compte", { exact: true }).selectOption(account.id);
+    await page.getByLabel("Catégorie", { exact: true }).selectOption(category.id);
+    await page.getByLabel("Du", { exact: true }).fill("2026-10-01");
+    await page.getByLabel("Au", { exact: true }).fill("2026-10-31");
+    await page.getByPlaceholder("Rechercher…").locator("visible=true").fill(description);
+    await page.getByPlaceholder("Rechercher…").locator("visible=true").press("Enter");
+    const row = page.locator("tbody tr").filter({ hasText: description });
+    await expect(row).toBeVisible();
+    await row.getByRole("button", { name: description, exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/description/i).fill(`${description} modifiée`);
+    await dialog.getByRole("button", { name: /mettre à jour/i }).click();
+    await expect(row).toContainText(`${description} modifiée`);
+    await row.getByRole("button", { name: "Supprimer", exact: true }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Supprimer", exact: true }).click();
+    await expect(row).toHaveCount(0);
+    const remainingResponse = await page.request.get(`/api/transactions?q=${encodeURIComponent(description)}`);
+    const remaining: { total: number } = await remainingResponse.json();
+    expect(remaining.total).toBe(0);
+  });
+
   test("transactions page loads", async ({ page }) => {
     await page.goto("/transactions");
     await expect(page.getByRole("heading", { name: "Transactions", exact: true })).toBeVisible();
