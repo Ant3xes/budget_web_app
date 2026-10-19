@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 /**
  * Batch-fetches the counterpart account (the transfer_credit side) for a set
@@ -9,7 +10,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * destination (issue 114).
  */
 export async function fetchTransferCounterparts(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
   transferIds: string[],
 ): Promise<Record<string, { id: string; name: string } | null>> {

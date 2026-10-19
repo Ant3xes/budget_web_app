@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Database } from "@/lib/supabase/database.types";
 import { z } from "zod";
 
 import { ConversionError, planConversion, type DbKind } from "@/lib/transactions/convert-transaction";
@@ -212,7 +213,8 @@ async function convertTransaction(
     p_mirror_kind: plan.mirror?.kind ?? null,
     p_mirror_account_id: plan.mirror?.accountId ?? null,
     p_mirror_amount_cents: plan.mirror?.amountCents ?? null,
-  });
+    // issue 164 : le générateur ne représente pas les arguments SQL nullables de ce RPC.
+  } as Database["public"]["Functions"]["convert_transaction"]["Args"]);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 import { findMatchingRule } from "@/lib/import/apply-rules";
 import { fetchAllPages } from "@/lib/shared-expenses/fetch-all-pages";
@@ -61,7 +62,7 @@ export const selectRetroCandidates = (
  * `ruleId` would share. Sorted by date, newest first.
  */
 export const fetchRetroCandidates = async (
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
   ruleId: string,
   since: string,

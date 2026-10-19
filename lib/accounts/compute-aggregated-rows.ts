@@ -1,3 +1,5 @@
+import type { Database } from "@/lib/supabase/database.types";
+
 /**
  * Adapters between the SQL aggregates of migration 20261016090000 (issue 121)
  * and the pure `compute*` series functions. The analytics page used to read
@@ -7,13 +9,13 @@
  */
 
 /** One row of `analytics_account_monthly_deltas`: anchor-filtered sum of an account's month. */
-export type AccountMonthlyDeltaRow = { account_id: string; month: string; total_cents: number | string };
+export type AccountMonthlyDeltaRow = Omit<Database["public"]["Functions"]["analytics_account_monthly_deltas"]["Returns"][number], "total_cents"> & { total_cents: number | string };
 
 /** One row of `analytics_goal_category_monthly`: sum of |amount| of a goal-linked category's month. */
-export type GoalCategoryMonthlyRow = { category_id: string; month: string; total_abs_cents: number | string };
+export type GoalCategoryMonthlyRow = Omit<Database["public"]["Functions"]["analytics_goal_category_monthly"]["Returns"][number], "total_abs_cents"> & { total_abs_cents: number | string };
 
 /** One row of `analytics_account_balances`: anchor-filtered sums up to today / up to the period end. */
-export type AccountBalanceRow = { account_id: string; today_cents: number | string; window_cents: number | string };
+export type AccountBalanceRow = Omit<Database["public"]["Functions"]["analytics_account_balances"]["Returns"][number], "today_cents" | "window_cents"> & { today_cents: number | string; window_cents: number | string };
 
 /**
  * A month's sum becomes a single pseudo-transaction dated the 1st of that

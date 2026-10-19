@@ -1,0 +1,10 @@
+pre-commit:
+  commands:
+    eslint:
+      glob: "*.{ts,tsx,mjs}"
+      run: npx --no-install eslint --fix {staged_files}
+      stage_fixed: true
+pre-push:
+  commands:
+    typecheck:
+      run: npm run typecheck

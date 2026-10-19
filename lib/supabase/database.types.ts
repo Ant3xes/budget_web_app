@@ -640,6 +640,7 @@ export type Database = {
           description?: string | null
           id?: string
           paid_by: string
+          reimbursed_cents?: number
           shares: Json
           source_transaction_id: string
           space_id: string
@@ -870,11 +871,132 @@ export type Database = {
     }
     Functions: {
       accept_space_invitation: { Args: { p_token: string }; Returns: string }
+      analytics_account_balances: {
+        Args: {
+          p_account_ids: string[]
+          p_space_id: string
+          p_today: string
+          p_window_to: string
+        }
+        Returns: {
+          account_id: string
+          today_cents: number
+          window_cents: number
+        }[]
+      }
+      analytics_account_monthly_deltas: {
+        Args: { p_account_ids: string[]; p_space_id: string }
+        Returns: {
+          account_id: string
+          month: string
+          total_cents: number
+        }[]
+      }
+      analytics_goal_category_monthly: {
+        Args: { p_account_ids: string[]; p_space_id: string }
+        Returns: {
+          category_id: string
+          month: string
+          total_abs_cents: number
+        }[]
+      }
       assert_valid_shares: {
         Args: { p_paid_by: string; p_shares: Json; p_space_id: string }
         Returns: undefined
       }
+      convert_transaction: {
+        Args: {
+          p_account_id: string
+          p_amount_cents: number
+          p_category_id: string
+          p_date: string
+          p_description: string
+          p_id: string
+          p_kind: string
+          p_mirror_account_id?: string
+          p_mirror_amount_cents?: number
+          p_mirror_kind?: string
+          p_notes: string
+          p_space_id: string
+        }
+        Returns: undefined
+      }
       create_shared_space: { Args: { p_name: string }; Returns: string }
+      dashboard_account_totals: {
+        Args: { p_space_id: string }
+        Returns: {
+          account_id: string
+          total_cents: number
+        }[]
+      }
+      dashboard_category_totals: {
+        Args: {
+          p_account_ids: string[]
+          p_from: string
+          p_scope: string
+          p_space_id: string
+          p_to: string
+          p_to_inclusive?: boolean
+        }
+        Returns: {
+          category_id: string
+          color: string
+          icon: string
+          is_default: boolean
+          kind: string
+          name: string
+          total_cents: number
+          translation_key: string
+        }[]
+      }
+      dashboard_goal_category_totals: {
+        Args: { p_space_id: string }
+        Returns: {
+          category_id: string
+          total_abs_cents: number
+        }[]
+      }
+      dashboard_monthly_totals: {
+        Args: {
+          p_account_ids: string[]
+          p_from: string
+          p_scope: string
+          p_space_id: string
+          p_to: string
+          p_to_inclusive?: boolean
+        }
+        Returns: {
+          kind: string
+          month: string
+          total_cents: number
+        }[]
+      }
+      dashboard_net_cents: {
+        Args: {
+          p_from: string
+          p_scope: string
+          p_space_id: string
+          p_to: string
+        }
+        Returns: number
+      }
+      dashboard_netted_activity: {
+        Args: {
+          p_account_ids: string[]
+          p_from: string
+          p_scope: string
+          p_space_id: string
+          p_to: string
+          p_to_inclusive?: boolean
+        }
+        Returns: {
+          category_id: string
+          id: string
+          kind: string
+          month: string
+          net_cents: number
+        }[]
+      }
       get_space_invitation: {
         Args: { p_token: string }
         Returns: {
@@ -884,23 +1006,6 @@ export type Database = {
           status: string
         }[]
       }
-      convert_transaction: {
-        Args: {
-          p_id: string
-          p_space_id: string
-          p_kind: string
-          p_account_id: string
-          p_amount_cents: number
-          p_date: string
-          p_description: string
-          p_category_id: string | null
-          p_notes: string | null
-          p_mirror_kind?: string | null
-          p_mirror_account_id?: string | null
-          p_mirror_amount_cents?: number | null
-        }
-        Returns: undefined
-      }
       import_transactions: {
         Args: { p_rows: Json; p_shares?: Json }
         Returns: number
@@ -908,10 +1013,12 @@ export type Database = {
       is_space_member: { Args: { p_space_id: string }; Returns: boolean }
       is_space_owner: { Args: { p_space_id: string }; Returns: boolean }
       personal_space_id: { Args: { p_user_id: string }; Returns: string }
+      reimbursed_total: { Args: { p_expense_id: string }; Returns: number }
       seed_default_categories: {
         Args: { p_space_id: string; p_user_id: string }
         Returns: undefined
       }
+      share_transactions: { Args: { p_shares: Json }; Returns: number }
       shares_space_with: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {

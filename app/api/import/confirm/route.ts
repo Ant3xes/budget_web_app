@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import type { Json } from "@/lib/supabase/database.types";
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
     category_id: string | null;
     transfer_id: string | null;
     is_imported: boolean;
-    raw_import_data: Record<string, unknown> | null;
+    raw_import_data: Json;
   };
 
   // Members and default split of each distinct target space, loaded once.

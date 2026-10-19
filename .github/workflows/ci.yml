@@ -83,8 +83,24 @@ jobs:
           done
           exit 1
 
+      - name: Vérifier la dérive des types Supabase
+        # `supabase gen types` tire l'image postgres-meta (exclue du démarrage
+        # ci-dessus) : même nouvel essai que pour `supabase start` en cas de
+        # "toomanyrequests" du registre.
+        run: |
+          for i in 1 2 3; do
+            npm run db:types && break
+            [ "$i" = 3 ] && { echo "Génération des types impossible après 3 tentatives."; exit 1; }
+            echo "gen types a échoué (tentative $i), nouvel essai..."
+            sleep 20
+          done
+          git diff --exit-code lib/supabase/database.types.ts || {
+            echo "Types Supabase obsolètes : lancez npm run db:reset puis npm run db:types et committez le fichier généré."
+            exit 1
+          }
+
       - name: Database tests
-        run: supabase test db
+        run: npm run test:db
 
       - name: Database lint
         run: supabase db lint --schema public --level error --fail-on error
