@@ -57,30 +57,26 @@ une dérive des types. Ne pas utiliser `supabase db push` pour le développement
 L'installation est ignorée en CI, sur Vercel et hors d'un checkout Git.
 Pour réinstaller les hooks localement : `npm run prepare`. Aucun formatage Prettier n'est ajouté.
 
-## Deploy (production)
+## Déploiement et migrations
 
-Le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) (push sur `main`) lance les tests, applique les migrations Supabase, puis déploie sur Vercel. La configuration des secrets reste **manuelle**.
+Vercel déploie l'application via son intégration Git. Après une CI verte sur `main`,
+[`Deploy`](.github/workflows/deploy.yml) simule les migrations Supabase (`plan`) et
+publie leur liste dans le résumé du job. Seulement si des migrations sont en attente,
+`apply` demande l'approbation **Ant3xes** via l'environnement **`production-migrations`**
+(limité à `main`, distinct de `Production` utilisé par Vercel), puis les applique.
+Sans migration en attente, aucune validation n'est demandée.
 
-### Prérequis
+Configurer les secrets **du dépôt** `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`
+et `SUPABASE_DB_PASSWORD` : leur absence fait échouer le plan automatique. Un lancement
+manuel sur `main` simule par défaut (`dry_run=true`, jamais d'application) ; sans
+secrets, il affiche un warning. Les PR touchant `supabase/migrations/**` ont un
+[dry-run distant](.github/workflows/migrations-dry-run.yml), ignoré avec notice si les
+secrets ne sont pas disponibles (fork/Dependabot) ; les tests locaux restent dans la CI.
 
-1. Projet **Supabase Cloud** avec les migrations appliquées (ou via le job `db push`).
-2. Projet **Vercel** lié au repo.
-3. Secrets GitHub Actions à créer dans le dépôt :
-
-| Secret | Usage |
-|--------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL projet Supabase Cloud (job deploy) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clé anon Cloud (job deploy) |
-| `SUPABASE_ACCESS_TOKEN` | Token CLI pour `supabase link` / `db push` |
-| `SUPABASE_PROJECT_REF` | Ref du projet Cloud |
-| `VERCEL_TOKEN` | Token déploiement Vercel |
-| `VERCEL_ORG_ID` | Org Vercel |
-| `VERCEL_PROJECT_ID` | Projet Vercel |
-| `SUPABASE_LOCAL_ANON_KEY` | Clé anon instance locale (job test CI) |
-| `E2E_TEST_EMAIL` | Compte de test Playwright |
-| `E2E_TEST_PASSWORD` | Mot de passe du compte de test |
-
-4. Push sur `main` pour déclencher le pipeline.
+Les migrations doivent être additives et rétro-compatibles (expand/contract).
+Avant le premier `apply`, relire le plan et vérifier les sauvegardes/PITR disponibles.
+Procédure d'approbation, retour arrière et désactivation :
+[ADR 0006](docs/adr/0006-migrations-production.md).
 
 Roadmap publique : [`/plan`](https://github.com/Ant3xes/budget_web_app) (route `/plan` dans l’app, sans auth).
 
