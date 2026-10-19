@@ -83,8 +83,16 @@ jobs:
           done
           exit 1
 
+      - name: Vérifier la dérive des types Supabase
+        run: |
+          npm run db:types
+          git diff --exit-code lib/supabase/database.types.ts || {
+            echo "Types Supabase obsolètes : lancez npm run db:reset puis npm run db:types et committez le fichier généré."
+            exit 1
+          }
+
       - name: Database tests
-        run: supabase test db
+        run: npm run test:db
 
       - name: Database lint
         run: supabase db lint --schema public --level error --fail-on error

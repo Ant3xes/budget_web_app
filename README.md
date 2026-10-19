@@ -21,44 +21,41 @@ Application web de suivi budgétaire et bancaire personnelle — 1 propriétaire
 | Phase 3 — Budget & Analytics | ✅ Done | Enveloppes budget, charges fixes, objectifs, dashboard Recharts |
 | Phase 4 — Finition | ✅ Done (deploy secrets manuel) | Profil, détail compte, `/plan`, dark mode, tests |
 
-## Local setup
+## Dev local
 
-1. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-2. Create `.env.local`:
-
-   ```bash
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   NEXT_PUBLIC_SITE_URL=http://localhost:3000
-   ```
-
-3. Start local Supabase and apply migrations:
-
-   ```bash
-   npx supabase start
-   npx supabase db push
-   ```
-
-4. Start the app:
-
-   ```bash
-   npm run dev
-   ```
-
-## Tests
+Prérequis : Node (voir `.nvmrc`), Docker démarré et Supabase CLI 2.116.0 (comme la CI).
 
 ```bash
-# Unit / integration
-npm run test
-
-# E2E (requires app + Supabase running)
-npx playwright test
+npm ci
+npm run db:start # supabase start, avec les services utiles à l'app uniquement
+npm run db:reset # applique les migrations et le seed, efface uniquement la base locale
+npm run db:types # régénère les types depuis cette base locale
 ```
+
+Créer `.env.local` avec l'URL et la clé anon **locales** fournies par `supabase status`,
+et `NEXT_PUBLIC_SITE_URL=http://localhost:3000`. Ne jamais committer ce fichier.
+Les utilisateurs de démonstration et leurs identifiants sont définis dans
+[`supabase/seed.sql`](supabase/seed.sql) : utiliser uniquement ces comptes locaux.
+
+```bash
+npm run dev
+npm run check # ESLint + TypeScript 7 + tests unitaires/API
+npm run test:db # pgTAP, stack locale requise
+npm run test:e2e # Playwright ; app + Supabase locaux configurés
+npm run build
+supabase stop --no-backup
+```
+
+Après chaque modification de migration, relancer `npm run db:reset` puis
+`npm run db:types` et committer `lib/supabase/database.types.ts` : la CI refuse
+une dérive des types. Ne pas utiliser `supabase db push` pour le développement local.
+
+`npm ci` / `npm install` installe les hooks Lefthook via `prepare` :
+- **pre-commit** : `eslint --fix` sur les fichiers staged `.ts`, `.tsx`, `.mjs`, puis restage des corrections ;
+- **pre-push** : `npm run typecheck`.
+
+L'installation est ignorée en CI, sur Vercel et hors d'un checkout Git.
+Pour réinstaller les hooks localement : `npm run prepare`. Aucun formatage Prettier n'est ajouté.
 
 ## Deploy (production)
 

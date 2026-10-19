@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 // ---------------------------------------------------------------------------
 // Transfer detection
@@ -209,7 +210,7 @@ type CsvImportRule = {
  * When multiple rules match, the one with the lowest priority value wins.
  */
 export async function buildRuleMatcher(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
 ): Promise<(description: string, kind: "expense" | "income") => string | null> {
   const { data } = await supabase
@@ -262,7 +263,7 @@ type CsvImportShareRule = {
  * the search and yields null (the rule the user sees applied wins).
  */
 export async function buildRuleShareMatcher(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
 ): Promise<(description: string, kind: "expense" | "income") => RuleShare | null> {
   const { data } = await supabase
@@ -292,7 +293,7 @@ export async function buildRuleShareMatcher(
  * Intended as a fallback when no import rule matches.
  */
 export async function buildHistoryMatcher(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
 ): Promise<(description: string, kind: "expense" | "income") => string | null> {
   const { data } = await supabase

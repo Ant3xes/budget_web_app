@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import type { TablesUpdate } from "@/lib/supabase/database.types";
+
 import { withSpace } from "@/lib/spaces/with-space";
 import { invalidIdResponse } from "@/lib/api/validate-id";
 
@@ -36,7 +38,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { amount_cents, date, description } = payload.data;
 
   // Build updates per kind
-  const commonUpdate: Record<string, unknown> = {};
+  const commonUpdate: TablesUpdate<"transactions"> = {};
   if (date !== undefined) commonUpdate.date = date;
   if (description !== undefined) commonUpdate.description = description;
 

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Tables } from "@/lib/supabase/database.types";
 
 import { fetchAllPages } from "@/lib/shared-expenses/fetch-all-pages";
 import { netExpenseCents } from "@/lib/transactions/net-amount";
@@ -21,7 +22,7 @@ export type ActivityRow = {
   kind: "expense";
   amount_cents: number;
   category_id: string | null;
-  categories: unknown;
+  categories: Pick<Tables<"categories">, "name" | "color" | "icon" | "is_default" | "translation_key"> | null;
 };
 
 type SharedExpenseRow = {
@@ -32,7 +33,7 @@ type SharedExpenseRow = {
   /** Reimbursed total of the source (ADR 0004, issue 123); absent on older rows. */
   reimbursed_cents?: number | null;
   category_id: string | null;
-  categories: unknown;
+  categories: Pick<Tables<"categories">, "name" | "color" | "icon" | "is_default" | "translation_key"> | null;
 };
 
 export const toActivityRow = (row: SharedExpenseRow): ActivityRow => ({
@@ -62,7 +63,7 @@ export type ActivityRange = {
  * totals built from them must be exhaustive.
  */
 export const fetchSharedExpenseActivity = async (
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
   range: ActivityRange,
 ): Promise<ActivityRow[]> => {

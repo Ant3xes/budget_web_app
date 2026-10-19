@@ -1,3 +1,4 @@
+import type { Tables } from "@/lib/supabase/database.types";
 import { Suspense, type ReactNode } from "react";
 import type { Metadata } from "next";
 
@@ -65,11 +66,10 @@ const ACCOUNT_TYPE_CHART_COLORS: Record<(typeof ACCOUNT_TYPES)[number], string> 
   autre: "var(--chart-5)",
 };
 
-type CategoryJoin = { name: string; color: string | null; icon: string | null; is_default: boolean; translation_key: string | null };
+type CategoryJoin = Pick<Tables<"categories">, "name" | "color" | "icon" | "is_default" | "translation_key">;
 
-/** Every category-joined query result comes back typed `unknown` (Supabase's embed typing) — one cast site instead of repeating `as unknown as CategoryJoin | null` at every call. */
-function toCategoryMeta(raw: unknown): CategoryJoin | null {
-  return raw as unknown as CategoryJoin | null;
+function toCategoryMeta(raw: CategoryJoin | null): CategoryJoin | null {
+  return raw;
 }
 
 /** One `<DashboardCard>` + heading, reused by every chart section below instead of repeating the same wrapper markup 10 times. */
@@ -299,7 +299,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
         description: string | null;
         amount_cents: number;
         category_id: string | null;
-        categories: unknown;
+        categories: CategoryJoin | null;
       }>([accountIds], () =>
         supabase
           .from("transactions")
@@ -320,7 +320,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       // Year-to-date expense transactions — feeds both the "cumul annuel"
       // side of the toggle and (filtered down) the "mois courant" side, one
       // query instead of two since the month is always inside the year.
-      runScopedQuery<{ id: string; amount_cents: number; date: string; category_id: string | null; categories: unknown }>(
+      runScopedQuery<{ id: string; amount_cents: number; date: string; category_id: string | null; categories: CategoryJoin | null }>(
         [accountIds],
         () =>
           supabase

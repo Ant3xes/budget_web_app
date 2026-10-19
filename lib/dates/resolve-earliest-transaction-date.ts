@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 /**
  * Earliest transaction date, or null with no transactions — needed to bound
@@ -22,7 +23,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * space's shared expenses and returns the earliest of the two.
  */
 export async function resolveEarliestTransactionDate(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
   accountIds?: string[],
   options: { includeSharedExpenses?: boolean } = {},

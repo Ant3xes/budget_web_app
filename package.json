@@ -11,7 +11,14 @@
     "test:watch": "NODE_OPTIONS=--disable-warning=DEP0205 vitest",
     "test:coverage": "NODE_OPTIONS=--disable-warning=DEP0205 vitest run --coverage",
     "typecheck": "node node_modules/typescript-7/bin/tsc --noEmit",
-    "bundle-size": "node scripts/check-bundle-size.mjs"
+    "bundle-size": "node scripts/check-bundle-size.mjs",
+    "db:start": "supabase start -x studio,logflare,vector,mailpit,edge-runtime,imgproxy,realtime,storage-api,postgres-meta,supavisor",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
+    "test:db": "supabase test db",
+    "test:e2e": "playwright test",
+    "check": "npm run lint && npm run typecheck && npm test",
+    "prepare": "node scripts/install-hooks.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -50,6 +57,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
     "jsdom": "^30.1.2",
+    "lefthook": "^2.2.2",
     "lighthouse": "^13.5.0",
     "shadcn": "^4.21.0",
     "tailwindcss": "^4",

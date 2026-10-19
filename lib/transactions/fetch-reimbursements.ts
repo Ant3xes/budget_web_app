@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 import { fetchAllPages } from "@/lib/shared-expenses/fetch-all-pages";
 import { buildReimbursementIndex, type ReimbursementIndex } from "@/lib/transactions/net-amount";
@@ -9,7 +10,7 @@ import { buildReimbursementIndex, type ReimbursementIndex } from "@/lib/transact
  * still lowers the original expense, and a refund on another account still stops
  * counting as income. Links are few, so one exhaustive read is cheap.
  */
-export async function fetchReimbursementIndex(supabase: SupabaseClient, spaceId: string): Promise<ReimbursementIndex> {
+export async function fetchReimbursementIndex(supabase: SupabaseClient<Database>, spaceId: string): Promise<ReimbursementIndex> {
   const rows = await fetchAllPages<{ id: string; amount_cents: number; reimburses_transaction_id: string | null }>(
     (from, to) =>
       supabase

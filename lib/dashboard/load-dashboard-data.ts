@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 import { computeExpenseByCategory } from "@/lib/accounts/compute-expense-by-category";
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
@@ -33,19 +34,8 @@ type CategoryJoin = {
   translation_key: string | null;
 };
 
-type CategoryTotalRow = {
-  category_id: string | null;
-  name: string | null;
-  color: string | null;
-  icon: string | null;
-  is_default: boolean | null;
-  translation_key: string | null;
-  kind: string;
-  total_cents: number | string;
-};
-type MonthlyTotalRow = { month: string; kind: string; total_cents: number | string };
-type AccountTotalRow = { account_id: string; total_cents: number | string };
-type GoalTotalRow = { category_id: string | null; total_abs_cents: number | string };
+type CategoryTotalRow = Database["public"]["Functions"]["dashboard_category_totals"]["Returns"][number];
+type MonthlyTotalRow = Database["public"]["Functions"]["dashboard_monthly_totals"]["Returns"][number];
 
 type RawOverlayRow = {
   id: string;
@@ -57,7 +47,7 @@ type RawOverlayRow = {
 };
 
 export interface DashboardParams {
-  supabase: SupabaseClient;
+  supabase: SupabaseClient<Database>;
   spaceId: string;
   spaceKind: string;
   searchParams: { period?: string; accounts?: string };
@@ -152,8 +142,8 @@ export async function loadDashboardData({ supabase, spaceId, spaceKind, searchPa
   const goals = unwrap(goalsRes) ?? [];
   const upcomingFixedCharges = unwrap(fixedChargesRes) ?? [];
   const paidFixedCharges = unwrap(paidFixedChargesRes) ?? [];
-  const accountTotalRows = (unwrap(accountTotalsRes) ?? []) as AccountTotalRow[];
-  const goalTotalRows = (unwrap(goalTotalsRes) ?? []) as GoalTotalRow[];
+  const accountTotalRows = unwrap(accountTotalsRes) ?? [];
+  const goalTotalRows = unwrap(goalTotalsRes) ?? [];
   const savingsThisMonthCents = computeSavingsThisMonthCents([{ amount_cents: Number(unwrap(savingsRes) ?? 0) }]);
 
   // Courant accounts + the account selector: every "activity" stat is scoped to the
@@ -231,7 +221,7 @@ export async function loadDashboardData({ supabase, spaceId, spaceKind, searchPa
         date: string;
         description: string | null;
         kind: string;
-        categories: unknown;
+        categories: Pick<CategoryJoin, "name" | "is_default" | "translation_key"> | null;
       }>([selectedCourantIds], () =>
         supabase
           .from("transactions")
@@ -302,7 +292,7 @@ export async function loadDashboardData({ supabase, spaceId, spaceKind, searchPa
       name: fc.name,
       amount_cents: fc.amount_cents,
       date: fc.next_due_date,
-      icon: (fc.categories as unknown as { icon: string | null } | null)?.icon ?? null,
+      icon: fc.categories?.icon ?? null,
       paid: false as const,
     })),
     ...paidFixedCharges.map((fc) => ({
@@ -310,7 +300,7 @@ export async function loadDashboardData({ supabase, spaceId, spaceKind, searchPa
       name: fc.name,
       amount_cents: fc.amount_cents,
       date: fc.last_paid_date as string,
-      icon: (fc.categories as unknown as { icon: string | null } | null)?.icon ?? null,
+      icon: fc.categories?.icon ?? null,
       paid: true as const,
     })),
   ];
@@ -334,7 +324,7 @@ export async function loadDashboardData({ supabase, spaceId, spaceKind, searchPa
       return { amount_cents: Number(r.total_cents), categoryName: r.name, categoryColor: r.color, categoryIcon: r.icon, categoryId: r.category_id };
     }),
     ...sharedPeriod.map((tx) => {
-      const cat = tx.categories as unknown as CategoryJoin | null;
+      const cat = tx.categories;
       if (tx.category_id) categoryMetaById.set(tx.category_id, cat);
       return { amount_cents: tx.amount_cents, categoryName: cat?.name ?? null, categoryColor: cat?.color ?? null, categoryIcon: cat?.icon ?? null, categoryId: tx.category_id };
     }),
@@ -370,7 +360,7 @@ export async function loadDashboardData({ supabase, spaceId, spaceKind, searchPa
   const budgetTransactionsByCategory = groupByCategoryId(applyReimbursements([...budgetOverlayRows, ...sharedBudgetRows], reimbursements));
   const budgetRows = budgets
     .map((b) => {
-      const category = b.categories as unknown as CategoryJoin | null;
+      const category = b.categories;
       return {
         id: b.id,
         categoryId: b.category_id,
@@ -403,7 +393,7 @@ export async function loadDashboardData({ supabase, spaceId, spaceKind, searchPa
     date: tx.date,
     description: tx.description,
     kind: tx.kind,
-    categories: tx.categories as unknown as { name: string; is_default: boolean; translation_key: string | null } | null,
+    categories: tx.categories,
   }));
 
   return {

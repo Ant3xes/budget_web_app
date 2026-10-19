@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 /**
  * Computes the next csv_import_rule priority for a space (max existing + 1,
@@ -10,7 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * callers that create several rules in one request should await them
  * sequentially rather than via Promise.all.
  */
-export async function nextRulePriority(supabase: SupabaseClient, spaceId: string): Promise<number> {
+export async function nextRulePriority(supabase: SupabaseClient<Database>, spaceId: string): Promise<number> {
   const { data: maxData } = await supabase
     .from("csv_import_rules")
     .select("priority")
@@ -46,7 +47,7 @@ export async function nextRulePriority(supabase: SupabaseClient, spaceId: string
  * nextRulePriority above) is left free to accept an intentional near-dupe.
  */
 export async function insertImportRules(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
   userId: string,
   rules: Array<{ keyword: string; category_id: string; kind: "expense" | "income" }>,
@@ -105,7 +106,7 @@ export function ruleFromCategoryChange(input: {
  * without locking, like nextRulePriority: call it sequentially.
  */
 export async function upsertImportRule(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
   userId: string,
   rule: { keyword: string; category_id: string; kind: "expense" | "income" },

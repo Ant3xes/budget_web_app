@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
 
 import { fetchAllPages } from "@/lib/shared-expenses/fetch-all-pages";
 
@@ -55,7 +56,7 @@ const toDay = (date: string) => date.slice(0, 10);
  * so an unpaged read silently misses every hash past the first thousand.
  */
 export async function findExistingHashes(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
   hashes: string[],
   accountId?: string | null,
@@ -80,7 +81,7 @@ export async function findExistingHashes(
     }),
 
     // 2. All transactions (manual, mirrors, etc.): compute hash client-side
-    fetchAllPages<{ date: string; description: string; amount_cents: number }>((from, to) => {
+    fetchAllPages<{ date: string; description: string | null; amount_cents: number }>((from, to) => {
       let query = supabase
         .from("transactions")
         .select("date, description, amount_cents")
@@ -100,7 +101,7 @@ export async function findExistingHashes(
   for (const row of otherRows) {
     const h = buildHash({
       date: toDay(row.date),
-      description: row.description,
+      description: row.description ?? "",
       amount_cents: row.amount_cents,
     });
     if (hashSet.has(h)) existing.add(h);
@@ -127,7 +128,7 @@ const dayString = (n: number) => new Date(n * DAY_MS).toISOString().slice(0, 10)
  * amount are not both swallowed by one mirror.
  */
 export async function findTransferMirrorMatches(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   spaceId: string,
   accountId: string,
   lines: { date: string; amount_cents: number }[],
