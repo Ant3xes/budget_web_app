@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -74,7 +75,7 @@ export function ApplyRulesModal({ onSuccess, onClose }: ApplyRulesModalProps) {
       setIsLoading(false);
       if (!rulesRes.ok) {
         const data = (await rulesRes.json()) as { error?: string };
-        setError(data.error ?? t("transactions.applyRules.loadError"));
+        setError(apiErrorMessage(data.error, t("transactions.applyRules.loadError"), t));
         return;
       }
       // The API also returns `unmatched_count` (the true total, since
@@ -135,7 +136,7 @@ export function ApplyRulesModal({ onSuccess, onClose }: ApplyRulesModalProps) {
 
     if (!res.ok) {
       const data = (await res.json()) as { error?: string };
-      setError(data.error ?? t("transactions.applyRules.applyError"));
+      setError(apiErrorMessage(data.error, t("transactions.applyRules.applyError"), t));
       return;
     }
 

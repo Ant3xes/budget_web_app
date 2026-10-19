@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,7 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? t("transactions.transfers.form.saveError"));
+      setError(apiErrorMessage(result.error, t("transactions.transfers.form.saveError"), t));
       return;
     }
 

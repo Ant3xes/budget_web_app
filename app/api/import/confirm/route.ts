@@ -1,3 +1,4 @@
+import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { randomUUID } from "crypto";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (auth.isDemo) return demoReadOnlyResponse();
   const { supabase, user, spaceId } = auth;
 
   let body: unknown;

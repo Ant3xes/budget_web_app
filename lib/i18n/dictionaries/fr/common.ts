@@ -4,6 +4,11 @@
  * in every form/list across the app.
  */
 export const common = {
+  demo: {
+    banner: "Mode demo : lecture seule, donnees fictives",
+    exit: "Quitter la demo",
+    readOnly: "Compte demo en lecture seule",
+  },
   actions: {
     edit: "Modifier",
     delete: "Supprimer",

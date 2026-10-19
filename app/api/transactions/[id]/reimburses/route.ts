@@ -1,3 +1,4 @@
+import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -60,6 +61,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (auth.isDemo) return demoReadOnlyResponse();
   const { id } = await params;
   const badId = invalidIdResponse(id);
   if (badId) return badId;

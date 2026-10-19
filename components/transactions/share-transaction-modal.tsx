@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -44,9 +45,9 @@ interface ShareTransactionModalProps {
 const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
-const readError = async (res: Response, fallback: string) => {
+const readError = async (res: Response, fallback: string, t: (key: string) => string) => {
   const data = (await res.json().catch(() => null)) as { error?: string } | null;
-  return data?.error ?? fallback;
+  return apiErrorMessage(data?.error, fallback, t);
 };
 
 export function ShareTransactionModal({
@@ -155,7 +156,7 @@ export function ShareTransactionModal({
         });
     setIsSubmitting(false);
     if (!res.ok) {
-      setError(await readError(res, t("sharedExpenses.modal.saveError")));
+      setError(await readError(res, t("sharedExpenses.modal.saveError"), t));
       return;
     }
     onSuccess();
@@ -169,7 +170,7 @@ export function ShareTransactionModal({
     setIsUnsharing(false);
     if (!res.ok) {
       setConfirmUnshare(false);
-      setError(await readError(res, t("sharedExpenses.modal.unshareError")));
+      setError(await readError(res, t("sharedExpenses.modal.unshareError"), t));
       return;
     }
     onSuccess();

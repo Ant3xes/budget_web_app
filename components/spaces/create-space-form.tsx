@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,8 @@ export function CreateSpaceForm() {
     setSubmitting(false);
 
     if (!response.ok) {
-      setError(t("invitations.create.error"));
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setError(apiErrorMessage(payload?.error, t("invitations.create.error"), t));
       return;
     }
 

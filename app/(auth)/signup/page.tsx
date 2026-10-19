@@ -8,7 +8,7 @@ import { LegalConsentNotice } from "@/components/legal-consent-notice";
 import { nextQuery, safeNext } from "@/lib/auth/safe-next";
 import { hasSupabaseConfig } from "@/lib/supabase/config";
 
-import { signup } from "../actions";
+import { demoLogin, signup } from "../actions";
 
 export const metadata: Metadata = {
   title: "Inscription",
@@ -69,6 +69,13 @@ export default async function SignupPage({
             </button>
           </form>
         )}
+        {hasSupabaseConfig && process.env.DEMO_USER_EMAIL && process.env.DEMO_USER_PASSWORD ? (
+          <form action={demoLogin} className="mt-4">
+            <button type="submit" className="h-11 w-full rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-muted">
+              <T k="auth.demo.view" />
+            </button>
+          </form>
+        ) : null}
         <AuthMessage message={params.message} />
         <p className="mt-4 text-sm text-muted-foreground">
           <T k="auth.signup.alreadyRegistered" />{" "}

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { ExpenseReimbursements, IncomeReimburses } from "@/components/transactions/reimbursements-section";
 import { Modal } from "@/components/ui/modal";
@@ -193,7 +194,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, rawLabel,
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? t("transactions.form.saveError"));
+      setError(apiErrorMessage(result.error, t("transactions.form.saveError"), t));
       return;
     }
 
@@ -393,7 +394,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, rawLabel,
           </p>
         ) : null}
 
-        {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+        {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
         <div className="flex gap-2 pt-2">
           <Button type="submit" disabled={isSubmitting || ruleMessage !== null}>

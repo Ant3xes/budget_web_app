@@ -1,3 +1,4 @@
+import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -69,6 +70,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   const payload = fixedChargeSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
