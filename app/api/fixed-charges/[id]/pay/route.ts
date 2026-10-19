@@ -1,3 +1,4 @@
+import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 
 import { todayISO } from "@/lib/dates/period";
@@ -21,6 +22,7 @@ import { invalidIdResponse } from "@/lib/api/validate-id";
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   const { id } = await params;
   const badId = invalidIdResponse(id);

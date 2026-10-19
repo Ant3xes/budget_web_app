@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import type { BalanceMember, BalanceTransfer } from "@/components/balance/types";
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,7 +102,7 @@ function SettlementForm({
       });
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        setError(payload?.error ?? t("balance.modal.errorGeneric"));
+        setError(apiErrorMessage(payload?.error, t("balance.modal.errorGeneric"), t));
         return;
       }
       router.refresh();

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { createAccountFormSchema } from "@/lib/accounts/account-form-schema";
 import { formatCentsToEuros } from "@/lib/accounts/parse-euros-to-cents";
@@ -81,7 +82,7 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? t("accounts.form.saveError"));
+      setError(apiErrorMessage(result.error, t("accounts.form.saveError"), t));
       return;
     }
 

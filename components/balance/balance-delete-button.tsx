@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,8 @@ export function BalanceDeleteButton({
     try {
       const response = await fetch(url, { method: "DELETE" });
       if (!response.ok) {
-        setError(t(errorKey));
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setError(apiErrorMessage(payload?.error, t(errorKey), t));
         return;
       }
       router.refresh();

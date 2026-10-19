@@ -1,3 +1,4 @@
+import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { randomUUID } from "node:crypto";
 
 import { NextResponse } from "next/server";
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   if (auth.space.kind !== "shared") {
     return NextResponse.json({ error: "Personal spaces cannot be shared." }, { status: 400 });

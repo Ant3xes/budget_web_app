@@ -1,3 +1,4 @@
+import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -26,6 +27,7 @@ const addFundsSchema = z.object({
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   const { id } = await params;
   const badId = invalidIdResponse(id);
@@ -85,6 +87,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   const { id } = await params;
   const badId = invalidIdResponse(id);

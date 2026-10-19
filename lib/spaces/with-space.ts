@@ -3,6 +3,9 @@ import { getSpaceContext } from "@/lib/spaces/context";
 /**
  * Route-handler entry point (replaces the per-route `withUser()` helpers).
  * Returns `null` when unauthenticated — callers answer 401.
+ * Persistent mutations check auth.isDemo before writing (issue 166): RLS can
+ * silently affect zero rows on UPDATE/DELETE. The status is already loaded
+ * once by getSpaceContext; no post-write RPC is needed on a normal success.
  *
  * Usage:
  *   const auth = await withSpace();

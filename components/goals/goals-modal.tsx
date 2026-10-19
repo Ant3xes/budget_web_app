@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Modal } from "@/components/ui/modal";
 import { CATEGORY_COLOR_FALLBACK, CATEGORY_COLOR_SWATCHES } from "@/lib/constants";
@@ -138,7 +139,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? t("goals.modal.saveError"));
+      setError(apiErrorMessage(result.error, t("goals.modal.saveError"), t));
       return;
     }
 

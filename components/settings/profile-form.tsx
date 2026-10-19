@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,7 +79,7 @@ export function ProfileForm({ initialFullName }: ProfileFormProps) {
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setNameError(result.error ?? t("profile.info.saveError"));
+      setNameError(apiErrorMessage(result.error, t("profile.info.saveError"), t));
       return;
     }
 
@@ -98,7 +99,7 @@ export function ProfileForm({ initialFullName }: ProfileFormProps) {
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setPasswordError(result.error ?? t("profile.security.changeError"));
+      setPasswordError(apiErrorMessage(result.error, t("profile.security.changeError"), t));
       return;
     }
 

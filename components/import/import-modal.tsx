@@ -16,6 +16,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Check, CheckCircle2 } from "lucide-react";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { NewCategoryForm } from "@/components/import/new-category-form";
 import { Modal } from "@/components/ui/modal";
@@ -174,7 +175,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
 
     if (!res.ok) {
       const data = (await res.json()) as { error?: string };
-      setError(data.error ?? t("transactions.importModal.parseError"));
+      setError(apiErrorMessage(data.error, t("transactions.importModal.parseError"), t));
       return;
     }
 
@@ -271,7 +272,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
 
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      setError(data.error ?? t("transactions.importModal.importError"));
+      setError(apiErrorMessage(data.error, t("transactions.importModal.importError"), t));
       return;
     }
 

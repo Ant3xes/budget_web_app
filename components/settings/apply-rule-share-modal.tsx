@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -60,7 +61,7 @@ export function ApplyRuleShareModal({
       const query = from ? `?since=${encodeURIComponent(from)}` : "";
       const response = await fetch(`/api/import-rules/${ruleId}/apply-share${query}`);
       const body = (await response.json()) as Preview & { error?: string };
-      if (!response.ok) throw new Error(body.error ?? t("importRules.apply.loadError"));
+      if (!response.ok) throw new Error(apiErrorMessage(body.error, t("importRules.apply.loadError"), t));
       return body;
     },
     [ruleId, t],
@@ -107,7 +108,7 @@ export function ApplyRuleShareModal({
         body: JSON.stringify({ since, transaction_ids: kept.map((row) => row.id) }),
       });
       const body = (await response.json()) as { shared?: number; error?: string };
-      if (!response.ok) throw new Error(body.error ?? t("importRules.apply.shareError"));
+      if (!response.ok) throw new Error(apiErrorMessage(body.error, t("importRules.apply.shareError"), t));
       setSharedCount(body.shared ?? 0);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("importRules.apply.shareError"));

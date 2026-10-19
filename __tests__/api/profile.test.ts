@@ -36,6 +36,7 @@ describe("PATCH /api/profile", () => {
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
       },
+      rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
       from: vi.fn(),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>);
 
@@ -60,6 +61,7 @@ describe("PATCH /api/profile", () => {
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: mockUser }, error: null }),
       },
+      rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
       from: vi.fn(() => queryChain),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>);
 
@@ -75,6 +77,7 @@ describe("PATCH /api/profile", () => {
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: mockUser }, error: null }),
       },
+      rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
       from: vi.fn(),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>);
 
@@ -92,6 +95,7 @@ describe("PATCH /api/profile", () => {
         signInWithPassword,
         updateUser,
       },
+      rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
       from: vi.fn(),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>);
 
@@ -123,6 +127,7 @@ describe("PATCH /api/profile", () => {
         signInWithPassword,
         updateUser,
       },
+      rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
       from: vi.fn(),
     } as unknown as Awaited<ReturnType<typeof createServerSupabaseClient>>);
 
@@ -139,4 +144,15 @@ describe("PATCH /api/profile", () => {
     expect(body.error).toBe("Mot de passe actuel incorrect");
     expect(updateUser).not.toHaveBeenCalled();
   });
+});
+
+it("refuses demo profile and password changes before re-authentication (issue 166)", async () => {
+  const updateUser = vi.fn();
+  vi.mocked(createServerSupabaseClient).mockResolvedValue({
+    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }), updateUser },
+    rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
+  } as never);
+  const res = await PATCH(patchRequest({ current_password: "unused", new_password: "unused", confirm: "unused" }));
+  expect(res.status).toBe(403);
+  expect(updateUser).not.toHaveBeenCalled();
 });

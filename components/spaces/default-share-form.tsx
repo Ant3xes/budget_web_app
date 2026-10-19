@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +45,7 @@ export function DefaultShareForm({
 
     if (!response.ok) {
       const data = (await response.json().catch(() => null)) as { error?: string } | null;
-      setError(data?.error ?? t("sharedExpenses.defaultSplit.error"));
+      setError(apiErrorMessage(data?.error, t("sharedExpenses.defaultSplit.error"), t));
       return;
     }
 

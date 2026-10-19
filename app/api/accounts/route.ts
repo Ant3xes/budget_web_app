@@ -1,3 +1,4 @@
+import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   const payload = accountSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
@@ -75,6 +77,7 @@ export async function PATCH(request: Request) {
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   const payload = accountSchema.extend({ id: z.string().uuid() }).safeParse(await request.json().catch(() => null));
   if (!payload.success) {
@@ -106,6 +109,7 @@ export async function DELETE(request: Request) {
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   const payload = deleteSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
