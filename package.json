@@ -14,7 +14,7 @@
     "bundle-size": "node scripts/check-bundle-size.mjs",
     "db:start": "supabase start -x studio,logflare,vector,mailpit,edge-runtime,imgproxy,realtime,storage-api,postgres-meta,supavisor",
     "db:reset": "supabase db reset",
-    "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
+    "db:types": "supabase gen types typescript --local > lib/supabase/database.types.ts.tmp && mv lib/supabase/database.types.ts.tmp lib/supabase/database.types.ts || { rm -f lib/supabase/database.types.ts.tmp; exit 1; }",
     "test:db": "supabase test db",
     "test:e2e": "playwright test",
     "check": "npm run lint && npm run typecheck && npm test",
