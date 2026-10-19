@@ -34,6 +34,7 @@ import { computeYearOverYear } from "@/lib/accounts/compute-year-over-year";
 import { computeWeekdayExpenseTotals } from "@/lib/accounts/compute-weekday-expense-totals";
 import { groupAccountBalancesByBank, type AccountBalance } from "@/lib/accounts/group-account-balances";
 import { runScopedQuery } from "@/lib/accounts/run-scoped-query";
+import { unwrap } from "@/lib/supabase/unwrap";
 import {
   accountBalanceTotals,
   goalMonthlyToTransactions,
@@ -192,7 +193,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
     .select("id, name, type, bank, initial_balance_cents, balance_anchor_date")
     .eq("space_id", spaceId)
     .is("deleted_at", null);
-  const accounts = accountsRes.data ?? [];
+  const accounts = unwrap(accountsRes) ?? [];
   const accountIds = accounts.map((a) => a.id);
   // Issue 123 (ADR 0004): reimbursement links, read without any date window.
   // The accounts tab only shows balances (unchanged by reimbursements).
@@ -258,12 +259,12 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
 
     const initialBalanceTotal = accounts.reduce((sum, a) => sum + a.initial_balance_cents, 0);
     // Issue 104: the SQL already kept only operations after each account's anchor date.
-    const balanceTxs = monthlyDeltasToTransactions(allTxRes.data ?? []);
+    const balanceTxs = monthlyDeltasToTransactions(unwrap(allTxRes) ?? []);
     const fullNetWorthSeries = computeBalanceSeries(balanceTxs, initialBalanceTotal, now, windowToMonth);
     const netWorthSeries = windowMonthCount === null ? fullNetWorthSeries : fullNetWorthSeries.slice(-windowMonthCount);
     // Shared expenses count as expenses in the cashflow/savings-rate series (activity, not a balance).
-    const windowSeries = computeIncomeExpenseSeries(applyReimbursements([...(windowTxRes.data ?? []), ...windowShared], reimbursements), windowMonthCount, now, windowToMonth);
-    const transferSeries = computeTransferVolumeSeries(transferTxRes.data ?? [], windowMonthCount, now, windowToMonth);
+    const windowSeries = computeIncomeExpenseSeries(applyReimbursements([...(unwrap(windowTxRes) ?? []), ...windowShared], reimbursements), windowMonthCount, now, windowToMonth);
+    const transferSeries = computeTransferVolumeSeries(unwrap(transferTxRes) ?? [], windowMonthCount, now, windowToMonth);
 
     tabContent = (
       <>
@@ -337,7 +338,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       sharedActivity({ from: yearStart, to: todayStr }),
     ]);
 
-    const categoryTx = applyReimbursements([...(categoryTxRes.data ?? []), ...categoryShared], reimbursements);
+    const categoryTx = applyReimbursements([...(unwrap(categoryTxRes) ?? []), ...categoryShared], reimbursements);
     const trendSeries = computeCategoryTrendSeries(
       categoryTx.map((tx) => {
         const cat = toCategoryMeta(tx.categories);
@@ -359,14 +360,14 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
     // Budget vs réalisé (mois en cours) — same shape as the dashboard's
     // budget widget, consumption computed from the year-to-date query
     // (already fetched) rather than a 4th round-trip.
-    const yearExpenseTx = applyReimbursements([...(yearExpenseTxRes.data ?? []), ...yearShared], reimbursements);
+    const yearExpenseTx = applyReimbursements([...(unwrap(yearExpenseTxRes) ?? []), ...yearShared], reimbursements);
     const monthExpenseTx = yearExpenseTx.filter((tx) => tx.date >= currentMonthStart);
     const consumedByCategory = new Map<string, number>();
     for (const tx of monthExpenseTx) {
       if (!tx.category_id) continue;
       consumedByCategory.set(tx.category_id, (consumedByCategory.get(tx.category_id) ?? 0) + Math.abs(tx.amount_cents));
     }
-    const budgetRows = (budgetsRes.data ?? []).map((b) => {
+    const budgetRows = (unwrap(budgetsRes) ?? []).map((b) => {
       const cat = toCategoryMeta(b.categories);
       return {
         id: b.id,
@@ -483,7 +484,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
         .lte("next_due_date", currentMonthEnd)
         .is("deleted_at", null),
     ]);
-    const { todayByAccountId, windowByAccountId } = accountBalanceTotals(accountTxRes.data ?? []);
+    const { todayByAccountId, windowByAccountId } = accountBalanceTotals(unwrap(accountTxRes) ?? []);
     const accountBalances: AccountBalance[] = accounts.map((a) => ({
       id: a.id,
       name: a.name,
@@ -510,7 +511,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
     const courantBalanceCents =
       courantInitialCents +
       courantAccounts.reduce((sum, a) => sum + (todayByAccountId.get(a.id) ?? 0), 0);
-    const upcomingFixedChargesCents = (fixedChargesRes.data ?? []).reduce((sum, fc) => sum + fc.amount_cents, 0);
+    const upcomingFixedChargesCents = (unwrap(fixedChargesRes) ?? []).reduce((sum, fc) => sum + fc.amount_cents, 0);
 
     tabContent = (
       <>
@@ -545,7 +546,7 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       // Shared expenses are expenses too (histogram, heatmap, weekday totals).
       sharedActivity({ from: windowFrom, to: windowTo }),
     ]);
-    const monthTx = applyReimbursements([...(monthTxRes.data ?? []), ...monthShared], reimbursements);
+    const monthTx = applyReimbursements([...(unwrap(monthTxRes) ?? []), ...monthShared], reimbursements);
     const histogram = computeAmountHistogram(monthTx);
     const weekdayTotals = computeWeekdayExpenseTotals(monthTx);
 
@@ -622,12 +623,12 @@ async function AnalyticsTabContent({ tab, period, now }: { tab: AnalyticsTab; pe
       ),
     ]);
 
-    const yoyRows = applyReimbursements([...(yoyTxRes.data ?? []), ...yoyShared], reimbursements);
+    const yoyRows = applyReimbursements([...(unwrap(yoyTxRes) ?? []), ...yoyShared], reimbursements);
     const yoyPoints = computeYearOverYear(yoyRows, yoyMonthCount, now, windowToMonth, "expense");
     const yoyIncomePoints = computeYearOverYear(yoyRows, yoyMonthCount, now, windowToMonth, "income");
 
-    const goals = goalsRes.data ?? [];
-    const goalTxs = goalMonthlyToTransactions(goalTxRes.data ?? []);
+    const goals = unwrap(goalsRes) ?? [];
+    const goalTxs = goalMonthlyToTransactions(unwrap(goalTxRes) ?? []);
     const { points: goalPoints, series: goalSeries } = computeGoalProgressSeries(
       goalTxs,
       goals,
