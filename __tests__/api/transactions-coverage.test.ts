@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/spaces/with-space", () => ({ withSpace: vi.fn() }));
@@ -52,8 +53,8 @@ describe("malformed JSON bodies", () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: expect.any(String) });
     expect(db.rpc).not.toHaveBeenCalled();
-    expect(db.chains[0].insert).not.toHaveBeenCalled();
-    expect(db.chains[0].update).not.toHaveBeenCalled();
+    expect(must(db.chains[0]).insert).not.toHaveBeenCalled();
+    expect(must(db.chains[0]).update).not.toHaveBeenCalled();
   });
 });
 
@@ -86,10 +87,10 @@ describe("reimbursement links", () => {
     const response = await putLink(request("PUT", { expense_id: expenseId }), params());
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(db.chains[0].update).toHaveBeenCalledWith({ reimburses_transaction_id: expenseId });
-    expect(db.chains[0].eq.mock.calls).toEqual([["id", TX], ["space_id", SPACE]]);
-    expect(db.chains[0].is).toHaveBeenCalledWith("deleted_at", null);
-    expect(db.chains[0].select).toHaveBeenCalledWith("id");
+    expect(must(db.chains[0]).update).toHaveBeenCalledWith({ reimburses_transaction_id: expenseId });
+    expect(must(must(db.chains[0]).eq).mock.calls).toEqual([["id", TX], ["space_id", SPACE]]);
+    expect(must(db.chains[0]).is).toHaveBeenCalledWith("deleted_at", null);
+    expect(must(db.chains[0]).select).toHaveBeenCalledWith("id");
   });
 
   it.each([null, []])("returns 404 if the source is missing or outside the active space (%j)", async (data) => {
@@ -97,7 +98,7 @@ describe("reimbursement links", () => {
     const response = await putLink(request("PUT", { expense_id: CAT }), params());
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Not found" });
-    expect(db.chains[0].eq).toHaveBeenCalledWith("space_id", SPACE);
+    expect(must(db.chains[0]).eq).toHaveBeenCalledWith("space_id", SPACE);
   });
 
   it.each([
@@ -116,8 +117,8 @@ describe("reimbursement links", () => {
     const response = await getLinks(request(), params());
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Not found" });
-    expect(db.chains[0].eq.mock.calls).toEqual([["id", TX], ["space_id", SPACE]]);
-    expect(db.chains[0].is).toHaveBeenCalledWith("deleted_at", null);
+    expect(must(must(db.chains[0]).eq).mock.calls).toEqual([["id", TX], ["space_id", SPACE]]);
+    expect(must(db.chains[0]).is).toHaveBeenCalledWith("deleted_at", null);
   });
 
   it("propagates a failed source read", async () => {
@@ -132,9 +133,9 @@ describe("reimbursement links", () => {
     const response = await getLinks(request(), params());
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ reimbursements: data ?? [], target: null });
-    expect(db.chains[1].eq.mock.calls).toEqual([["space_id", SPACE], ["reimburses_transaction_id", TX]]);
-    expect(db.chains[1].order).toHaveBeenCalledWith("date", { ascending: false });
-    expect(db.chains[1].is).toHaveBeenCalledWith("deleted_at", null);
+    expect(must(must(db.chains[1]).eq).mock.calls).toEqual([["space_id", SPACE], ["reimburses_transaction_id", TX]]);
+    expect(must(db.chains[1]).order).toHaveBeenCalledWith("date", { ascending: false });
+    expect(must(db.chains[1]).is).toHaveBeenCalledWith("deleted_at", null);
   });
 
   it("propagates a failed reimbursement list read", async () => {
@@ -155,8 +156,8 @@ describe("reimbursement links", () => {
     const response = await getLinks(request(), params());
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ reimbursements: [], target: data });
-    expect(db.chains[1].eq.mock.calls).toEqual([["id", CAT], ["space_id", SPACE]]);
-    expect(db.chains[1].is).toHaveBeenCalledWith("deleted_at", null);
+    expect(must(must(db.chains[1]).eq).mock.calls).toEqual([["id", CAT], ["space_id", SPACE]]);
+    expect(must(db.chains[1]).is).toHaveBeenCalledWith("deleted_at", null);
   });
 
   it("propagates a failed target read", async () => {
@@ -188,23 +189,23 @@ describe("reimbursement candidates", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ transactions });
     const c = db.chains[0];
-    expect(c.eq).toHaveBeenCalledWith("space_id", SPACE);
-    expect(c.in).toHaveBeenCalledWith("kind", ["income", "transfer_credit"]);
-    expect(c.gt).toHaveBeenCalledWith("amount_cents", 0);
-    expect(c.is.mock.calls).toEqual([["deleted_at", null], ["reimburses_transaction_id", null]]);
-    expect(c.neq).toHaveBeenCalledWith("id", TX);
-    expect(c.limit).toHaveBeenCalledWith(50);
-    expect(c.order).toHaveBeenCalledWith("date", { ascending: false });
+    expect(must(c).eq).toHaveBeenCalledWith("space_id", SPACE);
+    expect(must(c).in).toHaveBeenCalledWith("kind", ["income", "transfer_credit"]);
+    expect(must(c).gt).toHaveBeenCalledWith("amount_cents", 0);
+    expect(must(must(c).is).mock.calls).toEqual([["deleted_at", null], ["reimburses_transaction_id", null]]);
+    expect(must(c).neq).toHaveBeenCalledWith("id", TX);
+    expect(must(c).limit).toHaveBeenCalledWith(50);
+    expect(must(c).order).toHaveBeenCalledWith("date", { ascending: false });
   });
   it("lists negative non-transfer expenses and normalizes an empty result", async () => {
     const db = setup({ data: null });
     const response = await getCandidates(request("GET", undefined, "?for=expense"));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ transactions: [] });
-    expect(db.chains[0].eq).toHaveBeenCalledWith("kind", "expense");
-    expect(db.chains[0].lt).toHaveBeenCalledWith("amount_cents", 0);
-    expect(db.chains[0].is).toHaveBeenCalledWith("transfer_id", null);
-    expect(db.chains[0].neq).not.toHaveBeenCalled();
+    expect(must(db.chains[0]).eq).toHaveBeenCalledWith("kind", "expense");
+    expect(must(db.chains[0]).lt).toHaveBeenCalledWith("amount_cents", 0);
+    expect(must(db.chains[0]).is).toHaveBeenCalledWith("transfer_id", null);
+    expect(must(db.chains[0]).neq).not.toHaveBeenCalled();
   });
   it("propagates query errors", async () => {
     setup({ error: dbError });
@@ -233,8 +234,8 @@ describe("transaction writes", () => {
     const response = await handler(request("PATCH", {}), params());
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Not found" });
-    expect(db.chains[0].eq.mock.calls).toEqual([["id", TX], ["space_id", SPACE]]);
-    expect(db.chains[0].is).toHaveBeenCalledWith("deleted_at", null);
+    expect(must(must(db.chains[0]).eq).mock.calls).toEqual([["id", TX], ["space_id", SPACE]]);
+    expect(must(db.chains[0]).is).toHaveBeenCalledWith("deleted_at", null);
   });
   it("rejects invalid patch fields", async () => {
     const db = setup({ data: row });
@@ -261,19 +262,19 @@ describe("transaction writes", () => {
     const response = await DELETE(request("DELETE"), params());
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    const deletedAt = db.chains[1].update.mock.calls[0][0].deleted_at;
+    const deletedAt = must(must(must(db.chains[1]).update).mock.calls[0])[0].deleted_at;
     expect(new Date(deletedAt).toISOString()).toBe(deletedAt);
-    expect(db.chains[1].eq.mock.calls).toEqual([["id", TX], ["space_id", SPACE]]);
-    expect(db.chains[1].is).toHaveBeenCalledWith("deleted_at", null);
+    expect(must(must(db.chains[1]).eq).mock.calls).toEqual([["id", TX], ["space_id", SPACE]]);
+    expect(must(db.chains[1]).is).toHaveBeenCalledWith("deleted_at", null);
   });
   it("updates fields without creating a rule when the category is unchanged", async () => {
     const db = setup({ data: row }, {});
     const response = await PATCH(request("PATCH", { description: "  New label  ", notes: null }), params());
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, rule: null });
-    expect(db.chains[1].update).toHaveBeenCalledWith({ description: "New label", notes: null });
-    expect(db.chains[1].eq.mock.calls).toEqual([["id", TX], ["space_id", SPACE]]);
-    expect(db.chains[1].is).toHaveBeenCalledWith("deleted_at", null);
+    expect(must(db.chains[1]).update).toHaveBeenCalledWith({ description: "New label", notes: null });
+    expect(must(must(db.chains[1]).eq).mock.calls).toEqual([["id", TX], ["space_id", SPACE]]);
+    expect(must(db.chains[1]).is).toHaveBeenCalledWith("deleted_at", null);
     expect(db.from).toHaveBeenCalledTimes(2);
   });
   it("creates an import rule from the new label and category", async () => {
@@ -282,14 +283,14 @@ describe("transaction writes", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, rule: "created" });
     expect(db.from).toHaveBeenCalledTimes(5);
-    expect(db.chains[4].insert).toHaveBeenCalledWith({ keyword: "Synthetic market", category_id: CAT, kind: "expense", space_id: SPACE, user_id: "synthetic-user", priority: 5 });
+    expect(must(db.chains[4]).insert).toHaveBeenCalledWith({ keyword: "Synthetic market", category_id: CAT, kind: "expense", space_id: SPACE, user_id: "synthetic-user", priority: 5 });
   });
   it("updates an existing rule using the stored description", async () => {
     const db = setup({ data: row }, {}, { data: [{ id: "synthetic-rule", keyword: "SYNTHETIC SHOP" }] }, {});
     const response = await PATCH(request("PATCH", { category_id: CAT }), params());
     expect(await response.json()).toEqual({ ok: true, rule: "updated" });
-    expect(db.chains[3].update).toHaveBeenCalledWith({ category_id: CAT });
-    expect(db.chains[3].eq.mock.calls).toEqual([["id", "synthetic-rule"], ["space_id", SPACE]]);
+    expect(must(db.chains[3]).update).toHaveBeenCalledWith({ category_id: CAT });
+    expect(must(must(db.chains[3]).eq).mock.calls).toEqual([["id", "synthetic-rule"], ["space_id", SPACE]]);
   });
   it.each(["returned error", "thrown error"])("keeps the edit successful on rule %s", async (mode) => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -315,7 +316,7 @@ describe("transaction writes", () => {
     const response = await POST(request("POST", body));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(db.chains[0].insert).toHaveBeenCalledWith({ ...body, description: "Synthetic shop", space_id: SPACE, user_id: "synthetic-user", category_id: optional ? CAT : null, notes: optional ? "Note" : null });
+    expect(must(db.chains[0]).insert).toHaveBeenCalledWith({ ...body, description: "Synthetic shop", space_id: SPACE, user_id: "synthetic-user", category_id: optional ? CAT : null, notes: optional ? "Note" : null });
   });
   it("surfaces creation errors", async () => {
     setup({ error: dbError });
@@ -345,7 +346,7 @@ describe("type conversion", () => {
     const response = await PATCH(request("PATCH", { kind: "income" }), params());
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Compte introuvable" });
-    expect(db.chains[1].eq).toHaveBeenCalledWith("space_id", SPACE);
+    expect(must(db.chains[1]).eq).toHaveBeenCalledWith("space_id", SPACE);
     expect(db.rpc).not.toHaveBeenCalled();
   });
   it("uses stored fields when converting without optional edits", async () => {
@@ -365,8 +366,8 @@ describe("type conversion", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, rule: "created" });
     expect(db.rpc).toHaveBeenCalledWith("convert_transaction", expect.objectContaining({ p_kind: "expense", p_account_id: B, p_amount_cents: -1200, p_date: "2026-10-02", p_description: "Synthetic new label", p_notes: null, p_category_id: CAT }));
-    expect(db.chains[2].eq.mock.calls).toEqual([["id", CAT], ["space_id", SPACE], ["kind", "expense"]]);
-    expect(db.chains[5].insert).toHaveBeenCalledWith(expect.objectContaining({ kind: "expense", category_id: CAT }));
+    expect(must(must(db.chains[2]).eq).mock.calls).toEqual([["id", CAT], ["space_id", SPACE], ["kind", "expense"]]);
+    expect(must(db.chains[5]).insert).toHaveBeenCalledWith(expect.objectContaining({ kind: "expense", category_id: CAT }));
   });
 });
 
@@ -382,18 +383,18 @@ describe("transaction listing", () => {
     const db = setup({ data: [], count: 29 });
     const response = await GET(request("GET", undefined, `?kind=income&category_id=${CAT}&q=synthetic&page=3&per_page=10`));
     expect(await response.json()).toEqual({ transactions: [], total: 29 });
-    expect(db.chains[0].eq).toHaveBeenCalledWith("category_id", CAT);
-    expect(db.chains[0].ilike).toHaveBeenCalledWith("description", "%synthetic%");
-    expect(db.chains[0].range).toHaveBeenCalledWith(20, 29);
-    expect(db.chains[0].in).toHaveBeenCalledWith("kind", ["income"]);
-    expect(db.chains[0].order.mock.calls).toEqual([["date", { ascending: false }], ["created_at", { ascending: false }]]);
+    expect(must(db.chains[0]).eq).toHaveBeenCalledWith("category_id", CAT);
+    expect(must(db.chains[0]).ilike).toHaveBeenCalledWith("description", "%synthetic%");
+    expect(must(db.chains[0]).range).toHaveBeenCalledWith(20, 29);
+    expect(must(db.chains[0]).in).toHaveBeenCalledWith("kind", ["income"]);
+    expect(must(must(db.chains[0]).order).mock.calls).toEqual([["date", { ascending: false }], ["created_at", { ascending: false }]]);
   });
   it("does not include transfers in uncategorized results", async () => {
     const db = setup({ data: null, count: null });
     const response = await GET(request("GET", undefined, "?kind=transfer&uncategorized=true"));
     expect(await response.json()).toEqual({ transactions: [], total: 0 });
-    expect(db.chains[0].in).toHaveBeenCalledWith("kind", []);
-    expect(db.chains[0].range).toHaveBeenCalledWith(0, 24);
+    expect(must(db.chains[0]).in).toHaveBeenCalledWith("kind", []);
+    expect(must(db.chains[0]).range).toHaveBeenCalledWith(0, 24);
   });
   it("surfaces listing errors", async () => {
     setup({ error: dbError });
@@ -419,10 +420,10 @@ describe("transaction listing", () => {
       { ...transactions[3], reimbursed_cents: 0, net_cents: null, to_account: null },
       { ...transactions[4], reimbursed_cents: 0, net_cents: null, to_account: null },
     ] });
-    expect(db.chains[1].in).toHaveBeenCalledWith("transfer_id", ["pair", "missing"]);
-    expect(db.chains[2].in).toHaveBeenCalledWith("reimburses_transaction_id", [TX, "unpaid"]);
-    expect(db.chains[2].eq).toHaveBeenCalledWith("space_id", SPACE);
-    expect(db.chains[2].is).toHaveBeenCalledWith("deleted_at", null);
+    expect(must(db.chains[1]).in).toHaveBeenCalledWith("transfer_id", ["pair", "missing"]);
+    expect(must(db.chains[2]).in).toHaveBeenCalledWith("reimburses_transaction_id", [TX, "unpaid"]);
+    expect(must(db.chains[2]).eq).toHaveBeenCalledWith("space_id", SPACE);
+    expect(must(db.chains[2]).is).toHaveBeenCalledWith("deleted_at", null);
   });
   it("normalizes a null reimbursement result", async () => {
     setup({ data: [{ id: TX, kind: "expense", amount_cents: -9000 }] }, { data: null });

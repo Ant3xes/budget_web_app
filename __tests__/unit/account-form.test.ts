@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
@@ -56,7 +57,7 @@ describe("AccountForm balance field (issue 103)", () => {
     mount();
     await submitWith(typed);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const body = JSON.parse(must(fetchMock.mock.calls[0])[1].body);
     expect(body.initialBalanceCents).toBe(cents);
     expect(body).not.toHaveProperty("initialBalance");
   });
@@ -76,7 +77,7 @@ describe("AccountForm balance field (issue 103)", () => {
     expect(balanceInput().value).toBe("19,99");
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(fetchMock.mock.calls[0][1].method).toBe("PATCH");
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body).initialBalanceCents).toBe(1999);
+    expect(must(fetchMock.mock.calls[0])[1].method).toBe("PATCH");
+    expect(JSON.parse(must(fetchMock.mock.calls[0])[1].body).initialBalanceCents).toBe(1999);
   });
 });

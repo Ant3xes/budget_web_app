@@ -31,7 +31,7 @@ function toYearMonth(isoDate: string): string {
 }
 
 function addMonth(yyyyMM: string, delta: number): string {
-  const [y, m] = yyyyMM.split("-").map(Number);
+  const [y = Number.NaN, m = Number.NaN] = yyyyMM.split("-").map(Number);
   const d = new Date(y, m - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
@@ -63,10 +63,11 @@ export function computeIncomeExpenseSeries(
 
   let startMonth = currentMonth;
   if (monthCount === null) {
-    if (transactions.length > 0) {
+    const firstTransaction = transactions[0];
+    if (firstTransaction) {
       const earliest = transactions.reduce(
         (min, tx) => (tx.date < min ? tx.date : min),
-        transactions[0].date,
+        firstTransaction.date,
       );
       startMonth = toYearMonth(earliest);
     }

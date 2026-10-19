@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -129,18 +130,18 @@ describe("ImportModal interface coverage", () => {
     const { upload, body } = setup({ preview: [row("one"), row("two"), row("hidden", { suggested_category_id: "other" }), row("empty", { suggested_category_id: null })] });
     await upload();
     fireEvent.click(within(tableRow("two")).getByRole("checkbox"));
-    change(screen.getAllByRole("combobox")[0], "food");
+    change(must(screen.getAllByRole("combobox")[0]), "food");
     expect(screen.queryByTitle("RAW hidden")).toBeNull();
     expect(selectValue(within(tableRow("one")).getByRole("combobox"))).toBe("food");
-    change(screen.getAllByRole("combobox")[1], "other");
+    change(must(screen.getAllByRole("combobox")[1]), "other");
     fireEvent.click(screen.getByRole("button", { name: "Appliquer à la sélection" }));
-    change(screen.getAllByRole("combobox")[0], "");
+    change(must(screen.getAllByRole("combobox")[0]), "");
     expect(selectValue(within(tableRow("one")).getByRole("combobox"))).toBe("other");
     expect(selectValue(within(tableRow("two")).getByRole("combobox"))).toBe("food");
     expect(selectValue(within(tableRow("hidden")).getByRole("combobox"))).toBe("other");
     expect(selectValue(within(tableRow("empty")).getByRole("combobox"))).toBe("");
     change(within(tableRow("empty")).getByRole("combobox"), "food");
-    change(screen.getAllByRole("combobox")[0], "__none__");
+    change(must(screen.getAllByRole("combobox")[0]), "__none__");
     // The filter is list-only, including the no-category sentinel.
     next(); back();
     next(); next(); confirm();
@@ -153,10 +154,10 @@ describe("ImportModal interface coverage", () => {
     await upload();
     if (target === "income") next();
     const visible = target === "income" ? "pay" : "one";
-    change(target === "bulk" ? screen.getAllByRole("combobox")[1] : within(tableRow(visible)).getByRole("combobox"), "__new__");
+    change(target === "bulk" ? must(screen.getAllByRole("combobox")[1]) : within(tableRow(visible)).getByRole("combobox"), "__new__");
     fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
     expect(screen.queryByRole("textbox")).toBeNull();
-    change(target === "bulk" ? screen.getAllByRole("combobox")[1] : within(tableRow(visible)).getByRole("combobox"), "__new__");
+    change(target === "bulk" ? must(screen.getAllByRole("combobox")[1]) : within(tableRow(visible)).getByRole("combobox"), "__new__");
     change(screen.getByRole("textbox"), "  Synthetic created  ");
     fireEvent.click(screen.getByRole("button", { name: "Créer" }));
     await waitFor(() => expect(screen.queryByRole("textbox")).toBeNull());
@@ -208,7 +209,7 @@ describe("ImportModal interface coverage", () => {
     expect(screen.getByText("2 virement(s) à choisir : interne ou externe.")).toBeTruthy();
     change(out.getByRole("combobox"), "internal:account-b");
     change(incoming.getByRole("combobox"), "external");
-    change(incoming.getAllByRole("combobox")[1], "salary");
+    change(must(incoming.getAllByRole("combobox")[1]), "salary");
     confirm();
     await screen.findByText("Import terminé");
     expect(body()).toEqual({ account_id: "account-a", transactions: [
@@ -224,9 +225,9 @@ describe("ImportModal interface coverage", () => {
     expect(screen.queryByTitle("RAW one")).toBeNull();
     next(); next();
     fireEvent.click(screen.getByRole("button", { name: "Tout marquer externe" }));
-    expect(selectValue(within(tableRow("one")).getAllByRole("combobox")[0])).toBe("external");
-    change(within(tableRow("one")).getAllByRole("combobox")[1], "other");
-    change(screen.getAllByRole("combobox")[0], "account-b");
+    expect(selectValue(must(within(tableRow("one")).getAllByRole("combobox")[0]))).toBe("external");
+    change(must(within(tableRow("one")).getAllByRole("combobox")[1]), "other");
+    change(must(screen.getAllByRole("combobox")[0]), "account-b");
     fireEvent.click(screen.getByRole("button", { name: "Tout marquer interne vers Synthetic savings" }));
     expect(selectValue(within(tableRow("pay")).getByRole("combobox"))).toBe("internal:account-b");
     fireEvent.click(within(tableRow("one")).getByRole("button", { name: "Retirer du virement" }));

@@ -60,14 +60,17 @@ export const suggestTransfers = (balances: Record<string, number>): Transfer[] =
   let d = 0;
   let c = 0;
   while (d < debtors.length && c < creditors.length) {
-    const amount = Math.min(debtors[d].cents, creditors[c].cents);
+    const debtor = debtors[d];
+    const creditor = creditors[c];
+    if (!debtor || !creditor) break;
+    const amount = Math.min(debtor.cents, creditor.cents);
     if (amount > 0) {
-      transfers.push({ from: debtors[d].id, to: creditors[c].id, amount_cents: amount });
+      transfers.push({ from: debtor.id, to: creditor.id, amount_cents: amount });
     }
-    debtors[d].cents -= amount;
-    creditors[c].cents -= amount;
-    if (debtors[d].cents === 0) d += 1;
-    if (creditors[c].cents === 0) c += 1;
+    debtor.cents -= amount;
+    creditor.cents -= amount;
+    if (debtor.cents === 0) d += 1;
+    if (creditor.cents === 0) c += 1;
   }
 
   return transfers;

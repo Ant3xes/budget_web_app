@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 import { describe, expect, it } from "vitest";
 
 import { ruleFromCategoryChange, upsertImportRule } from "@/lib/import/rules";
@@ -54,7 +55,7 @@ describe("upsertImportRule", () => {
     const res = await upsertImportRule(makeSupabase(rows), "s1", "u1", { keyword: "BOULANGERIE DU COIN", category_id: "c2", kind: "expense" });
     expect(res).toEqual({ status: "updated" });
     expect(rows).toHaveLength(1);
-    expect(rows[0].category_id).toBe("c2");
+    expect(must(rows[0]).category_id).toBe("c2");
   });
 
   it("treats a different kind as a distinct rule", async () => {
@@ -62,7 +63,7 @@ describe("upsertImportRule", () => {
     const res = await upsertImportRule(makeSupabase(rows), "s1", "u1", { keyword: "remboursement", category_id: "c3", kind: "income" });
     expect(res).toEqual({ status: "created" });
     expect(rows).toHaveLength(2);
-    expect(rows[0].category_id).toBe("c0");
+    expect(must(rows[0]).category_id).toBe("c0");
   });
 });
 

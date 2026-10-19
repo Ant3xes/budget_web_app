@@ -76,7 +76,7 @@ export const CATEGORY_COLOR_SWATCHES = [
  * transaction list, budget list, compute-expense-by-category) — see plan
  * §Étape 0.
  */
-export const CATEGORY_COLOR_FALLBACK = CATEGORY_COLOR_SWATCHES[CATEGORY_COLOR_SWATCHES.length - 1];
+export const CATEGORY_COLOR_FALLBACK = CATEGORY_COLOR_SWATCHES.at(-1) ?? "#94a3b8";
 
 /**
  * Fixed income/expense series colors, as CSS custom properties defined in
