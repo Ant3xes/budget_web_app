@@ -1,3 +1,4 @@
+import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -39,6 +40,10 @@ export async function PATCH(request: Request) {
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { data: isDemo, error: demoError } = await auth.supabase.rpc("is_demo_user");
+  if (demoError) return NextResponse.json({ error: "Request failed" }, { status: 503 });
+  if (isDemo) return demoReadOnlyResponse();
 
   const parsedBody = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsedBody.success) {

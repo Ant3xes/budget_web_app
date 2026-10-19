@@ -1,4 +1,7 @@
 export const auth = {
+  demo: { view: "View demo" },
+  demoUnavailableMessage: "The demo is temporarily unavailable.",
+  demoMisconfiguredMessage: "The demo is misconfigured. No demo session was opened.",
   configWarning: "Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable auth.",
   emailLabel: "Email",
   passwordLabel: "Password",

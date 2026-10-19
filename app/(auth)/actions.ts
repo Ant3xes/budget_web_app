@@ -18,6 +18,35 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 // cold start. Separate stores so a burst of signups can't lock out login.
 const loginAttempts = createRateLimitStore();
 const signupAttempts = createRateLimitStore();
+const demoAttempts = createRateLimitStore();
+
+/** Server-only credentials; never trust form input for the shared demo (issue 166). */
+export async function demoLogin() {
+  const email = process.env.DEMO_USER_EMAIL;
+  const password = process.env.DEMO_USER_PASSWORD;
+  if (!email || !password) redirect("/login?message=demoUnavailable");
+
+  const key = `demo:${await clientIp()}`;
+  if (!checkRateLimit(demoAttempts, key).allowed) redirect("/login?message=rateLimited");
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    recordFailedAttempt(demoAttempts, key);
+    redirect("/login?message=demoUnavailable");
+  }
+
+  const { data: isDemo, error: demoError } = await supabase.rpc("is_demo_user");
+  if (demoError || isDemo !== true) {
+    await supabase.auth.signOut({ scope: "local" });
+    recordFailedAttempt(demoAttempts, key);
+    redirect("/login?message=demoMisconfigured");
+  }
+
+  resetAttempts(demoAttempts, key);
+  revalidatePath("/", "layout");
+  redirect("/dashboard");
+}
 
 /** Best-effort client IP from the standard proxy header Vercel sets; falls back to a shared bucket if absent (e.g. local dev). */
 const clientIp = async () => (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";

@@ -107,6 +107,7 @@ describe("profile body validation (issue 163)", () => {
   it("rejects invalid JSON and non-object bodies with 400", async () => {
     vi.mocked(createServerSupabaseClient).mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u" } } }) },
+      rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
       from: vi.fn(),
     } as never);
     for (const body of ["{", "[1]", "null", '"str"']) {

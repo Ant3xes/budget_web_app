@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +48,7 @@ export function InviteForm() {
     const result = (await response.json()) as { error?: string; inviteLink?: string };
 
     if (!response.ok) {
-      setError(result.error ?? t("invitations.invite.createError"));
+      setError(apiErrorMessage(result.error, t("invitations.invite.createError"), t));
       return;
     }
 

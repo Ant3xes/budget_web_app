@@ -1,4 +1,7 @@
 export const auth = {
+  demo: { view: "Voir la demo" },
+  demoUnavailableMessage: "La demo est momentanément indisponible.",
+  demoMisconfiguredMessage: "La demo est mal configurée. Aucune session de démonstration n’a été ouverte.",
   configWarning: "Configurez NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY pour activer l'authentification.",
   // Kept as "Email" (not "E-mail"): several e2e specs (auth.spec.ts,
   // import.spec.ts, transactions.spec.ts, features.spec.ts,

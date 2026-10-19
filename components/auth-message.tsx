@@ -13,6 +13,8 @@ import { useLocale } from "@/components/locale-provider";
  * so it isn't in the dictionary and can't be translated here.
  */
 const MESSAGE_KEYS: Record<string, string> = {
+  demoUnavailable: "auth.demoUnavailableMessage",
+  demoMisconfigured: "auth.demoMisconfiguredMessage",
   signupSuccess: "auth.signupSuccessMessage",
   rateLimited: "auth.rateLimitedMessage",
 };

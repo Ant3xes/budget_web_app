@@ -6,6 +6,12 @@
 -- sont réutilisées. Identifiants et dates fixes rendent la relance idempotente.
 -- Réservé à un compte neuf : le script ne supprime/modifie aucune donnée existante.
 begin;
+-- UUID déterministes au format v4 : les formulaires valident aussi leur variante (issue 166).
+create or replace function pg_temp.demo_uuid(value text)
+returns uuid language sql immutable as $fn$
+  select (substr(md5(value), 1, 12) || '4' || substr(md5(value), 14, 3)
+    || 'a' || substr(md5(value), 18, 15))::uuid;
+$fn$;
 do $$
 declare
   v_user uuid;
@@ -23,20 +29,20 @@ begin
   insert into public.demo_users (user_id) values (v_user) on conflict do nothing;
 
   insert into public.accounts (id, space_id, user_id, name, type, initial_balance_cents)
-  select md5(v_user::text || ':demo:account:' || n)::uuid, v_space, v_user, name, type, balance
+  select pg_temp.demo_uuid(v_user::text || ':demo:account:' || n), v_space, v_user, name, type, balance
   from (values
     (1, 'Compte courant démo', 'courant', 150000),
     (2, 'Livret démo', 'livret', 480000),
     (3, 'Épargne démo', 'épargne', 250000)
   ) as a(n, name, type, balance)
   on conflict (id) do nothing;
-  v_account := md5(v_user::text || ':demo:account:1')::uuid;
+  v_account := pg_temp.demo_uuid(v_user::text || ':demo:account:1');
 
   -- Douze mois fixes, 12 opérations par mois : 144 lignes fictives.
   insert into public.transactions (
     id, space_id, user_id, account_id, category_id, kind, amount_cents, date, description
   )
-  select md5(v_user::text || ':demo:transaction:' || m || ':' || n)::uuid,
+  select pg_temp.demo_uuid(v_user::text || ':demo:transaction:' || m || ':' || n),
     v_space, v_user, v_account, c.id, c.kind,
     case when c.kind = 'income' then 285000 + m * 100
          when n = 2 then -82000 else -(1800 + n * 430 + m * 37) end,
@@ -66,12 +72,12 @@ begin
   end loop;
 
   insert into public.savings_goals (id, space_id, user_id, name, target_amount_cents, current_amount_cents, deadline)
-  select md5(v_user::text || ':demo:goal:' || n)::uuid, v_space, v_user, name, target, amount, date '2027-06-01'
+  select pg_temp.demo_uuid(v_user::text || ':demo:goal:' || n), v_space, v_user, name, target, amount, date '2027-06-01'
   from (values (1, 'Voyage fictif', 200000, 85000), (2, 'Fonds de secours fictif', 600000, 320000)) as g(n, name, target, amount)
   on conflict (id) do nothing;
 
   insert into public.fixed_charges (id, space_id, user_id, name, amount_cents, frequency, next_due_date, account_id, category_id)
-  select md5(v_user::text || ':demo:charge:' || n)::uuid, v_space, v_user,
+  select pg_temp.demo_uuid(v_user::text || ':demo:charge:' || n), v_space, v_user,
     f.name, f.amount, 'monthly', date '2026-11-01', v_account, c.id
   from (values (1, 'Loyer fictif', 82000, 'logement'),
     (2, 'Internet fictif', 3000, 'abonnements'),
