@@ -1,3 +1,4 @@
+import { progressFillTransform } from "@/lib/dashboard/progress-fill";
 import { cn } from "@/lib/utils";
 
 interface BudgetBarProps {
@@ -40,8 +41,15 @@ export function BudgetBar({ ratio, className }: BudgetBarProps) {
   const tier = tierFor(safeRatio);
 
   return (
-    <div className={cn("h-2.5 w-full rounded-full", TIERS[tier].track, className)}>
-      <div className={cn("h-2.5 rounded-full transition-all", TIERS[tier].fill)} style={{ width: `${pct}%` }} />
+    <div className={cn("h-2.5 w-full overflow-hidden rounded-full", TIERS[tier].track, className)}>
+      {/* Remplissage animé via transform (composité GPU) plutôt que width (layout à chaque frame). */}
+      <div
+        className={cn(
+          "h-full w-full rounded-full transition-transform duration-300 ease-out motion-reduce:transition-none",
+          TIERS[tier].fill,
+        )}
+        style={{ transform: progressFillTransform(pct) }}
+      />
     </div>
   );
 }
