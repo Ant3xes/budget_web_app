@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { withSpace } from "@/lib/spaces/with-space";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 /** Categories of a space the caller belongs to (used to pick the common category when sharing). */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -9,6 +10,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!z.guid().safeParse(id).success) {
     return NextResponse.json({ error: "Invalid space id" }, { status: 400 });
   }

@@ -14,6 +14,17 @@ const nextConfig: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+          // Issue 163. The CSP itself (with nonce) is set in proxy.ts.
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=()",
+          },
+          { key: "X-Frame-Options", value: "DENY" },
+          // Enforced already: frame-ancestors is the one directive with no
+          // risk of breaking the app. The rest is Report-Only (see proxy.ts).
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
         ],
       },
     ];

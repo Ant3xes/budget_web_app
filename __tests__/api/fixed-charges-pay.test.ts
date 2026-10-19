@@ -41,14 +41,14 @@ describe("POST /api/fixed-charges/:id/pay", () => {
   it("returns 401 when not authenticated", async () => {
     vi.mocked(withSpace).mockResolvedValue(null);
 
-    const res = await POST(makeRequest(), { params: Promise.resolve({ id: "charge-1" }) });
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: "00000000-0000-4000-8000-0000000000c1" }) });
     expect(res.status).toBe(401);
   });
 
   it("returns 404 when the charge doesn't exist (or isn't the user's)", async () => {
     mockAuth(makeSupabase(null));
 
-    const res = await POST(makeRequest(), { params: Promise.resolve({ id: "charge-1" }) });
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: "00000000-0000-4000-8000-0000000000c1" }) });
     expect(res.status).toBe(404);
   });
 
@@ -60,7 +60,7 @@ describe("POST /api/fixed-charges/:id/pay", () => {
     const supabase = makeSupabase({ next_due_date: futureStr, frequency: "monthly" });
     mockAuth(supabase);
 
-    const res = await POST(makeRequest(), { params: Promise.resolve({ id: "charge-1" }) });
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: "00000000-0000-4000-8000-0000000000c1" }) });
     expect(res.status).toBe(200);
     // Lookup and update are both scoped by the active space.
     expect(supabase._queryBuilder.eq).toHaveBeenCalledWith("space_id", "space-test-id");
@@ -79,7 +79,7 @@ describe("POST /api/fixed-charges/:id/pay", () => {
 
     mockAuth(makeSupabase({ next_due_date: wayOverdue, frequency: "monthly" }));
 
-    const res = await POST(makeRequest(), { params: Promise.resolve({ id: "charge-1" }) });
+    const res = await POST(makeRequest(), { params: Promise.resolve({ id: "00000000-0000-4000-8000-0000000000c1" }) });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { next_due_date: string };
     // Overdue by 3 monthly periods — a single advanceOnePeriod step would

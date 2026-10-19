@@ -4,6 +4,7 @@ import { z } from "zod";
 import { pgErrorResponse } from "@/lib/spaces/pg-error";
 import { withSpace } from "@/lib/spaces/with-space";
 import { uuidSchema } from "@/lib/validation/uuid";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 // Reimbursement links (ADR 0004, issue 123).
 const COLUMNS = "id, date, description, amount_cents, currency";
@@ -18,6 +19,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
 
   const { data: tx, error } = await auth.supabase
     .from("transactions")
@@ -58,6 +61,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
 
   const payload = bodySchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) return NextResponse.json({ error: "Invalid data" }, { status: 400 });

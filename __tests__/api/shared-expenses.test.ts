@@ -135,7 +135,7 @@ describe("POST /api/shared-expenses", () => {
     );
     const response = await share(json(body));
     expect(response.status).toBe(status);
-    expect(await response.json()).toEqual({ error: "boom" });
+    expect(await response.json()).toEqual({ error: code === "XX000" ? "Request failed" : "boom" });
   });
 });
 

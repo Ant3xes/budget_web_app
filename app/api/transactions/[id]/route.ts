@@ -4,6 +4,8 @@ import { z } from "zod";
 import { ConversionError, planConversion, type DbKind } from "@/lib/transactions/convert-transaction";
 import { ruleFromCategoryChange, upsertImportRule } from "@/lib/import/rules";
 import { withSpace } from "@/lib/spaces/with-space";
+import { logApiError } from "@/lib/api/log-error";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const transactionUpdateSchema = z.object({
   account_id: z.string().uuid().optional(),
@@ -29,6 +31,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
@@ -83,6 +87,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
@@ -233,12 +239,12 @@ async function syncImportRule(
   try {
     const result = await upsertImportRule(auth.supabase, auth.spaceId, auth.user.id, candidate);
     if (result.status === "error") {
-      console.error("Import rule upsert failed (issue 116):", result.message);
+      logApiError("Import rule upsert failed (issue 116)", result);
       return null;
     }
     return result.status;
   } catch (error) {
-    console.error("Import rule upsert failed (issue 116):", error);
+    logApiError("Import rule upsert failed (issue 116)", error);
     return null;
   }
 }

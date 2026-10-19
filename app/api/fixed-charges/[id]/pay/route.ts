@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { todayISO } from "@/lib/dates/period";
 import { advanceOnePeriod, advanceWhile } from "@/lib/fixed-charges/due-date";
 import { withSpace } from "@/lib/spaces/with-space";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 /**
  * POST /api/fixed-charges/:id/pay
@@ -22,6 +23,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   const { data: charge, error: fetchError } = await auth.supabase

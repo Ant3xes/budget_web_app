@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { withSpace } from "@/lib/spaces/with-space";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 /** Revokes a pending invitation (the inviter or the space owner). */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -11,6 +12,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!z.guid().safeParse(id).success) {
     return NextResponse.json({ error: "Invalid invitation id" }, { status: 400 });
   }

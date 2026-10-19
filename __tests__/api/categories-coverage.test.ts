@@ -4,7 +4,7 @@ import { GET, POST } from "@/app/api/categories/route";
 import { PATCH, DELETE } from "@/app/api/categories/[id]/route";
 import { withSpace } from "@/lib/spaces/with-space";
 vi.mock("@/lib/spaces/with-space", () => ({ withSpace: vi.fn() }));
-const params = (id = "category") => ({ params: Promise.resolve({ id }) });
+const params = (id = "00000000-0000-4000-8000-0000000000c1") => ({ params: Promise.resolve({ id }) });
 const request = (body: unknown = {}, method = "POST") => new Request("http://test/api/categories", { method, body: JSON.stringify(body) });
 function setup(data: unknown = null, error: unknown = null) {
   const chain = createChainableMock({ data, error });
@@ -82,7 +82,7 @@ describe("category route boundary coverage", () => {
       const response = await DELETE(request(), params());
       expect(await response.json()).toEqual({ ok: true });
       expect(chain.update).toHaveBeenCalledWith({ deleted_at: "2026-01-01T00:00:00.000Z" });
-      expect(chain.eq.mock.calls).toEqual([["id", "category"], ["space_id", "space"]]);
+      expect(chain.eq.mock.calls).toEqual([["id", "00000000-0000-4000-8000-0000000000c1"], ["space_id", "space"]]);
       expect(chain.is).toHaveBeenCalledWith("deleted_at", null);
       expect(chain.delete).not.toHaveBeenCalled();
     } finally { vi.useRealTimers(); }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { withSpace } from "@/lib/spaces/with-space";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const goalUpdateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
@@ -27,9 +28,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const body: unknown = await request.json();
+  const body: unknown = await request.json().catch(() => null);
 
   // Detect add_funds action
   const addFunds = addFundsSchema.safeParse(body);
@@ -84,6 +87,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   const { error } = await auth.supabase
