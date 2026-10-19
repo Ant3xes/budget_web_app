@@ -57,6 +57,20 @@ une dérive des types. Ne pas utiliser `supabase db push` pour le développement
 L'installation est ignorée en CI, sur Vercel et hors d'un checkout Git.
 Pour réinstaller les hooks localement : `npm run prepare`. Aucun formatage Prettier n'est ajouté.
 
+### Demo publique (issue 166)
+
+Le bouton « Voir la demo » apparaît sur connexion/inscription seulement si les deux
+variables **serveur uniquement** `DEMO_USER_EMAIL` et `DEMO_USER_PASSWORD` sont définies.
+Ne jamais les préfixer par `NEXT_PUBLIC_`, les committer, les afficher dans les logs
+ou les passer dans une URL. En local, utiliser un compte jetable de la stack locale ;
+le seed demo n'est pas exécuté par `db:reset` : l'exécuter manuellement après création
+du compte Auth, avec l'adresse de ce compte à la place du placeholder du script.
+La session est refusée puis déconnectée si `is_demo_user()` ne confirme pas le rôle demo.
+
+Pour lancer uniquement le parcours Playwright demo sur un serveur déjà démarré :
+`CI=1 DEMO_E2E_ENABLED=1 PLAYWRIGHT_BASE_URL=http://localhost:3166 npx playwright test e2e/demo.spec.ts --project chromium`.
+Sans opt-in explicite, ce test est ignoré : la CI habituelle n'a pas besoin d'un compte demo.
+
 ## Déploiement et migrations
 
 Vercel déploie l'application via son intégration Git. Après une CI verte sur `main`,
@@ -77,6 +91,28 @@ Les migrations doivent être additives et rétro-compatibles (expand/contract).
 Avant le premier `apply`, relire le plan et vérifier les sauvegardes/PITR disponibles.
 Procédure d'approbation, retour arrière et désactivation :
 [ADR 0006](docs/adr/0006-migrations-production.md).
+
+### Activation humaine de la demo sur Vercel / Supabase
+
+Après validation humaine de la migration et avant d'ouvrir la demo :
+1. Créer un utilisateur dédié dans **Supabase Auth** (jamais un compte réel existant).
+2. Dans le **SQL editor**, exécuter manuellement
+   [`supabase/demo/seed-demo.sql`](supabase/demo/seed-demo.sql), après remplacement de
+   `demo@example.invalid` par son adresse. Cela marque le compte lecture seule et crée
+   uniquement des données fictives. Ne jamais inclure ce seed dans un déploiement automatique.
+3. Définir `DEMO_USER_EMAIL` et `DEMO_USER_PASSWORD` dans les variables **serveur**
+   Vercel pour l'environnement concerné, puis redéployer. Aucun secret dans le dépôt.
+4. Désactiver le signup public dans **Authentication > Sign In / Providers >
+   Allow new users to sign up**. Les invitations restent le parcours voulu.
+5. Vérifier le bouton, le bandeau et un refus d'écriture ; une erreur
+   `demoMisconfigured` impose de corriger le marquage, pas de retirer le garde-fou.
+
+Le bandeau ne remplace pas RLS. Les API refusent les mutations demo avant leur exécution,
+y compris les UPDATE/DELETE que PostgreSQL aurait silencieusement limités à zéro ligne.
+Le statut est chargé dans le contexte serveur mémorisé par requête, sans second RPC
+après une écriture normale. Le rate-limit demo reste en mémoire par instance (comme
+le login), pas distribué entre les instances Vercel. Les confirmations destructives
+partagées sont désactivées ; les formulaires restent explorables et affichent un 403 traduit.
 
 Roadmap publique : [`/plan`](https://github.com/Ant3xes/budget_web_app) (route `/plan` dans l’app, sans auth).
 

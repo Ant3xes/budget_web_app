@@ -12,6 +12,7 @@ import { ShareTransactionModal } from "@/components/transactions/share-transacti
 import { TransactionModal } from "@/components/transactions/transaction-modal";
 import { TransferModal } from "@/components/transfers/transfer-modal";
 import { CategoryBadge } from "@/components/category-badge";
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -200,7 +201,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
       void load(page);
     } else {
       const data = (await res.json().catch(() => null)) as { error?: string } | null;
-      setDeleteError(data?.error ?? t("transactions.errors.deleteGeneric"));
+      setDeleteError(apiErrorMessage(data?.error, t("transactions.errors.deleteGeneric"), t));
     }
   };
 

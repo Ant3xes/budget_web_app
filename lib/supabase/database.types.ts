@@ -296,6 +296,18 @@ export type Database = {
           },
         ]
       }
+      demo_users: {
+        Row: {
+          user_id: string
+        }
+        Insert: {
+          user_id: string
+        }
+        Update: {
+          user_id?: string
+        }
+        Relationships: []
+      }
       fixed_charges: {
         Row: {
           account_id: string | null
@@ -1010,6 +1022,7 @@ export type Database = {
         Args: { p_rows: Json; p_shares?: Json }
         Returns: number
       }
+      is_demo_user: { Args: never; Returns: boolean }
       is_space_member: { Args: { p_space_id: string }; Returns: boolean }
       is_space_owner: { Args: { p_space_id: string }; Returns: boolean }
       personal_space_id: { Args: { p_user_id: string }; Returns: string }

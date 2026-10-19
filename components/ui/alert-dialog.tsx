@@ -3,6 +3,8 @@
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 
 import { Button } from "@/components/ui/button";
+import { useDemo } from "@/components/demo-provider";
+import { T } from "@/components/i18n/t";
 import { cn } from "@/lib/utils";
 
 interface AlertDialogProps {
@@ -34,6 +36,7 @@ export function AlertDialog({
   onConfirm,
   isConfirming = false,
 }: AlertDialogProps) {
+  const isDemo = useDemo();
   // Mount/unmount ourselves via plain React conditional rendering rather
   // than leaving it to AlertDialogPrimitive.Root's own open/close + exit-
   // animation coordination: with `open={open}` passed straight through,
@@ -58,6 +61,7 @@ export function AlertDialog({
               {description}
             </AlertDialogPrimitive.Description>
           )}
+          {isDemo ? <p role="status" className="mt-2 text-sm text-amber-900 dark:text-amber-100"><T k="common.demo.readOnly" /></p> : null}
           <div className="mt-4 flex justify-end gap-2">
             {/* A plain onClick rather than AlertDialogPrimitive.Close's
                 `render` merge — that merge didn't reliably wire up the
@@ -65,7 +69,7 @@ export function AlertDialog({
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               {cancelLabel}
             </Button>
-            <Button variant="destructive" size="sm" onClick={onConfirm} disabled={isConfirming}>
+            <Button variant="destructive" size="sm" onClick={onConfirm} disabled={isConfirming || isDemo}>
               {isConfirming ? "Suppression…" : confirmLabel}
             </Button>
           </div>

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Modal } from "@/components/ui/modal";
 
@@ -57,7 +58,7 @@ export function AddFundsModal({ goalId, goalName, onSuccess, onClose }: AddFunds
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? t("goals.addFundsModal.saveError"));
+      setError(apiErrorMessage(result.error, t("goals.addFundsModal.saveError"), t));
       return;
     }
 

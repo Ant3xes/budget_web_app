@@ -32,6 +32,7 @@ export type SpaceContext = {
   spaceId: string;
   space: SpaceSummary;
   spaces: SpaceSummary[];
+  isDemo: boolean;
 };
 
 /**
@@ -88,7 +89,9 @@ const loadSpaceContext = async (): Promise<SpaceContext | null> => {
     throw new Error("The signed-in user does not belong to any space.");
   }
 
-  return { supabase, user: { id: user.id, email: user.email }, spaceId: space.id, space, spaces };
+  const { data: isDemo, error: demoError } = await supabase.rpc("is_demo_user");
+  if (demoError) throw new Error("Unable to verify demo status");
+  return { supabase, user: { id: user.id, email: user.email }, spaceId: space.id, space, spaces, isDemo: isDemo === true };
 };
 
 /** Memoized per request, so a layout and its page share one lookup. */

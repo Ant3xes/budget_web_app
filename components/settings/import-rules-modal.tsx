@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -207,7 +208,7 @@ export function ImportRulesModal({ ruleId, defaultValues, spaceKind = "personal"
 
     if (!response.ok) {
       const result = (await response.json().catch(() => ({}))) as { error?: string };
-      setError(result.error ?? t("importRules.form.saveError"));
+      setError(apiErrorMessage(result.error, t("importRules.form.saveError"), t));
       return;
     }
 

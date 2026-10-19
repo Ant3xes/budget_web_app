@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Modal } from "@/components/ui/modal";
 
@@ -144,7 +145,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(resolveErrorMessage(result.error, t("fixedCharges.modal.saveError")));
+      setError(apiErrorMessage(result.error === "Compte demo en lecture seule" ? result.error : undefined, resolveErrorMessage(result.error, t("fixedCharges.modal.saveError")), t));
       return;
     }
 

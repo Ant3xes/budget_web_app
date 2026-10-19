@@ -1,3 +1,4 @@
+import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -21,6 +22,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(request: Request, { params }: Params) {
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   const { id } = await params;
   const badId = invalidIdResponse(id);
@@ -77,6 +79,7 @@ export async function PATCH(request: Request, { params }: Params) {
 export async function DELETE(_request: Request, { params }: Params) {
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   const { id } = await params;
   const badId = invalidIdResponse(id);

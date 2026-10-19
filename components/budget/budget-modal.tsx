@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { Modal } from "@/components/ui/modal";
 
@@ -87,7 +88,7 @@ export function BudgetModal({ month, budgetId, defaultValues, onSuccess, onClose
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? t("budget.modal.saveError"));
+      setError(apiErrorMessage(result.error, t("budget.modal.saveError"), t));
       return;
     }
 

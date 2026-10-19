@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { DemoProvider } from "@/components/demo-provider";
+import { DemoBanner } from "@/components/layout/demo-banner";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { SIDEBAR_COOKIE } from "@/components/layout/nav-utils";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -35,11 +37,13 @@ export default async function AppLayout({
   const sidebarCollapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "1";
 
   return (
+    <DemoProvider isDemo={context.isDemo}>
     <div className="md:flex">
       {/* Desktop : sidebar sticky à gauche. Mobile : barre du haut (logo) + barre du bas fixe. */}
       <Sidebar userEmail={user.email ?? ""} defaultCollapsed={sidebarCollapsed} spaces={spaces} activeSpaceId={spaceId} />
       <BottomNav userEmail={user.email ?? ""} spaces={spaces} activeSpaceId={spaceId} />
       <div className="min-w-0 flex-1">
+        <DemoBanner isDemo={context.isDemo} />
         {/* Single source of page padding — pages below only ever add
             `space-y-4` for their own vertical rhythm, never their own p-*.
             `pb-28` réserve la place de la barre du bas fixe sur mobile. */}
@@ -59,5 +63,6 @@ export default async function AppLayout({
         </footer>
       </div>
     </div>
+    </DemoProvider>
   );
 }

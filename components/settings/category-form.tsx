@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { apiErrorMessage } from "@/lib/api/error-message";
 import { useLocale } from "@/components/locale-provider";
 import { CATEGORY_COLOR_SWATCHES } from "@/lib/constants";
 
@@ -75,7 +76,7 @@ export function CategoryForm({ categoryId, defaultValues, onSuccess, onCancel }:
 
     if (!response.ok) {
       const result = (await response.json()) as { error?: string };
-      setError(result.error ?? t("settings.categories.form.saveError"));
+      setError(apiErrorMessage(result.error, t("settings.categories.form.saveError"), t));
       return;
     }
 

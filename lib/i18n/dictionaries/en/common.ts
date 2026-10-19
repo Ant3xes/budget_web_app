@@ -1,4 +1,9 @@
 export const common = {
+  demo: {
+    banner: "Demo mode: read-only, fictional data",
+    exit: "Leave demo",
+    readOnly: "Read-only demo account",
+  },
   actions: {
     edit: "Edit",
     delete: "Delete",

@@ -1,3 +1,4 @@
+import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -13,6 +14,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (auth.isDemo) return demoReadOnlyResponse();
 
   const { id, userId } = await params;
   const ids = z.object({ id: z.guid(), userId: z.guid() }).safeParse({ id, userId });
