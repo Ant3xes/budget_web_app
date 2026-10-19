@@ -1,7 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Search, Split, Trash2, X } from "lucide-react";
 
 import { ApplyRulesModal } from "@/components/transactions/apply-rules-modal";
@@ -22,90 +21,17 @@ import { FilterSheet } from "@/components/ui/filter-sheet";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
+import { useTransactionList } from "@/components/transactions/use-transaction-list";
+import { transactionAmounts, transactionEditValues } from "@/lib/transactions/list-presentation";
+import { getShare, type Transaction, type TransactionListInitial } from "@/lib/transactions/list-types";
 import { UNCATEGORIZED_CATEGORY_ID } from "@/lib/constants";
 import { resolveCategoryName } from "@/lib/i18n/category-name";
 import { formatDate, formatEuros } from "@/lib/format";
 
-type Transaction = {
-  id: string;
-  kind: "expense" | "income" | "transfer_debit" | "transfer_credit";
-  amount_cents: number;
-  currency: string;
-  date: string;
-  description: string;
-  notes: string | null;
-  is_imported: boolean;
-  raw_import_data?: { raw_label?: string } | null;
-  transfer_id: string | null;
-  // Issue 123: reimbursement links. `amount_cents` is the real amount; `net_cents` the net of an expense.
-  reimburses_transaction_id?: string | null;
-  reimbursed_cents?: number;
-  net_cents?: number | null;
-  account_id: string;
-  category_id: string | null;
-  accounts: { name: string } | null;
-  categories: { name: string; color: string | null; icon: string | null } | null;
-  to_account: { id: string; name: string } | null;
-  // PostgREST returns an object (1:1) or an array depending on the relation
-  // cardinality; normalised by getShare().
-  shared_expenses?: SharedRef | SharedRef[] | null;
-};
-
-type SharedRef = {
-  id: string;
-  space_id: string;
-  category_id: string | null;
-  paid_by?: string;
-  shares?: Record<string, number>;
-};
-
-const getShare = (tx: Transaction): SharedRef | null => {
-  const raw = tx.shared_expenses;
-  if (!raw) return null;
-  return (Array.isArray(raw) ? raw[0] : raw) ?? null;
-};
-
-type Account = { id: string; name: string };
-type Category = { id: string; name: string; kind: string; is_default?: boolean; translation_key?: string | null };
-
-// UI-level type filter — "transfer" covers both transfer_debit/transfer_credit
-// (the API returns one representative row per transfer pair, see
-// app/api/transactions/route.ts).
-type TypeFilter = "all" | "expense" | "income" | "transfer";
-
-const PER_PAGE = 25;
-
-export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "personal" | "shared" }) {
+export function TransactionList({ spaceKind = "personal", initial }: { spaceKind?: "personal" | "shared"; initial?: TransactionListInitial }) {
   const { t } = useLocale();
-  // Pre-filter from a drill-down link (e.g. the dashboard's "voir tout"
-  // buttons), read once on mount via useSearchParams rather than a page-level
-  // prop, since /transactions doesn't need to thread a searchParams prop
-  // through just for this.
-  const searchParams = useSearchParams();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Filters
-  const [type, setType] = useState<TypeFilter>(() => {
-    const t = searchParams.get("type");
-    return t === "expense" || t === "income" || t === "transfer" ? t : "all";
-  });
-  const [accountId, setAccountId] = useState("");
-  const [categorySelection, setCategorySelection] = useState(() => searchParams.get("category_id") ?? "");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [q, setQ] = useState("");
-  const [qInput, setQInput] = useState("");
-
-  // Reference data
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  // Évite d'afficher « Crée d'abord un compte » avant la fin du chargement (issue 102).
-  const [accountsLoaded, setAccountsLoaded] = useState(false);
+  const { transactions, total, page, setPage, isLoading, type, setType, accountId, setAccountId, categorySelection, setCategorySelection, dateFrom, setDateFrom, dateTo, setDateTo, q, setQ, qInput, setQInput, accounts, accountsLoaded, categories, spaceNames, totalPages, canShare, load, loadRefData } = useTransactionList(spaceKind, initial);
   const [showCreateAccount, setShowCreateAccount] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-
   // Modals
   const [createKind, setCreateKind] = useState<"expense" | "income" | "transfer" | null>(null);
   const [showImport, setShowImport] = useState(false);
@@ -113,79 +39,8 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const [sharingTransaction, setSharingTransaction] = useState<Transaction | null>(null);
-  const [spaceNames, setSpaceNames] = useState<Record<string, string>>({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const totalPages = Math.ceil(total / PER_PAGE);
-  const isUncategorized = categorySelection === UNCATEGORIZED_CATEGORY_ID;
-
-  const loadRefData = useCallback(async () => {
-    const [accRes, catRes] = await Promise.all([fetch("/api/accounts"), fetch("/api/categories")]);
-    if (accRes.ok) {
-      const d = (await accRes.json()) as { accounts: Account[] };
-      setAccounts(d.accounts ?? []);
-      setAccountsLoaded(true);
-    }
-    if (catRes.ok) {
-      const d = (await catRes.json()) as { categories: Category[] };
-      setCategories(d.categories ?? []);
-    }
-  }, []);
-
-  const canShare = spaceKind === "personal";
-
-  useEffect(() => {
-    if (!canShare) return;
-    const loadSpaces = async () => {
-      const res = await fetch("/api/spaces");
-      if (!res.ok) return;
-      const d = (await res.json()) as { spaces: { id: string; name: string }[] };
-      setSpaceNames(Object.fromEntries((d.spaces ?? []).map((s) => [s.id, s.name])));
-    };
-    void loadSpaces();
-  }, [canShare]);
-
-  const load = useCallback(
-    async (p = page) => {
-      setIsLoading(true);
-      const params = new URLSearchParams({ page: String(p), per_page: String(PER_PAGE) });
-      if (type !== "all") params.set("kind", type);
-      if (accountId) params.set("account_id", accountId);
-      if (isUncategorized) params.set("uncategorized", "true");
-      else if (categorySelection) params.set("category_id", categorySelection);
-      if (dateFrom) params.set("date_from", dateFrom);
-      if (dateTo) params.set("date_to", dateTo);
-      if (q) params.set("q", q);
-
-      const res = await fetch(`/api/transactions?${params.toString()}`);
-      if (res.ok) {
-        const data = (await res.json()) as { transactions: Transaction[]; total: number };
-        setTransactions(data.transactions);
-        setTotal(data.total);
-      }
-      setIsLoading(false);
-    },
-    [type, page, accountId, categorySelection, isUncategorized, dateFrom, dateTo, q],
-  );
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reference data fetch on mount
-    void loadRefData();
-  }, [loadRefData]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- refetch when filters change
-    void load(1);
-    setPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, accountId, categorySelection, isUncategorized, dateFrom, dateTo, q]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- refetch when the page changes
-    void load(page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
 
   const handleDelete = async () => {
     if (!deletingTransaction) return;
@@ -207,7 +62,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
 
   const editKind: "expense" | "income" | "transfer" = editingTransaction?.transfer_id
     ? "transfer"
-    : ((editingTransaction?.kind as "expense" | "income" | undefined) ?? "expense");
+    : (editingTransaction?.kind === "income" ? "income" : "expense");
 
   // Category options for the filter dropdown follow the type filter (a
   // transfer has no category, so the dropdown itself is hidden for that type
@@ -215,22 +70,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
   // whenever type changes so a stale choice never leaks across tabs).
   const filterCategories = categories.filter((c) => type === "all" || c.kind === type);
 
-  const amountClass = (tx: Transaction) =>
-    tx.transfer_id ? "text-blue-600 dark:text-blue-400" : tx.kind === "expense" ? "text-expense" : "text-income";
-  // Issue 123 (ADR 0004): an expense with linked reimbursements shows its net.
-  const isReimbursed = (tx: Transaction) => tx.kind === "expense" && (tx.reimbursed_cents ?? 0) > 0;
-  const shownCents = (tx: Transaction) => (isReimbursed(tx) ? (tx.net_cents ?? 0) : Math.abs(tx.amount_cents));
-  const amountText = (tx: Transaction) =>
-    `${tx.transfer_id ? "" : tx.kind === "expense" ? "−" : "+"}${formatEuros(shownCents(tx), tx.currency)}`;
-  const reimbursementNote = (tx: Transaction) =>
-    isReimbursed(tx)
-      ? t("transactions.reimbursements.netOf", {
-          net: formatEuros(shownCents(tx), tx.currency),
-          gross: formatEuros(Math.abs(tx.amount_cents), tx.currency),
-        })
-      : tx.reimburses_transaction_id
-        ? t("transactions.reimbursements.linkedBadge")
-        : null;
+  const { amountClass, amountText, reimbursementNote } = transactionAmounts(t);
 
   // Whole row opens the edit modal on click (issue 114). The row itself is not
   // an interactive role: it contains the share and delete buttons and nested
@@ -614,25 +454,7 @@ export function TransactionList({ spaceKind = "personal" }: { spaceKind?: "perso
         <TransactionModal
           kind={editKind}
           transactionId={editingTransaction.id}
-          defaultValues={
-            editingTransaction.transfer_id
-              ? {
-                  from_account_id: editingTransaction.account_id,
-                  to_account_id: editingTransaction.to_account?.id ?? "",
-                  amount: String(Math.abs(editingTransaction.amount_cents) / 100),
-                  date: editingTransaction.date.slice(0, 10),
-                  description: editingTransaction.description,
-                  notes: editingTransaction.notes ?? "",
-                }
-              : {
-                  account_id: editingTransaction.account_id,
-                  amount: String(Math.abs(editingTransaction.amount_cents) / 100),
-                  date: editingTransaction.date.slice(0, 10),
-                  description: editingTransaction.description,
-                  category_id: editingTransaction.category_id ?? "",
-                  notes: editingTransaction.notes ?? "",
-                }
-          }
+          defaultValues={transactionEditValues(editingTransaction)}
           rawLabel={editingTransaction.raw_import_data?.raw_label ?? null}
           onSuccess={() => {
             setEditingTransaction(null);
