@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 import { describe, expect, it } from "vitest";
 
 import { computeIncomeExpenseSeries } from "@/lib/accounts/compute-income-expense-series";
@@ -9,8 +10,8 @@ describe("computeIncomeExpenseSeries", () => {
 
     expect(series).toHaveLength(6);
     expect(series.every((p) => p.income === 0 && p.expense === 0)).toBe(true);
-    expect(series[0].month).toBe("Fév 26");
-    expect(series[5].month).toBe("Juil 26");
+    expect(must(series[0]).month).toBe("Fév 26");
+    expect(must(series[5]).month).toBe("Juil 26");
   });
 
   it("aggregates income and expense by month and ignores transfers", () => {

@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -88,26 +89,26 @@ describe("TransactionList filters coverage", () => {
     expect(within(select()).getAllByRole("option").map((o) => o.textContent)).toEqual(["Toutes les catégories", "Sans catégorie", "Synthetic expense category", "Synthetic income category"]);
     fireEvent.change(select(), { target: { value: cat } });
     await waitFor(() => expect(lastList().get("category_id")).toBe(cat));
-    fireEvent.click(screen.getAllByRole("button", { name: "Revenus" })[0]);
+    fireEvent.click(must(screen.getAllByRole("button", { name: "Revenus" })[0]));
     await waitFor(() => expect(lastList().get("kind")).toBe("income"));
     expect(lastList().has("category_id")).toBe(false);
     expect(within(select()).queryByRole("option", { name: "Synthetic expense category" })).toBeNull();
-    fireEvent.click(screen.getAllByRole("button", { name: "Virements" })[0]);
+    fireEvent.click(must(screen.getAllByRole("button", { name: "Virements" })[0]));
     await waitFor(() => expect(lastList().get("kind")).toBe("transfer"));
     expect(screen.queryAllByLabelText("Catégorie")).toHaveLength(0);
-    fireEvent.click(screen.getAllByRole("button", { name: "Toutes" })[0]);
+    fireEvent.click(must(screen.getAllByRole("button", { name: "Toutes" })[0]));
     await waitFor(() => expect(lastList().has("kind")).toBe(false));
   });
   it("filters by account, uncategorized, dates and trims nothing from the request", async () => {
     const { lastList } = setup({ transactions: [expense] });
     await screen.findAllByText("Synthetic expense");
-    fireEvent.change(screen.getAllByLabelText("Compte")[0], { target: { value: acc2 } });
+    fireEvent.change(must(screen.getAllByLabelText("Compte")[0]), { target: { value: acc2 } });
     await waitFor(() => expect(lastList().get("account_id")).toBe(acc2));
-    fireEvent.change(screen.getAllByLabelText("Catégorie")[0], { target: { value: "__uncategorized__" } });
+    fireEvent.change(must(screen.getAllByLabelText("Catégorie")[0]), { target: { value: "__uncategorized__" } });
     await waitFor(() => expect(lastList().get("uncategorized")).toBe("true"));
     expect(lastList().has("category_id")).toBe(false);
-    fireEvent.change(screen.getAllByLabelText("Du")[0], { target: { value: "2026-10-01" } });
-    fireEvent.change(screen.getAllByLabelText("Au")[0], { target: { value: "2026-10-31" } });
+    fireEvent.change(must(screen.getAllByLabelText("Du")[0]), { target: { value: "2026-10-01" } });
+    fireEvent.change(must(screen.getAllByLabelText("Au")[0]), { target: { value: "2026-10-31" } });
     await waitFor(() => expect(lastList().get("date_to")).toBe("2026-10-31"));
     expect(lastList().get("date_from")).toBe("2026-10-01");
     expect(lastList().get("per_page")).toBe("25");
@@ -117,16 +118,16 @@ describe("TransactionList filters coverage", () => {
     const { lastList, listCalls } = setup({ transactions: [expense] });
     await screen.findAllByText("Synthetic expense");
     const input = screen.getAllByPlaceholderText("Rechercher…")[0];
-    fireEvent.change(input, { target: { value: "synthetic query" } });
-    fireEvent.keyDown(input, { key: "a" });
+    fireEvent.change(must(input), { target: { value: "synthetic query" } });
+    fireEvent.keyDown(must(input), { key: "a" });
     expect(lastList().has("q")).toBe(false);
-    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.keyDown(must(input), { key: "Enter" });
     await waitFor(() => expect(lastList().get("q")).toBe("synthetic query"));
-    fireEvent.change(input, { target: { value: "second query" } });
-    fireEvent.click(screen.getAllByRole("button", { name: "Rechercher" })[0]);
+    fireEvent.change(must(input), { target: { value: "second query" } });
+    fireEvent.click(must(screen.getAllByRole("button", { name: "Rechercher" })[0]));
     await waitFor(() => expect(lastList().get("q")).toBe("second query"));
     const callsBeforeClear = listCalls().length;
-    fireEvent.click(screen.getAllByRole("button", { name: "Effacer la recherche" })[0]);
+    fireEvent.click(must(screen.getAllByRole("button", { name: "Effacer la recherche" })[0]));
     await waitFor(() => expect(listCalls().length).toBeGreaterThan(callsBeforeClear));
     expect(lastList().has("q")).toBe(false);
     expect((input as HTMLInputElement).value).toBe("");
@@ -183,9 +184,9 @@ describe("TransactionList incomplete payloads", () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string) => (url.startsWith("/api/transactions") ? Response.json({ transactions: [expense], total: 1 }) : Response.json({}))));
     render(<LocaleProvider><TransactionList /></LocaleProvider>);
     await screen.findAllByText("Synthetic expense");
-    expect(screen.getAllByLabelText("Compte")[0].querySelectorAll("option")).toHaveLength(1);
-    expect(screen.getAllByLabelText("Catégorie")[0].querySelectorAll("option")).toHaveLength(2);
-    expect(within(desktopRows()[0]).getByRole("button", { name: "Partager avec un espace commun" })).toBeTruthy();
+    expect(must(screen.getAllByLabelText("Compte")[0]).querySelectorAll("option")).toHaveLength(1);
+    expect(must(screen.getAllByLabelText("Catégorie")[0]).querySelectorAll("option")).toHaveLength(2);
+    expect(within(must(desktopRows()[0])).getByRole("button", { name: "Partager avec un espace commun" })).toBeTruthy();
   });
 });
 
@@ -204,10 +205,10 @@ describe("TransactionList rows coverage", () => {
     expect(screen.getAllByText("import")).toHaveLength(2);
     expect(screen.getAllByText("Account A → Account B")).toHaveLength(2);
     expect(screen.getAllByText("— → —")).toHaveLength(2);
-    expect(within(desktopRows()[1]).getAllByText("—").length).toBeGreaterThanOrEqual(2);
-    expect(within(desktopRows()[0]).getByText(/−12,34/)).toBeTruthy();
-    expect(within(desktopRows()[1]).getByText(/\+50,00/)).toBeTruthy();
-    expect(within(desktopRows()[2]).getByText(/50,00/).textContent).not.toMatch(/[+−]/);
+    expect(within(must(desktopRows()[1])).getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    expect(within(must(desktopRows()[0])).getByText(/−12,34/)).toBeTruthy();
+    expect(within(must(desktopRows()[1])).getByText(/\+50,00/)).toBeTruthy();
+    expect(within(must(desktopRows()[2])).getByText(/50,00/).textContent).not.toMatch(/[+−]/);
     expect(within(cards()).getAllByText("Account A").length).toBeGreaterThan(0);
   });
   it("shows the net amount of a reimbursed expense and a badge on a linked refund", async () => {
@@ -219,24 +220,24 @@ describe("TransactionList rows coverage", () => {
     ] });
     await screen.findAllByText("Synthetic reimbursed");
     const [net, zero, refund, plain] = desktopRows();
-    expect(net.textContent).toMatch(/−30,00.*30,00.*sur.*90,00/);
-    expect(zero.textContent).toMatch(/−0,00.*0,00.*sur.*90,00/);
-    expect(within(refund).getByText("Remboursement")).toBeTruthy();
-    expect(plain.textContent).not.toContain("sur");
+    expect(must(net).textContent).toMatch(/−30,00.*30,00.*sur.*90,00/);
+    expect(must(zero).textContent).toMatch(/−0,00.*0,00.*sur.*90,00/);
+    expect(within(must(refund)).getByText("Remboursement")).toBeTruthy();
+    expect(must(plain).textContent).not.toContain("sur");
     expect(within(cards()).getAllByText(/30,00.*sur.*90,00/)).toHaveLength(1);
   });
   it("opens each edit modal with transfer and expense defaults, the raw bank label, and reloads on success", async () => {
     const raw = { ...expense, id: "e9", description: "Clean label", notes: "Synthetic note", category_id: cat, raw_import_data: { raw_label: "RAW LABEL" } };
     const { listCalls } = setup({ transactions: [raw, transfer] });
     await screen.findAllByText("Clean label");
-    fireEvent.click(desktopRows()[0]);
+    fireEvent.click(must(desktopRows()[0]));
     let modal = screen.getByRole("region", { name: "Transaction modal" });
     expect(modal.dataset.raw).toBe("RAW LABEL");
     expect(modal.dataset.id).toBe("e9");
     expect(JSON.parse(modal.dataset.values!)).toEqual({ account_id: acc1, amount: "12.34", date: "2026-10-01", description: "Clean label", category_id: cat, notes: "Synthetic note" });
     fireEvent.click(screen.getByRole("button", { name: "Transaction closed" }));
     expect(screen.queryByRole("region", { name: "Transaction modal" })).toBeNull();
-    fireEvent.click(within(cards()).getAllByRole("button", { name: "Synthetic transfer" })[0]);
+    fireEvent.click(must(within(cards()).getAllByRole("button", { name: "Synthetic transfer" })[0]));
     modal = screen.getByRole("region", { name: "Transaction modal" });
     expect(modal.dataset.kind).toBe("transfer");
     expect(JSON.parse(modal.dataset.values!)).toEqual({ from_account_id: acc1, to_account_id: acc2, amount: "50", date: "2026-10-01", description: "Synthetic transfer", notes: "" });
@@ -248,10 +249,10 @@ describe("TransactionList rows coverage", () => {
   it("edits a transfer missing its destination and an income without raw label", async () => {
     setup({ transactions: [{ ...transfer, to_account: null }, income] });
     await screen.findAllByText("Synthetic income");
-    fireEvent.click(desktopRows()[0]);
+    fireEvent.click(must(desktopRows()[0]));
     expect(JSON.parse(screen.getByRole("region", { name: "Transaction modal" }).dataset.values!)).toMatchObject({ to_account_id: "" });
     fireEvent.click(screen.getByRole("button", { name: "Transaction closed" }));
-    fireEvent.click(desktopRows()[1]);
+    fireEvent.click(must(desktopRows()[1]));
     const modal = screen.getByRole("region", { name: "Transaction modal" });
     expect(modal.dataset.kind).toBe("income");
     expect(JSON.parse(modal.dataset.values!)).toMatchObject({ category_id: "" });
@@ -266,7 +267,7 @@ describe("TransactionList actions coverage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Suiv\./ }));
     await screen.findByText(/page 2/);
     for (const [name, kind] of [["+ Dépense", "expense"], ["+ Revenu", "income"]]) {
-      await chooseAdd(name);
+      await chooseAdd(must(name));
       const modal = await screen.findByRole("region", { name: "Transaction modal" });
       expect(modal.dataset.kind).toBe(kind);
       expect(modal.dataset.id).toBe("");
@@ -332,7 +333,7 @@ describe("TransactionList deletion coverage", () => {
   it("cancels a deletion without sending a request", async () => {
     const { fetchMock } = setup({ transactions: [expense] });
     await screen.findAllByText("Synthetic expense");
-    fireEvent.click(within(desktopRows()[0]).getByRole("button", { name: "Supprimer" }));
+    fireEvent.click(within(must(desktopRows()[0])).getByRole("button", { name: "Supprimer" }));
     dialog().getByText("Supprimer cette transaction ?");
     dialog().getByText("« Synthetic expense » sera définitivement supprimée.");
     fireEvent.click(dialog().getByRole("button", { name: "Annuler" }));
@@ -352,7 +353,7 @@ describe("TransactionList deletion coverage", () => {
   it("deletes a transfer pair through the transfer route with its own confirmation", async () => {
     const { fetchMock } = setup({ transactions: [transfer] });
     await screen.findAllByText("Synthetic transfer");
-    fireEvent.click(within(desktopRows()[0]).getByRole("button", { name: "Supprimer" }));
+    fireEvent.click(within(must(desktopRows()[0])).getByRole("button", { name: "Supprimer" }));
     dialog().getByText("Supprimer ce virement ?");
     expect(dialog().getByText(/Le virement du .*01\/10\/2026.*50,00.*deux transactions/)).toBeTruthy();
     fireEvent.click(dialog().getByRole("button", { name: "Supprimer" }));
@@ -361,14 +362,14 @@ describe("TransactionList deletion coverage", () => {
   it.each([["the API message", () => Response.json({ error: "Synthetic delete refusal" }, { status: 409 }), "Synthetic delete refusal"], ["the generic message", () => new Response("<html>", { status: 500 }), "Erreur lors de la suppression"], ["the generic message without an error field", () => Response.json({}, { status: 500 }), "Erreur lors de la suppression"]])("keeps the dialog open with %s, and clears it after cancelling", async (_n, deleteResponse, message) => {
     setup({ transactions: [expense], deleteResponse });
     await screen.findAllByText("Synthetic expense");
-    fireEvent.click(within(desktopRows()[0]).getByRole("button", { name: "Supprimer" }));
+    fireEvent.click(within(must(desktopRows()[0])).getByRole("button", { name: "Supprimer" }));
     fireEvent.click(dialog().getByRole("button", { name: "Supprimer" }));
     await screen.findByText(message);
     expect(screen.getByRole("alertdialog")).toBeTruthy();
     expect(screen.getAllByText("Synthetic expense").length).toBeGreaterThan(0);
     fireEvent.click(dialog().getByRole("button", { name: "Annuler" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
-    fireEvent.click(within(desktopRows()[0]).getByRole("button", { name: "Supprimer" }));
+    fireEvent.click(within(must(desktopRows()[0])).getByRole("button", { name: "Supprimer" }));
     expect(screen.queryByText(message)).toBeNull();
     dialog().getByText("« Synthetic expense » sera définitivement supprimée.");
   });
@@ -379,14 +380,14 @@ describe("TransactionList sharing coverage", () => {
   it("offers sharing on a plain expense only and reloads after success", async () => {
     const { listCalls } = setup({ transactions: [expense, income, transfer] });
     await screen.findAllByText("Synthetic expense");
-    expect(within(desktopRows()[0]).getByRole("button", { name: "Partager avec un espace commun" })).toBeTruthy();
-    expect(within(desktopRows()[1]).queryByRole("button", { name: /Partager|Gérer/ })).toBeNull();
-    expect(within(desktopRows()[2]).queryByRole("button", { name: /Partager|Gérer/ })).toBeNull();
-    fireEvent.click(within(desktopRows()[0]).getByRole("button", { name: "Partager avec un espace commun" }));
+    expect(within(must(desktopRows()[0])).getByRole("button", { name: "Partager avec un espace commun" })).toBeTruthy();
+    expect(within(must(desktopRows()[1])).queryByRole("button", { name: /Partager|Gérer/ })).toBeNull();
+    expect(within(must(desktopRows()[2])).queryByRole("button", { name: /Partager|Gérer/ })).toBeNull();
+    fireEvent.click(within(must(desktopRows()[0])).getByRole("button", { name: "Partager avec un espace commun" }));
     expect(JSON.parse(screen.getByRole("region", { name: "Share modal" }).dataset.existing!)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Share closed" }));
     expect(screen.queryByRole("region", { name: "Share modal" })).toBeNull();
-    fireEvent.click(within(desktopRows()[0]).getByRole("button", { name: "Partager avec un espace commun" }));
+    fireEvent.click(within(must(desktopRows()[0])).getByRole("button", { name: "Partager avec un espace commun" }));
     const before = listCalls().length;
     fireEvent.click(screen.getByRole("button", { name: "Share saved" }));
     await waitFor(() => expect(listCalls().length).toBeGreaterThan(before));
@@ -397,21 +398,21 @@ describe("TransactionList sharing coverage", () => {
     setup({ transactions: [shared([share])] });
     await screen.findAllByText("Synthetic expense");
     await waitFor(() => expect(screen.getAllByText("Partagée · Synthetic space").length).toBeGreaterThan(0));
-    fireEvent.click(within(desktopRows()[0]).getByRole("button", { name: "Gérer le partage" }));
+    fireEvent.click(within(must(desktopRows()[0])).getByRole("button", { name: "Gérer le partage" }));
     expect(JSON.parse(screen.getByRole("region", { name: "Share modal" }).dataset.existing!)).toEqual({ id: "s1", spaceId: "space1", categoryId: cat, payerSharePercent: 70 });
   });
   it("handles an object-shaped share, an unknown space, and a share without a payer", async () => {
     setup({ transactions: [shared({ id: "s2", space_id: "unknown-space", category_id: null })], spaces: [] });
     await screen.findAllByText("Synthetic expense");
     expect(screen.getAllByText("Partagée").length).toBeGreaterThan(0);
-    fireEvent.click(within(desktopRows()[0]).getByRole("button", { name: "Gérer le partage" }));
+    fireEvent.click(within(must(desktopRows()[0])).getByRole("button", { name: "Gérer le partage" }));
     expect(JSON.parse(screen.getByRole("region", { name: "Share modal" }).dataset.existing!)).toEqual({ id: "s2", spaceId: "unknown-space", categoryId: null });
   });
   it.each([[[]], [""]])("treats an empty share (%j) as not shared", async (empty) => {
     setup({ transactions: [shared(empty || null)] });
     await screen.findAllByText("Synthetic expense");
     expect(screen.queryByText(/Partagée/)).toBeNull();
-    expect(within(desktopRows()[0]).getByRole("button", { name: "Partager avec un espace commun" })).toBeTruthy();
+    expect(within(must(desktopRows()[0])).getByRole("button", { name: "Partager avec un espace commun" })).toBeTruthy();
   });
   it("keeps the generic badge when spaces cannot be loaded", async () => {
     setup({ transactions: [shared({ id: "s3", space_id: "space1", category_id: null })], spaces: false as unknown as undefined });

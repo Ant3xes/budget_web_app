@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 import { expect, test, type Page } from "@playwright/test";
 
 const TEST_EMAIL = process.env.TEST_EMAIL ?? "test@budget.local";
@@ -102,7 +103,7 @@ test.describe("Retours 2", () => {
     const tag = unique();
     const [account] = await accountFixtures(page, tag);
     const description = `Ouverture F ${tag}`;
-    await createTransaction(page, account.id, description, -2500);
+    await createTransaction(page, must(account).id, description, -2500);
     await page.goto("/transactions");
     await page.locator('input[placeholder="Rechercher…"]:visible').fill(description);
     await page.locator('input[placeholder="Rechercher…"]:visible').press("Enter");
@@ -118,7 +119,7 @@ test.describe("Retours 2", () => {
     const tag = unique();
     const [account] = await accountFixtures(page, tag);
     const description = `Revenu F ${tag}`;
-    await createTransaction(page, account.id, description, -2500);
+    await createTransaction(page, must(account).id, description, -2500);
     const dialog = await openTransaction(page, description);
     await dialog.getByRole("group", { name: "Type", exact: true }).getByRole("button", { name: "Revenus", exact: true }).click();
     await dialog.getByRole("button", { name: "Mettre à jour", exact: true }).click();
@@ -130,15 +131,15 @@ test.describe("Retours 2", () => {
     const tag = unique();
     const [source, destination] = await accountFixtures(page, tag);
     const description = `Virement F ${tag}`;
-    await createTransaction(page, source.id, description, -3500);
+    await createTransaction(page, must(source).id, description, -3500);
     const dialog = await openTransaction(page, description);
     await dialog.getByRole("group", { name: "Type", exact: true }).getByRole("button", { name: "Virements", exact: true }).click();
-    await dialog.getByLabel(/compte source/i).selectOption(source.id);
-    await dialog.getByLabel(/compte destination/i).selectOption(destination.id);
+    await dialog.getByLabel(/compte source/i).selectOption(must(source).id);
+    await dialog.getByLabel(/compte destination/i).selectOption(must(destination).id);
     await dialog.getByRole("button", { name: "Mettre à jour", exact: true }).click();
     await expect(dialog).not.toBeVisible();
     const row = transactionRow(page, description);
-    await expect(row).toContainText(`${source.name} → ${destination.name}`);
+    await expect(row).toContainText(`${must(source).name} → ${must(destination).name}`);
     await expect(row).not.toContainText(/Revenu/);
   });
 
@@ -146,8 +147,8 @@ test.describe("Retours 2", () => {
     const tag = unique();
     const [account] = await accountFixtures(page, tag);
     const description = `Dépense remboursée F ${tag}`;
-    await createTransaction(page, account.id, description, -9000);
-    const refund = await createTransaction(page, account.id, `Entrée F ${tag}`, 6000);
+    await createTransaction(page, must(account).id, description, -9000);
+    const refund = await createTransaction(page, must(account).id, `Entrée F ${tag}`, 6000);
     const dialog = await openTransaction(page, description);
     const section = dialog.getByRole("region", { name: "Remboursements", exact: true });
     await section.getByRole("combobox", { name: "Lier un remboursement", exact: true }).selectOption(refund.id);
@@ -226,7 +227,7 @@ test.describe("Retours 2", () => {
     const { categories } = await response.json();
     const category = categories.find((entry: { name: string }) => entry.name === categoryName);
     expect(category).toBeTruthy();
-    await createTransaction(page, account.id, `Histogramme F ${tag}`, -4200, category.id);
+    await createTransaction(page, must(account).id, `Histogramme F ${tag}`, -4200, category.id);
     await page.goto("/analytics");
     await page.getByRole("link", { name: "Catégories", exact: true }).click();
     const heading = page.getByRole("heading", { name: /^Histogramme des dépenses par catégorie/ });

@@ -254,11 +254,12 @@ export function AccountDetail({
   const monthInputRef = useRef<HTMLInputElement>(null);
 
   const earliestDate = useMemo(() => {
-    if (balanceTxs.length === 0) return null;
+    const firstTransaction = balanceTxs[0];
+    if (!firstTransaction) return null;
     return balanceTxs.reduce((min, tx) => {
       const d = tx.date.slice(0, 10);
       return d < min ? d : min;
-    }, balanceTxs[0].date.slice(0, 10));
+    }, firstTransaction.date.slice(0, 10));
   }, [balanceTxs]);
 
   const { from, to, monthCount } = periodBounds(period, { earliestDate });

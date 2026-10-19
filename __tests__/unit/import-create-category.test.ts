@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 import { describe, expect, it, vi } from "vitest";
 
 import { createCategoryForImport } from "@/lib/import/create-category";
@@ -19,7 +20,7 @@ describe("createCategoryForImport", () => {
       .mockResolvedValueOnce(json(200, { ok: true }))
       .mockResolvedValueOnce(json(200, { categories: [{ ...cat, id: "x", kind: "income" }, cat] }));
     const r = await createCategoryForImport(" sport ", "expense", f as never);
-    expect(JSON.parse(f.mock.calls[0][1].body)).toEqual({ name: "sport", kind: "expense" });
+    expect(JSON.parse(must(f.mock.calls[0])[1].body)).toEqual({ name: "sport", kind: "expense" });
     expect(r.ok && r.category.id).toBe("c1");
   });
 

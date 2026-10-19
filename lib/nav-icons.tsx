@@ -12,7 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { NAV_ITEMS } from "@/lib/constants";
+import type { NAV_ITEMS } from "@/lib/constants";
 
 type NavKey = (typeof NAV_ITEMS)[number]["key"];
 

@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -34,7 +35,7 @@ describe("fetchTransferCounterparts", () => {
       t3: null,
       t4: null,
     });
-    expect(chain.eq.mock.calls).toEqual([["space_id", "space-1"], ["kind", "transfer_credit"]]);
+    expect(must(chain.eq).mock.calls).toEqual([["space_id", "space-1"], ["kind", "transfer_credit"]]);
     expect(chain.is).toHaveBeenCalledWith("deleted_at", null);
     expect(chain.in).toHaveBeenCalledWith("transfer_id", ["t1", "t2", "t3", "t4"]);
   });

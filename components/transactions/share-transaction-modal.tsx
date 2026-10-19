@@ -85,7 +85,7 @@ export function ShareTransactionModal({
         const shared = (data.spaces ?? []).filter((s) => s.kind === "shared");
         setSpaces(data.spaces ?? []);
         // Preselect when there is no ambiguity.
-        setSpaceId((current) => current || (shared.length === 1 ? shared[0].id : ""));
+        setSpaceId((current) => current || (shared.length === 1 ? shared[0]?.id ?? "" : ""));
       }
       setSpacesLoaded(true);
     };

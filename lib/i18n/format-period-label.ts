@@ -16,7 +16,7 @@ import type { Locale } from "@/components/locale-provider";
  */
 
 function formatMonthLabel(yyyyMM: string, locale: Locale): string {
-  const [y, m] = yyyyMM.split("-").map(Number);
+  const [y = Number.NaN, m = Number.NaN] = yyyyMM.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, 1));
   return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "fr-FR", {
     month: "long",

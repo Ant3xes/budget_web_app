@@ -25,7 +25,7 @@ export function computeWeekdayExpenseTotals(transactions: WeekdayExpenseTx[]): W
   for (const tx of transactions) {
     const jsWeekday = new Date(`${tx.date}T00:00:00Z`).getUTCDay(); // 0=Sun..6=Sat
     const mondayFirstIndex = (jsWeekday + 6) % 7; // 0=Mon..6=Sun
-    totals[mondayFirstIndex] += Math.abs(tx.amount_cents);
+    totals[mondayFirstIndex] = (totals[mondayFirstIndex] ?? 0) + Math.abs(tx.amount_cents);
   }
 
   return WEEKDAY_LABELS.map((label, i) => ({ label, totalCents: totals[i]! }));

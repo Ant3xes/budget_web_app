@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -54,7 +55,7 @@ const usedKeys = (file: string) => {
   // Any quoted dotted key passed to t(...), <T k=...> or a *Key prop — not only
   // nav./invitations. ones, so a mistyped prefix (e.g. "spaces.x") is caught too.
   for (const match of source.matchAll(/(?:\bt\(\s*|\bk=\{?|Key=\{?)["'`]([A-Za-z]+(?:\.[A-Za-z]+)+)["'`]/g)) {
-    keys.add(match[1]);
+    keys.add(must(match[1]));
   }
   return [...keys];
 };

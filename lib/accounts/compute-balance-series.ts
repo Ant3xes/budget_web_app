@@ -25,25 +25,25 @@ function toYearMonth(isoDate: string): string {
 }
 
 function endOfMonth(yyyyMM: string): string {
-  const [y, m] = yyyyMM.split("-").map(Number);
+  const [y = Number.NaN, m = Number.NaN] = yyyyMM.split("-").map(Number);
   const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
   return `${yyyyMM}-${String(lastDay).padStart(2, "0")}`;
 }
 
 function addMonth(yyyyMM: string, delta: number): string {
-  const [y, m] = yyyyMM.split("-").map(Number);
+  const [y = Number.NaN, m = Number.NaN] = yyyyMM.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1 + delta, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 function addDays(isoDate: string, delta: number): string {
-  const [y, m, d] = isoDate.split("-").map(Number);
+  const [y = Number.NaN, m = Number.NaN, d = Number.NaN] = isoDate.split("-").map(Number);
   const next = new Date(Date.UTC(y, m - 1, d + delta));
   return next.toISOString().slice(0, 10);
 }
 
 function formatMonthLabel(yyyyMM: string): string {
-  const [y, m] = yyyyMM.split("-").map(Number);
+  const [y = Number.NaN, m = Number.NaN] = yyyyMM.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString("fr-FR", {
     month: "short",
     year: "2-digit",
@@ -83,10 +83,11 @@ export function computeBalanceSeries(
   const currentMonth = endMonth ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   let startMonth = currentMonth;
-  if (transactions.length > 0) {
+  const firstTransaction = transactions[0];
+  if (firstTransaction) {
     const earliest = transactions.reduce(
       (min, tx) => (toDateOnly(tx.date) < min ? toDateOnly(tx.date) : min),
-      toDateOnly(transactions[0].date),
+      toDateOnly(firstTransaction.date),
     );
     startMonth = toYearMonth(earliest);
   }
