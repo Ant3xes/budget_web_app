@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { pgErrorResponse } from "@/lib/spaces/pg-error";
 import { withSpace } from "@/lib/spaces/with-space";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 /** Removes a settlement. Creator only (RLS). */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -10,6 +11,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!z.guid().safeParse(id).success) {
     return NextResponse.json({ error: "Invalid settlement id" }, { status: 400 });
   }

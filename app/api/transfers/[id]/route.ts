@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { withSpace } from "@/lib/spaces/with-space";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const transferUpdateSchema = z.object({
   amount_cents: z.number().int().positive().optional(),
@@ -21,11 +22,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const { id: transferId } = await params;
+  const badId = invalidIdResponse(transferId);
+  if (badId) return badId;
   if (!transferId) {
     return NextResponse.json({ error: "Missing transfer_id" }, { status: 400 });
   }
 
-  const payload = transferUpdateSchema.safeParse(await request.json());
+  const payload = transferUpdateSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }
@@ -86,6 +89,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { id: transferId } = await params;
+  const badId = invalidIdResponse(transferId);
+  if (badId) return badId;
   if (!transferId) {
     return NextResponse.json({ error: "Missing transfer_id" }, { status: 400 });
   }

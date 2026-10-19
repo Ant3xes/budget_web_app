@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { withSpace } from "@/lib/spaces/with-space";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const categoryUpdateSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
@@ -17,11 +18,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  const payload = categoryUpdateSchema.safeParse(await request.json());
+  const payload = categoryUpdateSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json({ error: payload.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }
@@ -71,6 +74,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }

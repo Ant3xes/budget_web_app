@@ -1,5 +1,3 @@
-import * as XLSX from "xlsx";
-
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -9,9 +7,19 @@ import { detectFormat } from "@/lib/import/detect-format";
 import { matchMerchant } from "@/lib/import/merchants";
 import { normalizeLabel, type LabelSource } from "@/lib/import/normalize-label";
 import { resolveSuggestion, type SpaceCategory } from "@/lib/import/resolve-suggestion";
-import { parseBnpXls } from "@/lib/import/parse-bnp";
 import { isTransferSourceType, parseN26Csv } from "@/lib/import/parse-n26";
+import { logApiError } from "@/lib/api/log-error";
 import { withSpace } from "@/lib/spaces/with-space";
+
+/** Upload guards (issue 163): bank exports are far below these limits. */
+export const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
+export const MAX_IMPORT_ROWS = 5000;
+
+const ALLOWED_MIME_TYPES: Record<"csv" | "xls" | "xlsx", string[]> = {
+  csv: ["text/csv", "application/csv", "application/vnd.ms-excel", "text/plain", "application/octet-stream", ""],
+  xls: ["application/vnd.ms-excel", "application/octet-stream", ""],
+  xlsx: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream", ""],
+};
 
 export async function POST(request: Request) {
   const auth = await withSpace();
@@ -21,7 +29,18 @@ export async function POST(request: Request) {
   const { supabase, spaceId } = auth;
   const isPersonal = auth.space.kind === "personal";
 
-  const formData = await request.formData();
+  // Refuse early on the declared size, before reading the body.
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_IMPORT_BYTES + 64 * 1024) {
+    return NextResponse.json({ error: "Fichier trop volumineux (2 Mo maximum)" }, { status: 413 });
+  }
+
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json({ error: "Requête invalide" }, { status: 400 });
+  }
   const file = formData.get("file");
 
   // Target account: duplicates are looked up in this account only (the same
@@ -37,8 +56,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
   }
 
-  const buffer = await file.arrayBuffer();
+  if (file.size > MAX_IMPORT_BYTES) {
+    return NextResponse.json({ error: "Fichier trop volumineux (2 Mo maximum)" }, { status: 413 });
+  }
+
   const fileName = file.name.toLowerCase();
+  const extension = fileName.endsWith(".csv") ? "csv" : fileName.endsWith(".xlsx") ? "xlsx" : fileName.endsWith(".xls") ? "xls" : null;
+  if (!extension) {
+    return NextResponse.json({ error: "Format de fichier non supporté (.csv, .xls, .xlsx uniquement)" }, { status: 400 });
+  }
+  if (!ALLOWED_MIME_TYPES[extension].includes(file.type.toLowerCase())) {
+    return NextResponse.json({ error: "Type de fichier non supporté" }, { status: 400 });
+  }
+
+  const buffer = await file.arrayBuffer();
 
   // Parse the file based on extension + content
   let parsed;
@@ -58,6 +89,9 @@ export async function POST(request: Request) {
     }
   } else if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
     try {
+      // Dynamic import: SheetJS stays out of the CSV path (issue 163).
+      const XLSX = await import("xlsx");
+      const { parseBnpXls } = await import("@/lib/import/parse-bnp");
       // Detect BNP by looking at row 1 headers (index 1 in the sheet)
       const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0] ?? ""];
@@ -77,11 +111,18 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Format XLS non reconnu. Formats supportés : BNP." }, { status: 400 });
       }
     } catch (err) {
-      console.error("[import/preview] XLS parse error:", err);
+      logApiError("[import/preview] XLS parse error", err);
       return NextResponse.json({ error: "Impossible de lire le fichier XLS" }, { status: 400 });
     }
   } else {
     return NextResponse.json({ error: "Format de fichier non supporté (.csv, .xls, .xlsx uniquement)" }, { status: 400 });
+  }
+
+  if (parsed.length > MAX_IMPORT_ROWS) {
+    return NextResponse.json(
+      { error: `Trop de lignes (${MAX_IMPORT_ROWS} maximum par import)` },
+      { status: 422 },
+    );
   }
 
   if (parsed.length === 0) {

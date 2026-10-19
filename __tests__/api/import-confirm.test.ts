@@ -421,7 +421,7 @@ describe("POST /api/import/confirm — DB error", () => {
 
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("violates foreign key constraint");
+    expect(body.error).toBe("Request failed"); // raw Postgres text is not leaked (issue 163)
   });
 });
 
@@ -482,7 +482,7 @@ describe("POST /api/import/confirm — atomic rpc", () => {
       vi.mocked(withSpace).mockResolvedValue(asAuth(supabase));
       const res = await POST(makeRequest({ account_id: ACCOUNT_ID, transactions: [expense] }));
       expect(res.status).toBe(status);
-      expect(((await res.json()) as { error: string }).error).toBe("boom");
+      expect(((await res.json()) as { error: string }).error).toBe(code ? "boom" : "Request failed");
     }
   });
 

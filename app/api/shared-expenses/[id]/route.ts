@@ -4,6 +4,7 @@ import { z } from "zod";
 import { splitShares } from "@/lib/shared-expenses/split-shares";
 import { pgErrorResponse } from "@/lib/spaces/pg-error";
 import { withSpace } from "@/lib/spaces/with-space";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const patchSchema = z
   .object({
@@ -22,6 +23,8 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!z.guid().safeParse(id).success) {
     return NextResponse.json({ error: "Invalid shared expense id" }, { status: 400 });
   }
@@ -76,6 +79,8 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
   if (!z.guid().safeParse(id).success) {
     return NextResponse.json({ error: "Invalid shared expense id" }, { status: 400 });
   }

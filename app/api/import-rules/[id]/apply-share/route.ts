@@ -5,6 +5,7 @@ import { fetchRetroCandidates, RETRO_SHARE_LIMIT } from "@/lib/import/rule-retro
 import { splitShares } from "@/lib/shared-expenses/split-shares";
 import { pgErrorResponse } from "@/lib/spaces/pg-error";
 import { withSpace } from "@/lib/spaces/with-space";
+import { invalidIdResponse } from "@/lib/api/validate-id";
 
 // Retroactive sharing of a rule: GET previews the lines (read-only), POST
 // shares the ones the user kept, all or nothing.
@@ -56,6 +57,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
 
   const loaded = await loadRule(auth, id);
   if (loaded.error) return loaded.error;
@@ -110,8 +113,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const auth = await withSpace();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
+  const badId = invalidIdResponse(id);
+  if (badId) return badId;
 
-  const payload = applySchema.safeParse(await request.json());
+  const payload = applySchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     const issue = payload.error.issues[0];
     const path = issue?.path?.join(".") ?? "";

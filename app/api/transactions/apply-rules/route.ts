@@ -131,7 +131,7 @@ export async function POST(request: Request) {
 
   const { supabase, user, spaceId } = auth;
 
-  const payload = applyRulesSchema.safeParse(await request.json());
+  const payload = applyRulesSchema.safeParse(await request.json().catch(() => null));
   if (!payload.success) {
     return NextResponse.json(
       { error: payload.error.issues[0]?.message ?? "Données invalides" },

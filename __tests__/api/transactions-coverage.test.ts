@@ -298,7 +298,8 @@ describe("transaction writes", () => {
       const response = await PATCH(request("PATCH", { category_id: CAT }), params());
       expect(response.status).toBe(200);
       expect(await response.json()).toEqual({ ok: true, rule: null });
-      expect(log).toHaveBeenCalledWith("Import rule upsert failed (issue 116):", mode === "returned error" ? dbError.message : expect.any(Error));
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(String(log.mock.calls[0]![0])).toContain("Import rule upsert failed (issue 116)");
     } finally { log.mockRestore(); }
   });
   it("rejects invalid creation data before inserting", async () => {
