@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { DivergingBarChart } from "@/components/analytics/diverging-bar-chart";
+import { DivergingBarChart } from "@/components/analytics/deferred-charts";
 import { ChartEmptyState } from "@/components/chart-empty-state";
 import { useLocale } from "@/components/locale-provider";
 import { resolveCategoryName } from "@/lib/i18n/category-name";

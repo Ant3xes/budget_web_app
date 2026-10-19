@@ -34,7 +34,7 @@ export function AmountHistogramChart({ data, height = 240 }: AmountHistogramChar
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
-      <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+      <BarChart accessibilityLayer data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fontSize: 11 }} width={isMobile ? Math.round(32 * 0.7) : 32} axisLine={false} tickLine={false} allowDecimals={false} />

@@ -5,6 +5,10 @@
  * Comparisons.
  */
 export const analytics = {
+  accessibility: {
+    summary: "{series}. Values (amounts in cents, rates in %): {values}",
+    values: "Amount breakdown",
+  },
   sharedNote: "Includes the expenses shared by members.",
   tabs: {
     overview: "Overview",

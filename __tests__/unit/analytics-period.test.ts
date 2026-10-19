@@ -2,7 +2,7 @@ import { Children, Suspense, isValidElement, type ReactElement, type ReactNode }
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AnalyticsPage from "@/app/(app)/analytics/page";
-import { CashflowChart } from "@/components/analytics/cashflow-chart";
+import { CashflowChart } from "@/components/analytics/deferred-charts";
 import { PeriodSelector } from "@/components/period-selector";
 import { pillButtonClass } from "@/lib/dashboard/pill-class";
 

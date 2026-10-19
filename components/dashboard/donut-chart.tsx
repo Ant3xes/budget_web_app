@@ -8,6 +8,8 @@ import type { NameType, ValueType } from "recharts/types/component/DefaultToolti
 
 import { UNCATEGORIZED_CATEGORY_ID } from "@/lib/constants";
 import { formatEuros } from "@/lib/format";
+import { useLocale } from "@/components/locale-provider";
+import { describeChartData } from "@/components/dashboard/chart-summary";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 interface DonutDatum {
@@ -116,6 +118,7 @@ export function DonutChart({
   drillDownBasePath,
   onSliceClick,
 }: DonutChartProps) {
+  const { t, locale } = useLocale();
   const router = useRouter();
   const isMobile = useIsMobile();
 
@@ -139,7 +142,7 @@ export function DonutChart({
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <PieChart>
+      <PieChart accessibilityLayer role="img" aria-label={t("analytics.accessibility.summary", { series: t("analytics.accessibility.values"), values: describeChartData(data, ["value"], locale) })}>
         <Pie
           data={data}
           dataKey="value"

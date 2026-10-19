@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { useLocale } from "@/components/locale-provider";
 import { useTheme } from "@/components/theme-provider";
+import { describeChartData } from "@/components/dashboard/chart-summary";
 import { useIsMobile } from "@/lib/hooks/use-is-mobile";
 
 export interface BalanceChartData {
@@ -52,7 +53,7 @@ function formatTooltipDate(isoDate: string): string {
 export function BalanceChart({ data, currency = "EUR" }: BalanceChartProps) {
   const isMobile = useIsMobile();
   const { resolvedTheme } = useTheme();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const isDark = resolvedTheme === "dark";
 
   const gridColor = isDark ? "#3f3f46" : "#f0f0f0";
@@ -75,7 +76,7 @@ export function BalanceChart({ data, currency = "EUR" }: BalanceChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <LineChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: bottomMargin }}>
+      <LineChart accessibilityLayer role="img" aria-label={t("analytics.accessibility.summary", { series: t("analytics.accessibility.values"), values: describeChartData(data, ["balance"], locale) })} data={data} margin={{ top: 4, right: 8, left: 0, bottom: bottomMargin }}>
         <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
         <XAxis
           dataKey="label"

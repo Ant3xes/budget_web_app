@@ -45,7 +45,7 @@ export function NetWorthChart({ data, height = 280 }: NetWorthChartProps) {
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
-      <AreaChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+      <AreaChart accessibilityLayer data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
         <YAxis

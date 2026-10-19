@@ -233,6 +233,9 @@ test.describe("Retours 2", () => {
     const heading = page.getByRole("heading", { name: /^Histogramme des dépenses par catégorie/ });
     await expect(heading).toBeVisible();
     const histogram = heading.locator("..");
+    // The chart is mounted when it nears the viewport (issue 168): bring it in
+    // before asserting on its SVG, exactly as a user scrolling would.
+    await histogram.scrollIntoViewIfNeeded();
     const toggle = histogram.getByRole("switch", { name: new RegExp(categoryName) });
     const chartLabel = histogram.locator("svg").getByText(categoryName, { exact: true });
     await expect(toggle).toBeChecked();

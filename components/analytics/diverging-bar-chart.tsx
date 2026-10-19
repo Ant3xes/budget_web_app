@@ -43,7 +43,7 @@ export function DivergingBarChart({ data, height = 280, yAxisWidth = 120, format
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
-      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+      <BarChart accessibilityLayer data={data} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
         <XAxis type="number" tickFormatter={formatEurosAxisTick} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
         <YAxis type="category" dataKey="label" tick={{ fontSize: dense ? 10 : 12 }} width={isMobile ? Math.min(yAxisWidth, 84) : yAxisWidth} axisLine={false} tickLine={false} />

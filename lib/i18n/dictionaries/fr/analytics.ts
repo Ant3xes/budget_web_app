@@ -5,6 +5,10 @@
  * Transactions / Comparaisons.
  */
 export const analytics = {
+  accessibility: {
+    summary: "{series}. Valeurs (montants en centimes, taux en %) : {values}",
+    values: "Répartition des montants",
+  },
   sharedNote: "Inclut les dépenses partagées par les membres.",
   tabs: {
     overview: "Vue d'ensemble",

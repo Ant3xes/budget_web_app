@@ -1,15 +1,24 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Cookie } from "@playwright/test";
 
 const TEST_EMAIL = process.env.TEST_EMAIL ?? "test@budget.local";
 const TEST_PASSWORD = process.env.TEST_PASSWORD ?? "Password1234!";
 
+let sessionCookies: Cookie[] | undefined;
+
 async function login(page: Page) {
+  if (sessionCookies) {
+    await page.context().addCookies(sessionCookies);
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/dashboard/);
+    return;
+  }
   await page.goto("/login");
   await page.getByLabel(/email/i).fill(TEST_EMAIL);
   await page.getByLabel(/mot de passe|password/i).fill(TEST_PASSWORD);
   await page.getByRole("button", { name: /connexion|se connecter|login|sign in/i }).click();
   await expect(page).toHaveURL(/dashboard/);
+  sessionCookies = await page.context().cookies();
 }
 
 // Guards against a silently ignored theme switch (which would make the "dark"
@@ -67,6 +76,9 @@ const PAGES = [
   { name: "goals", path: "/goals" },
   { name: "fixed charges", path: "/fixed-charges" },
   { name: "analytics", path: "/analytics" },
+  ...["categories", "accounts", "transactions", "comparisons"].map((tab) => ({
+    name: `analytics ${tab}`, path: `/analytics?tab=${tab}`,
+  })),
   // /settings redirects to its first sub-page.
   { name: "settings", path: "/settings/categories" },
 ];
@@ -116,9 +128,19 @@ for (const theme of ["light", "dark"] as const) {
         await login(page);
         await page.goto(path);
         // Some pages add a query string (e.g. /budget?month=2026-09).
-        await expect(page).toHaveURL(new RegExp(`${path}(\\?.*)?$`));
+        await expect(page).toHaveURL(new RegExp(`${path.replace("?", "\\?")}(\\?.*)?$`));
         // Page content rendered (not a loading skeleton) before scanning.
         await expect(page.getByRole("heading").first()).toBeVisible();
+        // Trigger every deferred chart before axe inspects the rendered content.
+        if (path.startsWith("/analytics")) {
+          await expect(page.locator("[data-deferred-chart]:visible").first()).toBeAttached();
+          await expect(page.locator("div[role=status][aria-live=polite]")).toHaveCount(0);
+        }
+        for (const chart of await page.locator("[data-deferred-chart]:visible").all()) {
+          await chart.scrollIntoViewIfNeeded();
+          await expect(chart.locator("[role=status]")).toHaveCount(0);
+          await expect(chart.locator("svg.recharts-surface, [class*=h-48]").first()).toBeVisible();
+        }
         await expectTheme(page, theme);
         await expectNoSeriousViolations(page);
       });

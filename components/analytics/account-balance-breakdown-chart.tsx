@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { DivergingBarChart } from "@/components/analytics/diverging-bar-chart";
+import { DivergingBarChart } from "@/components/analytics/deferred-charts";
 import { useLocale } from "@/components/locale-provider";
 import { colorForBank } from "@/lib/accounts/color-for-bank";
 import type { BankGroup } from "@/lib/accounts/group-account-balances";
