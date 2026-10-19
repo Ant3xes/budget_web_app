@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,8 +11,8 @@ describe("computeBalanceSeries", () => {
     const now = new Date(2026, 6, 15); // July 2026
     const series = computeBalanceSeries([], 50_000, now);
     expect(series).toHaveLength(1);
-    expect(series[0].balance).toBe(50_000);
-    expect(series[0].month).toMatch(/juil/i);
+    expect(must(series[0]).balance).toBe(50_000);
+    expect(must(series[0]).month).toMatch(/juil/i);
   });
 
   it("computes end-of-month balances from earliest tx through now", () => {
@@ -27,9 +28,9 @@ describe("computeBalanceSeries", () => {
     );
 
     expect(series).toHaveLength(3);
-    expect(series[0].balance).toBe(9000);
-    expect(series[1].balance).toBe(14000);
-    expect(series[2].balance).toBe(13500);
+    expect(must(series[0]).balance).toBe(9000);
+    expect(must(series[1]).balance).toBe(14000);
+    expect(must(series[2]).balance).toBe(13500);
   });
 
   it("includes only transactions dated on or before month end", () => {
@@ -44,7 +45,7 @@ describe("computeBalanceSeries", () => {
     );
 
     expect(series).toHaveLength(1);
-    expect(series[0].balance).toBe(800);
+    expect(must(series[0]).balance).toBe(800);
   });
 
   it("covers more than 2 years so chart range filters can differ", () => {
@@ -65,11 +66,11 @@ describe("computeBalanceSeries", () => {
     expect(series.slice(-6)).toHaveLength(6);
     expect(series.slice(-12)).toHaveLength(12);
     expect(series.slice(-24)).toHaveLength(24);
-    expect(series.slice(-3)[0].month).not.toBe(series.slice(-6)[0].month);
-    expect(series.slice(-6)[0].month).not.toBe(series.slice(-12)[0].month);
-    expect(series.slice(-12)[0].month).not.toBe(series.slice(-24)[0].month);
-    expect(series.slice(-24)[0].month).not.toBe(series[0].month);
-    expect(series[series.length - 1].balance).toBe(3000);
+    expect(must(series.slice(-3)[0]).month).not.toBe(must(series.slice(-6)[0]).month);
+    expect(must(series.slice(-6)[0]).month).not.toBe(must(series.slice(-12)[0]).month);
+    expect(must(series.slice(-12)[0]).month).not.toBe(must(series.slice(-24)[0]).month);
+    expect(must(series.slice(-24)[0]).month).not.toBe(must(series[0]).month);
+    expect(must(series[series.length - 1]).balance).toBe(3000);
   });
 
   it("with an explicit endMonth, the series ends there instead of at now's month (past custom range)", () => {
@@ -88,7 +89,7 @@ describe("computeBalanceSeries", () => {
     );
 
     expect(series).toHaveLength(3); // Mar, Apr, May
-    expect(series[series.length - 1].balance).toBe(1000); // September's tx must not be included
+    expect(must(series[series.length - 1]).balance).toBe(1000); // September's tx must not be included
   });
 });
 
@@ -126,7 +127,7 @@ describe("computeDailyBalanceSeries", () => {
     );
 
     expect(series).toHaveLength(1);
-    expect(series[0].balance).toBe(8_500);
+    expect(must(series[0]).balance).toBe(8_500);
   });
 
   it("normalizes timestamp dates so daily lookups match", () => {

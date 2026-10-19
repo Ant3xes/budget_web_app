@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createChainableMock } from "@/__tests__/mocks/supabase";
 import { GET, POST } from "@/app/api/budgets/route";
@@ -32,7 +33,7 @@ describe("budget boundaries and net consumption", () => {
     const { from, chains } = setup({ budgets: { data: null, error: null } }, true);
     expect(await (await GET(new Request("http://test"))).json()).toEqual({ budgets: [], consumption: {} });
     expect(from).toHaveBeenCalledTimes(1);
-    expect(chains.budgets.gte).not.toHaveBeenCalled();
+    expect(must(chains.budgets).gte).not.toHaveBeenCalled();
   });
   it("returns budget query errors", async () => {
     setup({ budgets: { data: null, error: { message: "Read failed" } } });
@@ -55,9 +56,9 @@ describe("budget boundaries and net consumption", () => {
     }, true);
     const response = await GET(new Request("http://test?month=2026-12"));
     expect(await response.json()).toEqual({ budgets: [{ id: "budget" }], consumption: { [category]: 7000, other: 400 } });
-    expect(chains.budgets.gte).toHaveBeenCalledWith("month", "2026-12-01");
-    expect(chains.budgets.lt).toHaveBeenCalledWith("month", "2027-01-01");
-    expect(chains.shared_expenses.lt).toHaveBeenCalledWith("date", "2027-01-01");
+    expect(must(chains.budgets).gte).toHaveBeenCalledWith("month", "2026-12-01");
+    expect(must(chains.budgets).lt).toHaveBeenCalledWith("month", "2027-01-01");
+    expect(must(chains.shared_expenses).lt).toHaveBeenCalledWith("date", "2027-01-01");
   });
   it.each([{}, { ...payload, amount_cents: 0 }, { ...payload, amount_cents: 1.5 }])("rejects invalid budget %j", async body => {
     const { from } = setup();
@@ -69,6 +70,6 @@ describe("budget boundaries and net consumption", () => {
     const response = await POST(request(payload));
     expect(response.status).toBe(status);
     expect(await response.json()).toEqual(body);
-    expect(chains.budgets.insert).toHaveBeenCalledWith({ ...payload, month: "2026-12-01", space_id: "space", user_id: "user" });
+    expect(must(chains.budgets).insert).toHaveBeenCalledWith({ ...payload, month: "2026-12-01", space_id: "space", user_id: "user" });
   });
 });

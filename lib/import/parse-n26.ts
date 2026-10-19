@@ -26,7 +26,9 @@ export function parseN26Csv(content: string): ParsedTransaction[] {
   const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length < 2) return [];
 
-  const headers = parseCsvLine(lines[0]);
+  const headerLine = lines[0];
+  if (headerLine === undefined) return [];
+  const headers = parseCsvLine(headerLine);
   const dateIdx = headers.findIndex((h) => h.trim().toLowerCase() === "booking date");
   const descIdx = headers.findIndex(
     (h) => h.trim().toLowerCase() === "payee" || h.trim().toLowerCase() === "partner name",
@@ -39,7 +41,9 @@ export function parseN26Csv(content: string): ParsedTransaction[] {
   const transactions: ParsedTransaction[] = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const cols = parseCsvLine(lines[i]);
+    const line = lines[i];
+    if (line === undefined) continue;
+    const cols = parseCsvLine(line);
     if (cols.length <= Math.max(dateIdx, amountIdx)) continue;
 
     const dateRaw = cols[dateIdx]?.trim() ?? "";

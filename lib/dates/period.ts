@@ -50,7 +50,8 @@ export function isYearMonth(value: string): boolean {
  */
 export function isYearMonthRange(value: string): boolean {
   const parts = value.split(":");
-  return parts.length === 2 && parts.every(isYearMonth) && parts[0] <= parts[1];
+  const [from, to] = parts;
+  return parts.length === 2 && from !== undefined && to !== undefined && parts.every(isYearMonth) && from <= to;
 }
 
 /** Parse `?period=` — YYYY-MM, preset key, `YYYY-MM:YYYY-MM` range, or default to current month. */
@@ -62,7 +63,7 @@ export function parsePeriodParam(param: string | undefined, now: Date = new Date
     return { type: "preset", value: param };
   }
   if (isYearMonthRange(param)) {
-    const [from, to] = param.split(":");
+    const [from = "", to = ""] = param.split(":");
     return { type: "range", from, to };
   }
   return { type: "month", month: currentMonth(now) };
@@ -76,20 +77,20 @@ export function periodToParam(period: Period): string {
 
 /** Number of calendar months spanned from `from` to `to`, inclusive (e.g. 2026-03 → 2026-06 is 4). */
 function monthSpan(from: string, to: string): number {
-  const [fy, fm] = from.split("-").map(Number);
-  const [ty, tm] = to.split("-").map(Number);
+  const [fy = Number.NaN, fm = Number.NaN] = from.split("-").map(Number);
+  const [ty = Number.NaN, tm = Number.NaN] = to.split("-").map(Number);
   return (ty - fy) * 12 + (tm - fm) + 1;
 }
 
 /** Last day of `yyyyMM` (e.g. "2026-02" → "2026-02-28"). Shared by periodBounds' `month`/`range` branches. */
 function monthEnd(yyyyMM: string): string {
-  const [y, m] = yyyyMM.split("-").map(Number);
+  const [y = Number.NaN, m = Number.NaN] = yyyyMM.split("-").map(Number);
   const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
   return `${yyyyMM}-${String(lastDay).padStart(2, "0")}`;
 }
 
 export function addMonths(yyyyMM: string, delta: number): string {
-  const [y, m] = yyyyMM.split("-").map(Number);
+  const [y = Number.NaN, m = Number.NaN] = yyyyMM.split("-").map(Number);
   const d = new Date(y, m - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }

@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 // @vitest-environment jsdom
 import type { ComponentProps } from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -82,8 +83,8 @@ describe("Account detail coverage", () => {
     const transactions = Array.from({ length: 12 }, (_, i) => ({ ...tx, id: `e${String(i).padStart(2, "0")}`, description: `Synthetic purchase ${i}`, gross_cents: undefined, categories: i % 2 ? category : null, date: i < 2 ? "2026-09-01" : "2026-10-02" }));
     setup({ initialPeriod: "3m", allTransactions: transactions });
     const table = screen.getAllByRole("table")[0];
-    expect(within(table).getAllByRole("row")).toHaveLength(11);
-    expect(within(table).getAllByRole("row")[1].textContent).toContain("Synthetic purchase 11");
+    expect(within(must(table)).getAllByRole("row")).toHaveLength(11);
+    expect(must(within(must(table)).getAllByRole("row")[1]).textContent).toContain("Synthetic purchase 11");
     fireEvent.click(screen.getByRole("button", { name: /Suiv/ }));
     expect(screen.getAllByText("Synthetic purchase 0")).toHaveLength(2);
     expect(screen.queryByText("Synthetic purchase 11")).toBeNull();

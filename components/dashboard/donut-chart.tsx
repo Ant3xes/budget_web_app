@@ -80,6 +80,7 @@ interface DonutChartProps {
 function DonutTooltipContent({ active, payload }: TooltipContentProps<ValueType, NameType>) {
   if (!active || !payload || payload.length === 0) return null;
   const entry = payload[0];
+  if (!entry) return null;
   const datum = entry.payload as DonutDatum;
 
   return (

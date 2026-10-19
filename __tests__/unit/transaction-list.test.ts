@@ -1,3 +1,4 @@
+import { must } from "@/__tests__/helpers/must";
 // @vitest-environment jsdom
 
 import { createElement } from "react";
@@ -57,7 +58,7 @@ describe("TransactionList clickable rows (issue 114)", () => {
   it("opens the modal on row click with the row values", async () => {
     setup();
     const [row] = await rows();
-    fireEvent.click(row);
+    fireEvent.click(must(row));
     const modal = screen.getByTestId("tx-modal");
     expect(modal.dataset.kind).toBe("expense");
     expect(JSON.parse(modal.dataset.values!)).toMatchObject({ account_id: acc1, amount: "12.34" });
@@ -66,29 +67,29 @@ describe("TransactionList clickable rows (issue 114)", () => {
   it("the description is a real button that opens the modal (keyboard and screen reader)", async () => {
     setup();
     const [row] = await rows();
-    fireEvent.click(within(row).getByRole("button", { name: "Synthetic expense" }));
+    fireEvent.click(within(must(row)).getByRole("button", { name: "Synthetic expense" }));
     expect(screen.getByTestId("tx-modal")).toBeTruthy();
   });
 
   it("the row is not itself an interactive role (no nested interactive controls) and the pencil is gone", async () => {
     setup();
     const [row] = await rows();
-    expect(row.getAttribute("role")).toBeNull();
-    expect(row.getAttribute("tabindex")).toBeNull();
+    expect(must(row).getAttribute("role")).toBeNull();
+    expect(must(row).getAttribute("tabindex")).toBeNull();
     expect(screen.queryAllByRole("button", { name: /^(Modifier|Edit)$/ })).toHaveLength(0);
   });
 
   it("delete button does not open the modal", async () => {
     setup();
     const [row] = await rows();
-    fireEvent.click(within(row).getByRole("button", { name: /Supprimer|Delete/ }));
+    fireEvent.click(within(must(row)).getByRole("button", { name: /Supprimer|Delete/ }));
     expect(screen.queryByTestId("tx-modal")).toBeNull();
   });
 
   it("share button opens the share modal only, not the edit modal", async () => {
     setup();
     const [row] = await rows();
-    fireEvent.click(within(row).getByRole("button", { name: /Partager|Share|Gérer|Manage/ }));
+    fireEvent.click(within(must(row)).getByRole("button", { name: /Partager|Share|Gérer|Manage/ }));
     expect(screen.getByTestId("share-modal")).toBeTruthy();
     expect(screen.queryByTestId("tx-modal")).toBeNull();
   });
@@ -96,14 +97,14 @@ describe("TransactionList clickable rows (issue 114)", () => {
   it("Enter on the delete button does not open the modal", async () => {
     setup();
     const [row] = await rows();
-    fireEvent.keyDown(within(row).getByRole("button", { name: /Supprimer|Delete/ }), { key: "Enter" });
+    fireEvent.keyDown(within(must(row)).getByRole("button", { name: /Supprimer|Delete/ }), { key: "Enter" });
     expect(screen.queryByTestId("tx-modal")).toBeNull();
   });
 
   it("a transfer row opens TransactionModal with source and destination ids", async () => {
     setup();
     const all = await rows();
-    fireEvent.click(all[1]);
+    fireEvent.click(must(all[1]));
     const modal = screen.getByTestId("tx-modal");
     expect(modal.dataset.kind).toBe("transfer");
     expect(JSON.parse(modal.dataset.values!)).toMatchObject({ from_account_id: acc1, to_account_id: acc2, amount: "50" });
