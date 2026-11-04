@@ -54,7 +54,7 @@ export function SavingsGoalsSummary({ goals }: SavingsGoalsSummaryProps) {
               </div>
               <div className="mt-1.5 h-2.5 w-full rounded-full bg-zinc-100 dark:bg-zinc-700">
                 <div
-                  className="h-2.5 rounded-full transition-all"
+                  className="h-2.5 rounded-full transition-[width,background-color]"
                   style={{ width: `${pct}%`, backgroundColor: fillColor }}
                 />
               </div>

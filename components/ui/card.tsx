@@ -17,7 +17,7 @@ function Card({
         // Opt-in lift for clickable/hoverable cards (category chips, account
         // cards, goal cards, ...) — same recipe already proven in
         // settings/categories/page.tsx before this primitive existed there.
-        interactive && "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+        interactive && "transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-md",
         className
       )}
       {...props}

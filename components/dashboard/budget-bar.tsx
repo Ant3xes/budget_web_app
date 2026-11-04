@@ -41,7 +41,7 @@ export function BudgetBar({ ratio, className }: BudgetBarProps) {
 
   return (
     <div className={cn("h-2.5 w-full rounded-full", TIERS[tier].track, className)}>
-      <div className={cn("h-2.5 rounded-full transition-all", TIERS[tier].fill)} style={{ width: `${pct}%` }} />
+      <div className={cn("h-2.5 rounded-full transition-[width,background-color]", TIERS[tier].fill)} style={{ width: `${pct}%` }} />
     </div>
   );
 }
