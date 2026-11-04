@@ -140,7 +140,7 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
                 ))}
               </Select>
               {errors.from_account_id ? (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.from_account_id.message}</p>
+                <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.from_account_id.message}</p>
               ) : null}
             </label>
 
@@ -155,7 +155,7 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
                 ))}
               </Select>
               {errors.to_account_id ? (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.to_account_id.message}</p>
+                <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.to_account_id.message}</p>
               ) : null}
             </label>
           </>
@@ -170,13 +170,13 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
             inputMode="decimal"
             {...register("amount")}
           />
-          {errors.amount ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.amount.message}</p> : null}
+          {errors.amount ? <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.amount.message}</p> : null}
         </label>
 
         <label className="block text-sm font-medium">
           {t("transactions.transfers.form.date")}
           <Input className="mt-1" type="date" {...register("date")} />
-          {errors.date ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.date.message}</p> : null}
+          {errors.date ? <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.date.message}</p> : null}
         </label>
 
         <label className="block text-sm font-medium">
@@ -184,7 +184,7 @@ export function TransferModal({ transferId, defaultValues, onSuccess, onClose }:
           <Input className="mt-1" {...register("description")} />
         </label>
 
-        {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+        {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
         <div className="flex gap-2 pt-2">
           <Button type="submit" disabled={isSubmitting}>

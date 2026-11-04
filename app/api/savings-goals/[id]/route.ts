@@ -1,27 +1,27 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { hexColorSchema, isoDateSchema, nonNegativeAmountCentsSchema, positiveAmountCentsSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const goalUpdateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
-  target_amount_cents: z.number().int().positive().optional(),
-  current_amount_cents: z.number().int().min(0).optional(),
-  deadline: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
+  target_amount_cents: positiveAmountCentsSchema.optional(),
+  current_amount_cents: nonNegativeAmountCentsSchema.optional(),
+  deadline: isoDateSchema
     .optional()
     .nullable(),
-  color: z.string().trim().max(20).optional().nullable(),
+  color: hexColorSchema.optional().nullable(),
   icon: z.string().trim().max(10).optional().nullable(),
   linked_category_id: z.string().uuid().optional().nullable(),
 });
 
 const addFundsSchema = z.object({
   action: z.literal("add_funds"),
-  amount_cents: z.number().int().positive(),
+  amount_cents: positiveAmountCentsSchema,
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -62,7 +62,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .eq("id", id)
       .eq("space_id", auth.spaceId);
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) return pgErrorResponse(error);
     return NextResponse.json({ ok: true });
   }
 
@@ -79,7 +79,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ ok: true });
 }
@@ -101,7 +101,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ ok: true });
 }

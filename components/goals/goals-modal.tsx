@@ -163,7 +163,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
             placeholder={t("goals.modal.namePlaceholder")}
             className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
           />
-          {errors.name && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name.message}</p>}
+          {errors.name && <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name.message}</p>}
         </div>
 
         <div className="flex gap-3">
@@ -187,7 +187,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
               className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
             />
             {errors.target_amount && (
-              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.target_amount.message}</p>
+              <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.target_amount.message}</p>
             )}
           </div>
         </div>
@@ -205,7 +205,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
               className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
             />
             {errors.current_amount && (
-              <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.current_amount.message}</p>
+              <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.current_amount.message}</p>
             )}
           </div>
         )}
@@ -260,7 +260,7 @@ export function GoalsModal({ goalId, defaultValues, onSuccess, onClose }: GoalsM
           </div>
         </div>
 
-        {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
+        {error && <p role="alert" className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <button

@@ -39,7 +39,7 @@ describe("budget boundaries and net consumption", () => {
     setup({ budgets: { data: null, error: { message: "Read failed" } } });
     const response = await GET(new Request("http://test"));
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "Read failed" });
+    expect(await response.json()).toEqual({ error: "Request failed" });
   });
   it.each([
     { data: null, error: null },
@@ -65,7 +65,7 @@ describe("budget boundaries and net consumption", () => {
     expect((await POST(request(body))).status).toBe(400);
     expect(from).not.toHaveBeenCalled();
   });
-  it.each([[null, 201, { ok: true }], [{ code: "23505", message: "Duplicate" }, 409, { error: "Une enveloppe existe déjà pour cette catégorie ce mois" }], [{ code: "42501", message: "Denied" }, 400, { error: "Denied" }]] as const)("returns the write outcome %j", async (error, status, body) => {
+  it.each([[null, 201, { ok: true }], [{ code: "23505", message: "Duplicate" }, 409, { error: "Une enveloppe existe déjà pour cette catégorie ce mois" }], [{ code: "42501", message: "Denied" }, 403, { error: "Denied" }]] as const)("returns the write outcome %j", async (error, status, body) => {
     const { chains } = setup({ budgets: { data: null, error } });
     const response = await POST(request(payload));
     expect(response.status).toBe(status);

@@ -1,6 +1,7 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 
@@ -32,7 +33,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .select("user_id");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
   if (!data?.length) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

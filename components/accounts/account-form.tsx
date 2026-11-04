@@ -100,7 +100,7 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
       <label className="block text-sm font-medium">
         {t("accounts.form.name")}
         <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" {...register("name")} />
-        {errors.name ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name.message}</p> : null}
+        {errors.name ? <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name.message}</p> : null}
       </label>
 
       <label className="block text-sm font-medium">
@@ -132,7 +132,7 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
           placeholder="0,00"
           {...register("initialBalance")}
         />
-        {errors.initialBalance ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.initialBalance.message}</p> : null}
+        {errors.initialBalance ? <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.initialBalance.message}</p> : null}
       </label>
 
       <label className="block text-sm font-medium">
@@ -140,7 +140,7 @@ export function AccountForm({ accountId, defaultValues, onSuccess }: AccountForm
         <input className="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" maxLength={3} {...register("currency")} />
       </label>
 
-      {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
       <button
         className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"

@@ -33,7 +33,8 @@ describe("category route boundary coverage", () => {
     setup(null, { message: "Read denied" });
     const response = await GET();
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "Read denied" });
+    // Raw database messages are never echoed to the client (security audit).
+    expect(await response.json()).toEqual({ error: "Request failed" });
   });
   it.each(["POST", "PATCH"])("rejects invalid %s data without writes", async method => {
     const { from } = setup();
@@ -51,8 +52,9 @@ describe("category route boundary coverage", () => {
   });
   it.each(["POST", "PATCH", "DELETE"])("returns database failures for %s", async method => {
     setup(null, { message: "Write denied", code: "42501" });
-    const response = method === "POST" ? await POST(request({ name: "Synthetic", kind: "expense", color: "blue", icon: "x" })) : method === "PATCH" ? await PATCH(request({ color: null }), params()) : await DELETE(request(), params());
-    expect(response.status).toBe(400);
+    const response = method === "POST" ? await POST(request({ name: "Synthetic", kind: "expense", color: "#3b82f6", icon: "x" })) : method === "PATCH" ? await PATCH(request({ color: null }), params()) : await DELETE(request(), params());
+    // 42501 (RLS denial) is a business outcome: 403, never a raw database message.
+    expect(response.status).toBe(403);
     expect(await response.json()).toEqual({ error: "Write denied" });
   });
   it.each([
@@ -70,9 +72,9 @@ describe("category route boundary coverage", () => {
   });
   it("color-only edits do not look up or detach a default name", async () => {
     const { chain, from } = setup();
-    expect((await PATCH(request({ color: "blue" }), params())).status).toBe(200);
+    expect((await PATCH(request({ color: "#3b82f6" }), params())).status).toBe(200);
     expect(from).toHaveBeenCalledTimes(1);
-    expect(chain.update).toHaveBeenCalledWith({ color: "blue" });
+    expect(chain.update).toHaveBeenCalledWith({ color: "#3b82f6" });
   });
   it("soft deletes only the active category in the active space", async () => {
     const { chain } = setup();

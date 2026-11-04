@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { ACCOUNT_TYPES } from "@/lib/constants";
 import { parseEurosToCents } from "@/lib/accounts/parse-euros-to-cents";
+import { MAX_AMOUNT_CENTS } from "@/lib/validation/fields";
 
 /**
  * Form schema: the balance is typed in euros (string) and transformed into
@@ -18,7 +19,9 @@ export function createAccountFormSchema(messages: { nameRequired: string; invali
       currency: z.string().length(3),
     })
     .superRefine((value, ctx) => {
-      if (parseEurosToCents(value.initialBalance) === null) {
+      const cents = parseEurosToCents(value.initialBalance);
+      // The column is a 32-bit integer: refuse what it cannot store.
+      if (cents === null || Math.abs(cents) > MAX_AMOUNT_CENTS) {
         ctx.addIssue({ code: "custom", path: ["initialBalance"], message: messages.invalidBalance });
       }
     })

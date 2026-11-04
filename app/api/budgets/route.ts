@@ -1,6 +1,8 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { monthSchema, positiveAmountCentsSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { fetchReimbursementIndex } from "@/lib/transactions/fetch-reimbursements";
@@ -8,14 +10,12 @@ import { applyReimbursements, netExpenseCents } from "@/lib/transactions/net-amo
 
 const budgetSchema = z.object({
   category_id: z.string().uuid(),
-  month: z.string().regex(/^\d{4}-\d{2}$/, "Format YYYY-MM requis"),
-  amount_cents: z.number().int().positive(),
+  month: monthSchema,
+  amount_cents: positiveAmountCentsSchema,
 });
 
 const querySchema = z.object({
-  month: z
-    .string()
-    .regex(/^\d{4}-\d{2}$/)
+  month: monthSchema
     .optional(),
 });
 
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
   }
 
   const { data: budgets, error } = await builder;
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   // Fetch consumption (sum of expenses per category) for the requested month
   let consumption: Record<string, number> = {};
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true }, { status: 201 });

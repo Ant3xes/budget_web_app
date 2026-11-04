@@ -76,7 +76,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .eq("id", id)
     .eq("space_id", auth.spaceId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ ok: true });
 }

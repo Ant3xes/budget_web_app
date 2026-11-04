@@ -68,7 +68,11 @@ export async function login(formData: FormData) {
 
   if (error) {
     recordFailedAttempt(loginAttempts, key);
-    redirect(`/login?message=${encodeURIComponent(error.message)}${nextQuery(next, "&")}`);
+    // Sentinels only: Supabase's raw error text is never reflected into the URL
+    // (it would let any crafted link display arbitrary text, and the wording
+    // would distinguish "unknown account" from "wrong password").
+    const sentinel = error.code === "email_not_confirmed" ? "emailNotConfirmed" : "invalidCredentials";
+    redirect(`/login?message=${sentinel}${nextQuery(next, "&")}`);
   }
 
   resetAttempts(loginAttempts, key);
@@ -99,7 +103,7 @@ export async function signup(formData: FormData) {
 
   if (error) {
     recordFailedAttempt(signupAttempts, key);
-    redirect(`/signup?message=${encodeURIComponent(error.message)}${nextQuery(next, "&")}`);
+    redirect(`/signup?message=signupFailed${nextQuery(next, "&")}`);
   }
 
   resetAttempts(signupAttempts, key);

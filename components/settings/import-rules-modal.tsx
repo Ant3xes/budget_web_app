@@ -235,7 +235,7 @@ export function ImportRulesModal({ ruleId, defaultValues, spaceKind = "personal"
           <p className="mt-1 text-xs text-muted-foreground">
             {t("importRules.form.keywordHint")}
           </p>
-          {errors.keyword && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.keyword.message}</p>}
+          {errors.keyword && <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.keyword.message}</p>}
         </div>
 
         <div>
@@ -271,7 +271,7 @@ export function ImportRulesModal({ ruleId, defaultValues, spaceKind = "personal"
             ))}
           </select>
           {errors.category_id && (
-            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.category_id.message}</p>
+            <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.category_id.message}</p>
           )}
         </div>
 
@@ -341,7 +341,7 @@ export function ImportRulesModal({ ruleId, defaultValues, spaceKind = "personal"
                     {t("importRules.form.sharePercentHint")}
                   </span>
                   {!percentValid ? (
-                    <span className="mt-1 block text-xs text-red-600 dark:text-red-400">{t("importRules.form.sharePercentInvalid")}</span>
+                    <span role="alert" className="mt-1 block text-xs text-red-600 dark:text-red-400">{t("importRules.form.sharePercentInvalid")}</span>
                   ) : null}
                 </label>
               </>
@@ -349,7 +349,7 @@ export function ImportRulesModal({ ruleId, defaultValues, spaceKind = "personal"
           </div>
         )}
 
-        {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
+        {error && <p role="alert" className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <button

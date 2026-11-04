@@ -19,4 +19,7 @@ export const auth = {
   },
   signupSuccessMessage: "Signup successful. Confirm your email before logging in.",
   rateLimitedMessage: "Too many attempts. Try again in a few minutes.",
+  invalidCredentialsMessage: "Invalid email or password.",
+  emailNotConfirmedMessage: "Email not confirmed. Check your inbox.",
+  signupFailedMessage: "Unable to create the account. Check the email and use a password of at least 8 characters.",
 } as const;

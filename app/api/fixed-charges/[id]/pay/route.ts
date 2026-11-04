@@ -1,5 +1,6 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { todayISO } from "@/lib/dates/period";
 import { advanceOnePeriod, advanceWhile } from "@/lib/fixed-charges/due-date";
@@ -57,7 +58,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     .eq("id", id)
     .eq("space_id", auth.spaceId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ ok: true, next_due_date: nextDueDate, last_paid_date: todayStr });
 }

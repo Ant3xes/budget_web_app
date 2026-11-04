@@ -1,5 +1,6 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { randomUUID } from "node:crypto";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -7,7 +8,7 @@ import { z } from "zod";
 import { withSpace } from "@/lib/spaces/with-space";
 
 const inviteSchema = z.object({
-  email: z.string().email(),
+  email: z.string().max(254).email(),
 });
 
 const MAX_PENDING_INVITATIONS = 10;
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";

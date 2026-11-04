@@ -32,7 +32,7 @@ export async function GET() {
     .order("priority", { ascending: true })
     .order("created_at", { ascending: true });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ rules: data ?? [] });
 }

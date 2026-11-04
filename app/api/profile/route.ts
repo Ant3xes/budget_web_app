@@ -1,6 +1,7 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -10,8 +11,8 @@ const nameSchema = z.object({
 
 const passwordSchema = z
   .object({
-    current_password: z.string().min(6),
-    new_password: z.string().min(8),
+    current_password: z.string().min(6).max(72),
+    new_password: z.string().min(8).max(72),
     confirm: z.string(),
   })
   .refine((data) => data.confirm === data.new_password, {
@@ -68,7 +69,7 @@ export async function PATCH(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return pgErrorResponse(error);
     }
 
     return NextResponse.json({ profile: data });

@@ -1,6 +1,7 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { randomUUID } from "crypto";
 import type { Json } from "@/lib/supabase/database.types";
+import { amountCentsSchema, isoDateSchema } from "@/lib/validation/fields";
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -14,11 +15,11 @@ const importRowSchema = z.object({
   // Bank-provided type/sub-category, kept in raw_import_data (issue 125).
   source_type: z.string().max(100).nullable().optional(),
   source_category: z.string().max(100).nullable().optional(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: isoDateSchema,
   // Clean label (issue 127); the raw bank label goes to raw_import_data.raw_label.
   description: z.string().trim().min(1).max(255),
   raw_label: z.string().trim().min(1).max(1000).nullable().optional(),
-  amount_cents: z.number().int(),
+  amount_cents: amountCentsSchema,
   kind: z.enum(["expense", "income", "transfer"]),
   category_id: z.guid().nullable().optional(),
   transfer_account_id: z.guid().nullable().optional(),

@@ -1,20 +1,20 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { hexColorSchema, isoDateSchema, nonNegativeAmountCentsSchema, positiveAmountCentsSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { resolveGoalCurrentCents } from "@/lib/savings-goals/resolve-current-amount";
 
 const goalSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  target_amount_cents: z.number().int().positive(),
-  current_amount_cents: z.number().int().min(0).optional().default(0),
-  deadline: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
+  target_amount_cents: positiveAmountCentsSchema,
+  current_amount_cents: nonNegativeAmountCentsSchema.optional().default(0),
+  deadline: isoDateSchema
     .optional()
     .nullable(),
-  color: z.string().trim().max(20).optional().nullable(),
+  color: hexColorSchema.optional().nullable(),
   icon: z.string().trim().max(10).optional().nullable(),
   linked_category_id: z.string().uuid().optional().nullable(),
 });
@@ -30,7 +30,7 @@ export async function GET() {
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   // For linked goals, compute current_amount_cents from transactions
   const linkedIds = (goals ?? [])
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     .select("id")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ goal: data }, { status: 201 });
 }

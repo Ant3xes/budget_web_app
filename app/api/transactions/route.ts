@@ -1,6 +1,8 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { amountCentsSchema, isoDateSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { listTransactions, transactionQuerySchema } from "@/lib/transactions/list-transactions";
@@ -9,8 +11,8 @@ import { uuidSchema } from "@/lib/validation/uuid";
 const transactionSchema = z.object({
   account_id: uuidSchema,
   kind: z.enum(["expense", "income"]),
-  amount_cents: z.number().int(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  amount_cents: amountCentsSchema,
+  date: isoDateSchema,
   description: z.string().trim().min(1).max(255),
   category_id: uuidSchema.optional().nullable(),
   notes: z.string().trim().max(1000).optional().nullable(),
@@ -29,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   const result = await listTransactions(auth.supabase, auth.spaceId, query.data);
-  if (result.error) return NextResponse.json({ error: result.error.message }, { status: 400 });
+  if (result.error) return pgErrorResponse(result.error);
   return NextResponse.json(result.data);
 }
 
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true });

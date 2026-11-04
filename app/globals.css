@@ -196,6 +196,8 @@ body {
   }
   html {
     @apply font-sans;
+    /* WCAG 2.4.11: keep a focused element clear of the fixed mobile bottom nav. */
+    scroll-padding-bottom: 7rem;
   }
 }
 /* Rangées scrollables horizontalement (pills, tuiles) : pas de barre visible, le swipe suffit. */

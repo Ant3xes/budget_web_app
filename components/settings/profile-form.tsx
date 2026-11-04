@@ -121,13 +121,13 @@ export function ProfileForm({ initialFullName }: ProfileFormProps) {
                 data-testid="profile-full-name"
               />
               {nameForm.formState.errors.full_name ? (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
                   {nameForm.formState.errors.full_name.message}
                 </p>
               ) : null}
             </label>
 
-            {nameError ? <p className="text-sm text-red-600 dark:text-red-400">{nameError}</p> : null}
+            {nameError ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{nameError}</p> : null}
             {nameSuccess ? (
               <p className="text-sm text-green-700 dark:text-green-400">{t("profile.info.updateSuccess")}</p>
             ) : null}
@@ -150,7 +150,7 @@ export function ProfileForm({ initialFullName }: ProfileFormProps) {
                 {...passwordForm.register("current_password")}
               />
               {passwordForm.formState.errors.current_password ? (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
                   {passwordForm.formState.errors.current_password.message}
                 </p>
               ) : null}
@@ -165,7 +165,7 @@ export function ProfileForm({ initialFullName }: ProfileFormProps) {
                 {...passwordForm.register("new_password")}
               />
               {passwordForm.formState.errors.new_password ? (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
                   {passwordForm.formState.errors.new_password.message}
                 </p>
               ) : null}
@@ -180,13 +180,13 @@ export function ProfileForm({ initialFullName }: ProfileFormProps) {
                 {...passwordForm.register("confirm")}
               />
               {passwordForm.formState.errors.confirm ? (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
                   {passwordForm.formState.errors.confirm.message}
                 </p>
               ) : null}
             </label>
 
-            {passwordError ? <p className="text-sm text-red-600 dark:text-red-400">{passwordError}</p> : null}
+            {passwordError ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{passwordError}</p> : null}
             {passwordSuccess ? (
               <p className="text-sm text-green-700 dark:text-green-400">
                 {t("profile.security.updateSuccess")}

@@ -1,6 +1,8 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isoDateSchema, positiveAmountCentsSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { uuidSchema } from "@/lib/validation/uuid";
@@ -8,11 +10,9 @@ import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const fixedChargeUpdateSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
-  amount_cents: z.number().int().positive().optional(),
+  amount_cents: positiveAmountCentsSchema.optional(),
   frequency: z.enum(["monthly", "quarterly", "yearly"]).optional(),
-  next_due_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
+  next_due_date: isoDateSchema
     .optional(),
   account_id: uuidSchema.optional().nullable(),
   category_id: uuidSchema.optional().nullable(),
@@ -42,7 +42,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ ok: true });
 }
@@ -64,7 +64,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ ok: true });
 }

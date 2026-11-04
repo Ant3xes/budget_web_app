@@ -25,4 +25,7 @@ export const auth = {
   signupSuccessMessage: "Inscription réussie. Confirmez votre e-mail avant de vous connecter.",
   /** Matches the `?message=rateLimited` sentinel `(auth)/actions.ts` redirects with after too many failed attempts — deliberately generic (doesn't say whether the account exists). */
   rateLimitedMessage: "Trop de tentatives. Réessayez dans quelques minutes.",
+  invalidCredentialsMessage: "Identifiant ou mot de passe invalide.",
+  emailNotConfirmedMessage: "Adresse e-mail non confirmée. Vérifiez votre boîte de réception.",
+  signupFailedMessage: "Impossible de créer le compte. Vérifiez l’e-mail et choisissez un mot de passe d’au moins 8 caractères.",
 } as const;

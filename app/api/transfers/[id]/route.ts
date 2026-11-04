@@ -1,6 +1,8 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isoDateSchema, positiveAmountCentsSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import type { TablesUpdate } from "@/lib/supabase/database.types";
 
@@ -8,10 +10,8 @@ import { withSpace } from "@/lib/spaces/with-space";
 import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const transferUpdateSchema = z.object({
-  amount_cents: z.number().int().positive().optional(),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
+  amount_cents: positiveAmountCentsSchema.optional(),
+  date: isoDateSchema
     .optional(),
   description: z.string().trim().max(255).optional().nullable(),
 });
@@ -55,7 +55,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .is("deleted_at", null);
 
     if (debitError) {
-      return NextResponse.json({ error: debitError.message }, { status: 400 });
+      return pgErrorResponse(debitError);
     }
 
     const { error: creditError } = await auth.supabase
@@ -67,7 +67,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .is("deleted_at", null);
 
     if (creditError) {
-      return NextResponse.json({ error: creditError.message }, { status: 400 });
+      return pgErrorResponse(creditError);
     }
   } else if (Object.keys(commonUpdate).length > 0) {
     // No amount change, update both with common fields
@@ -79,7 +79,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       .is("deleted_at", null);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return pgErrorResponse(error);
     }
   }
 
@@ -109,7 +109,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .is("deleted_at", null);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true });

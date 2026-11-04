@@ -387,7 +387,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
             />
           </label>
 
-          {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+          {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
           <button
             onClick={() => void handleUpload()}
@@ -646,7 +646,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
               {t("transactions.importModal.transferChoicePending", { count: pendingTransfers.length })}
             </p>
           )}
-          {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+          {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
         </div>
       )}
 
@@ -801,7 +801,7 @@ export function ImportModal({ defaultAccountId, spaceKind = "personal", onSucces
               </div>
             </>
           )}
-          {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+          {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
         </div>
       )}
 
