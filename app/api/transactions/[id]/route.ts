@@ -2,6 +2,8 @@ import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import type { Database } from "@/lib/supabase/database.types";
 import { z } from "zod";
+import { amountCentsSchema, isoDateSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { ConversionError, planConversion, type DbKind } from "@/lib/transactions/convert-transaction";
 import { ruleFromCategoryChange, upsertImportRule } from "@/lib/import/rules";
@@ -11,10 +13,8 @@ import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const transactionUpdateSchema = z.object({
   account_id: z.string().uuid().optional(),
-  amount_cents: z.number().int().optional(),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
+  amount_cents: amountCentsSchema.optional(),
+  date: isoDateSchema
     .optional(),
   description: z.string().trim().min(1).max(255).optional(),
   category_id: z.string().uuid().optional().nullable(),
@@ -76,7 +76,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .is("deleted_at", null);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   const rule = await syncImportRule(auth, existing, existing.kind, fields.category_id, fields.description);
@@ -121,7 +121,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .is("deleted_at", null);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true });
@@ -182,7 +182,7 @@ async function convertTransaction(
     .is("deleted_at", null)
     .in("id", accountIds);
   if (accountsError) {
-    return NextResponse.json({ error: accountsError.message }, { status: 400 });
+    return pgErrorResponse(accountsError);
   }
   const knownIds = new Set((accounts ?? []).map((a: { id: string }) => a.id));
   if (!accountIds.every((a) => knownIds.has(a))) {
@@ -219,7 +219,7 @@ async function convertTransaction(
     // issue 164 : le générateur ne représente pas les arguments SQL nullables de ce RPC.
   } as Database["public"]["Functions"]["convert_transaction"]["Args"]);
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
   const rule = await syncImportRule(auth, existing, plan.kind, plan.categoryId, fields.description);
   return NextResponse.json({ ok: true, rule });

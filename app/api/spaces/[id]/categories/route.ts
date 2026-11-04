@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { invalidIdResponse } from "@/lib/api/validate-id";
@@ -25,7 +26,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .eq("space_id", id)
     .is("deleted_at", null)
     .order("name");
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ categories: data ?? [] });
 }

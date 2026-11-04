@@ -48,6 +48,7 @@ export default async function SignupPage({
                 className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-base text-foreground md:h-9 md:text-sm"
                 name="email"
                 type="email"
+                autoComplete="email"
                 required
               />
             </label>
@@ -57,6 +58,7 @@ export default async function SignupPage({
                 className="mt-1 h-11 w-full rounded-md border border-input bg-background px-3 text-base text-foreground md:h-9 md:text-sm"
                 name="password"
                 type="password"
+                autoComplete="new-password"
                 minLength={8}
                 required
               />

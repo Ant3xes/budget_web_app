@@ -1,6 +1,8 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isoDateSchema, positiveAmountCentsSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { fetchTransferCounterparts } from "@/lib/transactions/transfer-counterparts";
@@ -8,8 +10,8 @@ import { fetchTransferCounterparts } from "@/lib/transactions/transfer-counterpa
 const transferSchema = z.object({
   from_account_id: z.string().uuid(),
   to_account_id: z.string().uuid(),
-  amount_cents: z.number().int().positive(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  amount_cents: positiveAmountCentsSchema,
+  date: isoDateSchema,
   description: z.string().trim().max(255).optional().nullable(),
 });
 
@@ -41,7 +43,7 @@ export async function GET(request: Request) {
     .range(from, to);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   // Fetch corresponding credit transactions to get destination account
@@ -89,7 +91,7 @@ export async function POST(request: Request) {
     .in("id", [from_account_id, to_account_id]);
 
   if (accountsError) {
-    return NextResponse.json({ error: accountsError.message }, { status: 400 });
+    return pgErrorResponse(accountsError);
   }
   if ((accounts ?? []).length !== 2) {
     return NextResponse.json({ error: "Compte introuvable" }, { status: 404 });
@@ -123,7 +125,7 @@ export async function POST(request: Request) {
   ]);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true, transfer_id: transferId });

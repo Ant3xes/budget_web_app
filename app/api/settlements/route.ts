@@ -1,6 +1,7 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { positiveAmountCentsSchema } from "@/lib/validation/fields";
 
 import { pgErrorResponse } from "@/lib/spaces/pg-error";
 import { withSpace } from "@/lib/spaces/with-space";
@@ -9,7 +10,7 @@ const createSchema = z
   .object({
     from_user: z.guid(),
     to_user: z.guid(),
-    amount_cents: z.number().int().positive().optional(),
+    amount_cents: positiveAmountCentsSchema.optional(),
     // A full timestamp, or a plain YYYY-MM-DD as sent by the date input of the
     // settlement form (stored at noon UTC so the day is the same in any timezone).
     date: z.union([z.iso.datetime({ offset: true }), z.iso.date().transform((day) => `${day}T12:00:00Z`)]).optional(),

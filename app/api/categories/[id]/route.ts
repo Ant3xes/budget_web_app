@@ -1,6 +1,8 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { hexColorSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { invalidIdResponse } from "@/lib/api/validate-id";
@@ -8,7 +10,7 @@ import { invalidIdResponse } from "@/lib/api/validate-id";
 const categoryUpdateSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
   kind: z.enum(["expense", "income", "transfer"]).optional(),
-  color: z.string().trim().max(20).optional().nullable(),
+  color: hexColorSchema.optional().nullable(),
   icon: z.string().trim().max(10).optional().nullable(),
 });
 
@@ -63,7 +65,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (error.code === "23505") {
       return NextResponse.json({ error: "Une catégorie portant ce nom existe déjà" }, { status: 409 });
     }
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true });
@@ -91,7 +93,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .is("deleted_at", null);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true });

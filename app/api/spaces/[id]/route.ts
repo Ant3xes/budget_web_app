@@ -1,6 +1,7 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { invalidIdResponse } from "@/lib/api/validate-id";
@@ -34,7 +35,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .eq("id", id)
     .select("id");
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
   if (!data?.length) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -61,7 +62,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   // RLS filters non-owners / personal spaces out silently, so check the row count.
   const { data, error } = await auth.supabase.from("spaces").delete().eq("id", id).select("id");
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
   if (!data?.length) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

@@ -1,16 +1,18 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { ACCOUNT_TYPES } from "@/lib/constants";
 import { withSpace } from "@/lib/spaces/with-space";
+import { amountCentsSchema } from "@/lib/validation/fields";
 
 const accountSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(80),
   type: z.enum(ACCOUNT_TYPES),
   bank: z.string().trim().max(80).optional().or(z.literal("")),
-  initialBalanceCents: z.coerce.number().int(),
+  initialBalanceCents: z.coerce.number().pipe(amountCentsSchema),
   currency: z.string().length(3).default("EUR"),
 });
 
@@ -35,7 +37,7 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ accounts: data ?? [] });
@@ -66,7 +68,7 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true });
@@ -98,7 +100,7 @@ export async function PATCH(request: Request) {
     .is("deleted_at", null);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true });
@@ -124,7 +126,7 @@ export async function DELETE(request: Request) {
     .is("deleted_at", null);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true });

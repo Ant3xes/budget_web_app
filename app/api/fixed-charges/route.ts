@@ -1,6 +1,8 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isoDateSchema, positiveAmountCentsSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { advanceWhile } from "@/lib/fixed-charges/due-date";
 import { withSpace } from "@/lib/spaces/with-space";
@@ -8,9 +10,9 @@ import { uuidSchema } from "@/lib/validation/uuid";
 
 const fixedChargeSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  amount_cents: z.number().int().positive(),
+  amount_cents: positiveAmountCentsSchema,
   frequency: z.enum(["monthly", "quarterly", "yearly"]),
-  next_due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide"),
+  next_due_date: isoDateSchema,
   account_id: uuidSchema.optional().nullable(),
   category_id: uuidSchema.optional().nullable(),
   notes: z.string().trim().max(1000).optional().nullable(),
@@ -62,7 +64,7 @@ export async function GET() {
     .is("deleted_at", null)
     .order("next_due_date", { ascending: true });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ charges: data ?? [] });
 }
@@ -92,7 +94,7 @@ export async function POST(request: Request) {
     status,
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

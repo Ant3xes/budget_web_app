@@ -1,13 +1,15 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { hexColorSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 
 const categorySchema = z.object({
   name: z.string().trim().min(1).max(80),
   kind: z.enum(["expense", "income", "transfer"]),
-  color: z.string().trim().max(20).optional().nullable(),
+  color: hexColorSchema.optional().nullable(),
   icon: z.string().trim().max(10).optional().nullable(),
 });
 
@@ -26,7 +28,7 @@ export async function GET() {
     .order("name");
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ categories: data ?? [] });
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
     if (error.code === "23505") {
       return NextResponse.json({ error: "Une catégorie portant ce nom existe déjà" }, { status: 409 });
     }
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return pgErrorResponse(error);
   }
 
   return NextResponse.json({ ok: true });

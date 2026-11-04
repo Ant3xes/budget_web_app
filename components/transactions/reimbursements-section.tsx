@@ -96,7 +96,7 @@ export function ExpenseReimbursements({ expenseId }: { expenseId: string }) {
           </Button>
         </div>
       )}
-      {error ? <p className="text-xs text-red-600 dark:text-red-400">{error}</p> : null}
+      {error ? <p role="alert" className="text-xs text-red-600 dark:text-red-400">{error}</p> : null}
     </section>
   );
 }
@@ -148,7 +148,7 @@ export function IncomeReimburses({ incomeId }: { incomeId: string }) {
       <span className="mt-1 block text-xs font-normal text-muted-foreground">
         {t("transactions.reimbursements.reimbursesHint")}
       </span>
-      {error ? <span className="mt-1 block text-xs text-red-600 dark:text-red-400">{error}</span> : null}
+      {error ? <span role="alert" className="mt-1 block text-xs text-red-600 dark:text-red-400">{error}</span> : null}
     </label>
   );
 }

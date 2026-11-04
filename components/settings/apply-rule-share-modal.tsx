@@ -150,7 +150,7 @@ export function ApplyRuleShareModal({
             {t("importRules.apply.warning")}
           </p>
 
-          {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+          {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
 
           {isLoading ? (
             <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("common.state.loading")}</p>

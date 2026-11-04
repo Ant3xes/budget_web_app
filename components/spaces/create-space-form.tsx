@@ -54,7 +54,7 @@ export function CreateSpaceForm() {
           onChange={(event) => setName(event.target.value)}
         />
       </label>
-      {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
       <Button type="submit" disabled={submitting}>
         {t("invitations.create.submit")}
       </Button>

@@ -169,7 +169,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
             placeholder={t("fixedCharges.modal.namePlaceholder")}
             className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
           />
-          {errors.name && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name.message}</p>}
+          {errors.name && <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name.message}</p>}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -182,7 +182,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
               placeholder="850"
               className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
             />
-            {errors.amount && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.amount.message}</p>}
+            {errors.amount && <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.amount.message}</p>}
           </div>
 
           <div>
@@ -208,7 +208,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
             className="w-full rounded-md border border-border bg-background p-2 text-sm text-foreground focus:border-blue-500 focus:outline-none"
           />
           {errors.next_due_date && (
-            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.next_due_date.message}</p>
+            <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.next_due_date.message}</p>
           )}
         </div>
 
@@ -253,7 +253,7 @@ export function FixedChargeModal({ chargeId, defaultValues, onSuccess, onClose }
           />
         </div>
 
-        {error && <p className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
+        {error && <p role="alert" className="rounded-md bg-red-50 p-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
           <button

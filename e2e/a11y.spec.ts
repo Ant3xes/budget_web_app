@@ -147,3 +147,18 @@ for (const theme of ["light", "dark"] as const) {
     }
   });
 }
+
+// WCAG 2.4.1 (bypass blocks): a keyboard user can skip the navigation.
+test.describe("Skip link", () => {
+  test("is the first tab stop and moves focus to the main content", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "keyboard flow: desktop project only");
+    await login(page);
+    await page.goto("/dashboard");
+    await page.keyboard.press("Tab");
+    const skip = page.getByRole("link", { name: /aller au contenu principal|skip to main content/i });
+    await expect(skip).toBeFocused();
+    await expect(skip).toBeVisible();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#main-content")).toBeFocused();
+  });
+});

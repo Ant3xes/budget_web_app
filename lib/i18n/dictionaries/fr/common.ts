@@ -4,6 +4,7 @@
  * in every form/list across the app.
  */
 export const common = {
+  skipToContent: "Aller au contenu principal",
   demo: {
     banner: "Mode demo : lecture seule, donnees fictives",
     exit: "Quitter la demo",

@@ -272,7 +272,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, rawLabel,
               </Select>
             )}
           />
-          {errors.from_account_id ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.from_account_id.message}</p> : null}
+          {errors.from_account_id ? <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.from_account_id.message}</p> : null}
         </label>
         <label className="block text-sm font-medium">
           {t("transactions.transfers.form.toAccount")}
@@ -290,7 +290,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, rawLabel,
               </Select>
             )}
           />
-          {errors.to_account_id ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.to_account_id.message}</p> : null}
+          {errors.to_account_id ? <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.to_account_id.message}</p> : null}
         </label>
           </>
         ) : (
@@ -310,7 +310,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, rawLabel,
               </Select>
             )}
           />
-          {errors.account_id ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.account_id.message}</p> : null}
+          {errors.account_id ? <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.account_id.message}</p> : null}
         </label>
         )}
 
@@ -323,19 +323,19 @@ export function TransactionModal({ kind, transactionId, defaultValues, rawLabel,
             inputMode="decimal"
             {...register("amount")}
           />
-          {errors.amount ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.amount.message}</p> : null}
+          {errors.amount ? <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.amount.message}</p> : null}
         </label>
 
         <label className="block text-sm font-medium">
           {t("transactions.form.date")}
           <Input className="mt-1" type="date" {...register("date")} />
-          {errors.date ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.date.message}</p> : null}
+          {errors.date ? <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.date.message}</p> : null}
         </label>
 
         <label className="block text-sm font-medium">
           {t("transactions.form.description")}
           <Input className="mt-1" {...register("description")} />
-          {errors.description ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.description.message}</p> : null}
+          {errors.description ? <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.description.message}</p> : null}
         </label>
 
         {rawLabel ? (
@@ -365,7 +365,7 @@ export function TransactionModal({ kind, transactionId, defaultValues, rawLabel,
             )}
           />
         </label>
-        {errors.category_id ? <p className="-mt-3 text-xs text-red-600 dark:text-red-400">{errors.category_id.message}</p> : null}
+        {errors.category_id ? <p role="alert" className="-mt-3 text-xs text-red-600 dark:text-red-400">{errors.category_id.message}</p> : null}
         </>
         ) : null}
 

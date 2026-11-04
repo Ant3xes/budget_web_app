@@ -1,4 +1,5 @@
 export const common = {
+  skipToContent: "Skip to main content",
   demo: {
     banner: "Demo mode: read-only, fictional data",
     exit: "Leave demo",

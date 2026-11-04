@@ -1,12 +1,14 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { positiveAmountCentsSchema } from "@/lib/validation/fields";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 import { invalidIdResponse } from "@/lib/api/validate-id";
 
 const budgetUpdateSchema = z.object({
-  amount_cents: z.number().int().positive().optional(),
+  amount_cents: positiveAmountCentsSchema.optional(),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -31,7 +33,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ ok: true });
 }
@@ -53,7 +55,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .eq("space_id", auth.spaceId)
     .is("deleted_at", null);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) return pgErrorResponse(error);
 
   return NextResponse.json({ ok: true });
 }

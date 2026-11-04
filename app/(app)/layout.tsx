@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { T } from "@/components/i18n/t";
 import { DemoProvider } from "@/components/demo-provider";
 import { DemoBanner } from "@/components/layout/demo-banner";
 import { BottomNav } from "@/components/layout/bottom-nav";
@@ -39,6 +40,13 @@ export default async function AppLayout({
   return (
     <DemoProvider isDemo={context.isDemo}>
     <div className="md:flex">
+      {/* WCAG 2.4.1: first focusable element, visible only on keyboard focus. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+      >
+        <T k="common.skipToContent" />
+      </a>
       {/* Desktop : sidebar sticky à gauche. Mobile : barre du haut (logo) + barre du bas fixe. */}
       <Sidebar userEmail={user.email ?? ""} defaultCollapsed={sidebarCollapsed} spaces={spaces} activeSpaceId={spaceId} />
       <BottomNav userEmail={user.email ?? ""} spaces={spaces} activeSpaceId={spaceId} />
@@ -47,7 +55,7 @@ export default async function AppLayout({
         {/* Single source of page padding — pages below only ever add
             `space-y-4` for their own vertical rhythm, never their own p-*.
             `pb-28` réserve la place de la barre du bas fixe sur mobile. */}
-        <main className="p-4 pb-28 md:p-6 md:pb-6">{children}</main>
+        <main id="main-content" tabIndex={-1} className="p-4 pb-28 outline-none md:p-6 md:pb-6">{children}</main>
         <footer className="hidden border-t border-border px-4 py-3 text-xs text-muted-foreground md:block md:px-6">
           <Link href="/plan" className="underline underline-offset-2 hover:text-foreground">
             Plan

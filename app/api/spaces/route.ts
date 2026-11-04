@@ -1,6 +1,7 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { setActiveSpaceCookie } from "@/lib/spaces/active-cookie";
 import { withSpace } from "@/lib/spaces/with-space";
@@ -20,10 +21,7 @@ export async function GET() {
     auth.supabase.from("space_members").select("space_id").in("space_id", ids),
   ]);
   if (spacesResult.error || membersResult.error) {
-    return NextResponse.json(
-      { error: spacesResult.error?.message ?? membersResult.error?.message ?? "Unable to load spaces" },
-      { status: 400 },
-    );
+    return pgErrorResponse((spacesResult.error ?? membersResult.error)!);
   }
 
   const percentById = new Map((spacesResult.data ?? []).map((row) => [row.id, row.default_share_percent]));
@@ -58,9 +56,8 @@ export async function POST(request: Request) {
   }
 
   const { data, error } = await auth.supabase.rpc("create_shared_space", { p_name: payload.data.name });
-  if (error || typeof data !== "string") {
-    return NextResponse.json({ error: error?.message ?? "Unable to create space" }, { status: 400 });
-  }
+  if (error) return pgErrorResponse(error);
+  if (typeof data !== "string") return NextResponse.json({ error: "Unable to create space" }, { status: 400 });
 
   await setActiveSpaceCookie(data);
   return NextResponse.json({ id: data });

@@ -1,6 +1,7 @@
 import { demoReadOnlyResponse } from "@/lib/api/demo";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { pgErrorResponse } from "@/lib/spaces/pg-error";
 
 import { withSpace } from "@/lib/spaces/with-space";
 
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
     .eq("space_id", auth.spaceId)
     .in("id", ids);
 
-  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 400 });
+  if (fetchError) return pgErrorResponse(fetchError);
 
   const ownedIds = new Set((existing ?? []).map((r) => r.id as string));
   if (ids.some((id) => !ownedIds.has(id))) {
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
 
   const results = await Promise.all(updates);
   const failed = results.find((r) => r.error);
-  if (failed?.error) return NextResponse.json({ error: failed.error.message }, { status: 400 });
+  if (failed?.error) return pgErrorResponse(failed.error);
 
   return NextResponse.json({ ok: true });
 }
