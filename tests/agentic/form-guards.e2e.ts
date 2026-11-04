@@ -16,13 +16,21 @@ test("soumettre le formulaire de connexion est intercepté (locators)", async ({
 });
 
 // Seul test avec un pas agent (modèle gratuit imposé par e2e.config.ts).
+// L'agent ne fait que SAISIR l'email ; l'envoi est fait par locator et
+// avorté par le garde-fou (un clic de l'agent sur « envoyer » ferait afficher
+// la page d'erreur de l'app, puisque le POST est volontairement coupé).
 // Ignoré sans clé : on n'invente aucun résultat.
 test("l'agent remplit le formulaire d'inscription sans l'envoyer", async ({ app, agent, screen, browser }) => {
   test.skip(!process.env.AI_GATEWAY_API_KEY, "AI_GATEWAY_API_KEY absente : pas d'appel modèle");
   const log = await installGuards(browser);
   await app.open("/signup");
-  await agent.act("Fill the email field with personne@example.invalid and the password field with mot-de-passe-factice-1, then press the create account button");
-  // Les locators portent l'assertion (le cache rejoue act, jamais assert).
+  // Un objectif atomique par appel, chacun épinglé par un locator juste après
+  // (le cache rejoue act, jamais assert).
+  await agent.act("Type personne@example.invalid into the Email field. Do NOT press any button.");
   await expect(screen.getByLabel("Email")).toHaveValue("personne@example.invalid");
+  // Champ sécurisé : sa valeur n'est jamais relue, on le remplit par locator.
+  await screen.getByLabel("Mot de passe").fill("mot-de-passe-factice-1");
+  expect(log.blocked).toEqual([]);
+  await screen.getByRole("button", "Créer le compte").tap();
   await expect.poll(() => log.blocked.length).toBeGreaterThan(0);
 });

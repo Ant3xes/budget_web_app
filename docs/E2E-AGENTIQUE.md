@@ -40,6 +40,21 @@ Les pages publiques (login, inscription, légales, 404, redirection) n'ont pas b
 
 Après `npm run dev` : restaurer `next-env.d.ts` (`git checkout next-env.d.ts`) et supprimer un éventuel `AGENTS.md` généré avant de commiter.
 
+## Environnement derrière un proxy (sandbox cloud)
+
+Node n'utilise pas `HTTPS_PROXY` par défaut : sans `NODE_USE_ENV_PROXY=1` le SDK échoue en `ENOTFOUND ai-gateway.vercel.sh` (« Gateway request failed »).
+
+```bash
+export NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt NODE_OPTIONS=--disable-warning=UNDICI-EHPA
+export AI_GATEWAY_API_KEY=fourni-par-proxy   # valeur factice si le proxy injecte l'en-tête ; jamais de vraie clé dans le dépôt
+```
+
+## Notes de rédaction
+
+- La valeur d'un champ mot de passe ne peut pas être relue (champ sécurisé) : le remplir par locator, ne pas l'asserter.
+- Un clic de l'agent sur « envoyer » ferait afficher la page d'erreur de l'app (POST avorté volontairement) : l'agent saisit, le test soumet par locator.
+- Un objectif atomique par `agent.act`, épinglé par un locator.
+
 ## Accessibilité
 
 axe reste dans Playwright (`e2e/a11y.spec.ts`, `@axe-core/playwright`) : le moteur `e2e` n'expose pas de `Page` Playwright.
