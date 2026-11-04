@@ -37,8 +37,8 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.52 0.235 27.325);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --input: oklch(0.6 0 0); /* ≥3:1 on card/background (WCAG 1.4.11) */
+  --ring: oklch(0.5 0 0); /* ≥3:1 focus indicator */
   /* Categorical chart palette (light step) — validated against this surface
      (#ffffff) with scripts/validate_palette.js from the `dataviz` skill: all
      6 checks pass. Do not reorder — see matching comment in .dark below. */
@@ -86,8 +86,8 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(0.7 0 0 / 20%);
-  --input: oklch(0.7 0 0 / 25%);
-  --ring: oklch(0.556 0 0);
+  --input: oklch(0.6 0 0); /* ≥3:1 on card/background (WCAG 1.4.11) */
+  --ring: oklch(0.72 0 0); /* ≥3:1 focus indicator */
   /* Categorical chart palette (dark step) — validated against this surface
      (#171717) with scripts/validate_palette.js from the `dataviz` skill: all
      6 checks pass (lightness band, chroma floor, CVD separation >= 8,
@@ -189,7 +189,7 @@ body {
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground;
