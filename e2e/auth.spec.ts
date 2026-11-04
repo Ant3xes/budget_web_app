@@ -26,7 +26,8 @@ test.describe("Auth", () => {
     await page.getByLabel(/mot de passe|password/i).fill("WrongPassword!");
     await page.getByRole("button", { name: /connexion|se connecter|login|sign in/i }).click();
     await expect(page).toHaveURL(/message=invalidCredentials/);
-    await expect(page.getByRole("alert")).toContainText(/invalide|invalid/i);
+    // Next.js adds its own role="alert" (route announcer): target the message itself.
+    await expect(page.locator('p[role="alert"]')).toContainText(/invalide|invalid/i);
     // The auth library's own wording is never reflected into the page.
     await expect(page.getByText("Invalid login credentials")).toHaveCount(0);
   });
